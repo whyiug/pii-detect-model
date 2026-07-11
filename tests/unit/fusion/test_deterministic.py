@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from pii_zh.data.validators import luhn_check_digit
 from pii_zh.evaluation import PredictionRecord, Span
 from pii_zh.fusion import (
@@ -83,6 +85,40 @@ def test_canonical_vehicle_and_contextual_account_beat_generic_model_types() -> 
     assert [(item.entity_type, item.start, item.end) for item in fused] == [
         ("VEHICLE_LICENSE_PLATE", 4, 14),
         ("ALIPAY_ACCOUNT", 20, 39),
+    ]
+
+
+@pytest.mark.parametrize("trailing_digits_omitted", [0, 1, 2])
+def test_contextual_bank_account_rule_beats_same_or_truncated_model_card_surface(
+    trailing_digits_omitted: int,
+) -> None:
+    prefix = "62220212345678901"
+    account = prefix + luhn_check_digit(prefix)
+    text = f"收款账户：{account}"
+    start = text.index(account)
+    rules = CnCommonRulePack().analyze(text, entities=["BANK_ACCOUNT_NUMBER"])
+    model_end = start + len(account) - trailing_digits_omitted
+    model = _detection("BANK_CARD_NUMBER", start, model_end, 0.999, "qwen")
+
+    fused = DeterministicFusion().fuse(rules, [model])
+
+    assert [(item.entity_type, item.start, item.end) for item in fused] == [
+        ("BANK_ACCOUNT_NUMBER", start, start + len(account))
+    ]
+
+
+def test_explicit_bank_card_rule_beats_same_boundary_model_account() -> None:
+    prefix = "622202123456789"
+    card = prefix + luhn_check_digit(prefix)
+    text = f"工资账户绑定的银行卡号：{card}"
+    start = text.index(card)
+    rules = CnCommonRulePack().analyze(text, entities=["BANK_CARD_NUMBER"])
+    model = _detection("BANK_ACCOUNT_NUMBER", start, start + len(card), 0.999, "qwen")
+
+    fused = DeterministicFusion().fuse(rules, [model])
+
+    assert [(item.entity_type, item.start, item.end) for item in fused] == [
+        ("BANK_CARD_NUMBER", start, start + len(card))
     ]
 
 
@@ -185,3 +221,82 @@ def test_identity_context_suppresses_student_id_fragments_inside_identity_number
 
     assert len(retained.spans) == 1
     assert retained_suppressed == {}
+
+
+def test_account_context_suppresses_card_label_but_nearer_explicit_card_context_wins() -> None:
+    prefix = "622202123456789"
+    number = prefix + luhn_check_digit(prefix)
+    account_text = f"收款账户：{number}"
+    account_start = account_text.index(number)
+    account_record = PredictionRecord(
+        doc_id="account",
+        spans=(Span(account_start, account_start + len(number), "BANK_CARD_NUMBER", 0.9),),
+    )
+
+    account_refined, account_suppressed = suppress_invalid_structured_spans(
+        account_record, account_text
+    )
+
+    assert account_refined.spans == ()
+    assert account_suppressed == {"BANK_CARD_NUMBER": 1}
+
+    card_text = f"工资账户绑定的银行卡号：{number}"
+    card_start = card_text.index(number)
+    card_record = PredictionRecord(
+        doc_id="card-account-conflict",
+        spans=(Span(card_start, card_start + len(number), "BANK_CARD_NUMBER", 0.9),),
+    )
+
+    card_refined, card_suppressed = suppress_invalid_structured_spans(card_record, card_text)
+
+    assert len(card_refined.spans) == 1
+    assert card_suppressed == {}
+
+
+@pytest.mark.parametrize(
+    ("text", "date_value"),
+    [
+        ("出生日期：1990-01-02", "1990-01-02"),
+        ("会员生日为1990.01.02", "1990.01.02"),
+        ("DOB=19900102", "19900102"),
+        ("年龄核验所用日期：1990年1月2日", "1990年1月2日"),
+    ],
+)
+def test_birth_date_refinement_requires_and_keeps_affirmative_semantics(
+    text: str, date_value: str
+) -> None:
+    start = text.index(date_value)
+    record = PredictionRecord(
+        doc_id="affirmative-birth",
+        spans=(Span(start, start + len(date_value), "DATE_OF_BIRTH", 0.9),),
+    )
+
+    refined, suppressed = suppress_invalid_structured_spans(record, text)
+
+    assert len(refined.spans) == 1
+    assert suppressed == {}
+
+
+@pytest.mark.parametrize(
+    ("text", "date_value"),
+    [
+        ("版本计划发布日期为2026-07-11", "2026-07-11"),
+        ("业务日期：2026/07/11", "2026/07/11"),
+        ("这不是出生信息，发布日期为2026-07-11", "2026-07-11"),
+        ("非出生日期：2026-07-11", "2026-07-11"),
+        ("出生日期不适用：2026-07-11", "2026-07-11"),
+    ],
+)
+def test_birth_date_refinement_suppresses_business_dates_and_negated_birth_context(
+    text: str, date_value: str
+) -> None:
+    start = text.index(date_value)
+    record = PredictionRecord(
+        doc_id="non-birth-date",
+        spans=(Span(start, start + len(date_value), "DATE_OF_BIRTH", 0.9),),
+    )
+
+    refined, suppressed = suppress_invalid_structured_spans(record, text)
+
+    assert refined.spans == ()
+    assert suppressed == {"DATE_OF_BIRTH": 1}

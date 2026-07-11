@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from pii_zh.data.validators import cn_resident_id_check_code, luhn_check_digit
 from pii_zh.rules import CnCommonRulePack
 
@@ -70,6 +72,61 @@ def test_luhn_valid_student_suffix_is_not_reclassified_as_a_bank_card() -> None:
 
     assert [(match.entity_type, text[match.start : match.end]) for match in matches] == [
         ("STUDENT_ID", student_id)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("context", "account"),
+    [
+        ("银行账户号", "12345678"),
+        ("银行账号", "1234 5678 9012"),
+        ("工资账户", "8765-4321-0987"),
+        ("收款账户", "998877665544"),
+    ],
+)
+def test_bank_account_rule_requires_strong_context_and_keeps_complete_safe_digit_run(
+    context: str, account: str
+) -> None:
+    text = f"请登记{context}：{account}，核对后入账。"
+
+    matches = CnCommonRulePack().analyze(text, entities=["BANK_ACCOUNT_NUMBER"])
+
+    assert [(match.entity_type, text[match.start : match.end]) for match in matches] == [
+        ("BANK_ACCOUNT_NUMBER", account)
+    ]
+    assert matches[0].pattern_id == "bank_account_strong_context"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "流水编号：12345678",
+        "银行账号：A12345678",
+        "银行账号：12345678Z",
+        "银行账号：1234/5678",
+        "银行账号：1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1",
+    ],
+)
+def test_bank_account_rule_rejects_missing_context_unsafe_boundaries_and_truncation(
+    text: str,
+) -> None:
+    assert CnCommonRulePack().analyze(text, entities=["BANK_ACCOUNT_NUMBER"]) == []
+
+
+def test_account_and_card_context_choose_one_semantic_type_for_a_luhn_valid_surface() -> None:
+    prefix = "622202123456789"
+    number = prefix + luhn_check_digit(prefix)
+    account_text = f"工资账户：{number}"
+    card_text = f"工资账户绑定的银行卡号：{number}"
+
+    account_matches = CnCommonRulePack().analyze(account_text)
+    card_matches = CnCommonRulePack().analyze(card_text)
+
+    assert [
+        (match.entity_type, account_text[match.start : match.end]) for match in account_matches
+    ] == [("BANK_ACCOUNT_NUMBER", number)]
+    assert [(match.entity_type, card_text[match.start : match.end]) for match in card_matches] == [
+        ("BANK_CARD_NUMBER", number)
     ]
 
 

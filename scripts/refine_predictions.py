@@ -23,6 +23,8 @@ from pii_zh.evaluation import (  # noqa: E402
 )
 from pii_zh.fusion import suppress_invalid_structured_spans  # noqa: E402
 
+REFINEMENT_ID = "structured_refinement_v3"
+
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -95,6 +97,7 @@ def main() -> int:
         {
             "schema_version": 1,
             "manifest_type": "structured_prediction_refinement",
+            "refinement_id": REFINEMENT_ID,
             "inputs": {
                 "documents_sha256": sha256_file(documents),
                 "predictions_sha256": sha256_file(predictions),

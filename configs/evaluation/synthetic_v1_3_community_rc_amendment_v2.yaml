@@ -1,0 +1,109 @@
+schema_version: 1
+decision_id: synthetic_v1_3_community_rc_v2
+status: amended_before_holdout_access
+candidate_scope: community_research_release_candidate
+production_ready: false
+
+parent_decision:
+  decision_id: synthetic_v1_3_community_rc_v1
+  config_sha256: ca1d23599a10da9ed8878ffb17ea5e5d40fad23c9fe353e3f8370c0909cc265e
+  code_revision: 2746ad61b0b348de1eacaca4c03d3fb62b83d357
+
+amendment:
+  date: "2026-07-11"
+  holdout_accessed: false
+  thresholds_changed: false
+  seeds_changed: false
+  selected_seed_changed: false
+  reason: validation_only_system_boundary_failures
+  observed_failures:
+    - seed: 13
+      criterion: pii_free_false_positive_rate
+      observed: 0.04
+      threshold: 0.02
+      diagnosis: model_only_date_of_birth_predictions_on_ordinary_business_dates
+      evaluation_manifest_sha256: 14569756ee4080b2319cd525d1a6827e54a7e55b090557a26aa3766b6b78c796
+    - seed: 97
+      criterion: tier0_bank_account_number_candidate_recall
+      observed: 0.7007874015748031
+      threshold: 0.90
+      diagnosis: missing_contextual_account_rule_and_card_account_overlap_precedence
+      fused_predictions_sha256: 37b7d987874576226fe36f64e6979f95abb9d5013a7b108c8390160f4ae4da6f
+  allowed_changes:
+    - add_strong_context_bank_account_rule
+    - disambiguate_bank_account_and_bank_card_context
+    - require_affirmative_birth_context_during_refinement
+    - separate_calibration_fit_provenance_from_frozen_target_application
+  forbidden_changes:
+    - lower_quality_thresholds
+    - change_seed_set
+    - inspect_or_tune_on_frozen_test
+    - refit_calibration_on_any_test_subset
+
+dataset:
+  dataset_id: pii_zh_synthetic_v1
+  dataset_version: 1.3.0
+  validation_sha256: 9affd99f5dd6a2aaac37b7975f3c3f051e7edb2d44be471a7238d27498c0b40d
+  frozen_test_sha256: 26e49949d0bd876b51c693b7b31135b5ce503ca6a5ab7cfca37177e0ccbd4384
+  frozen_test_access_before_validation_gate: forbidden
+
+system:
+  attention_mode: full
+  initializer_attention_mode: jpt
+  seeds: [13, 42, 97]
+  selected_seed: 42
+  selection_rule: fixed_conventional_seed_before_holdout_access
+  ruleset_id: cn_common_v5
+  rules_implementation_sha256: dbd05c10e662e9a97d3a993b26b95ebcfb29edd5044e1265373f85b7dd57a432
+  fusion: deterministic_fusion_v1
+  fusion_implementation_sha256: 8efc41af2f5146299d87f3b8eddea72fff6c1c6eeca7c7bf7a5c93bcfe71e7fb
+  calibration:
+    fit_per_seed_on_validation: true
+    selected_seed_bundle_frozen_before_holdout_access: true
+    holdout_policy: apply_only_no_refit
+    t0_recall_floor: 0.90
+    t1_recall_floor: 0.85
+    temperature_scaling: true
+  refinement: structured_prediction_refinement_v3
+  refinement_implementation_sha256: cbb22417a6d75b516176021c71444cdc58ecced20b34d9921a4a5d431498f59e
+
+per_seed_criteria:
+  strict_micro_f1:
+    operator: ">="
+    threshold: 0.94
+  strict_macro_f1:
+    operator: ">="
+    threshold: 0.94
+  pii_free_false_positive_rate:
+    operator: "<="
+    threshold: 0.02
+  tier0_min_label_recall:
+    operator: ">="
+    threshold: 0.90
+  tier1_min_label_recall:
+    operator: ">="
+    threshold: 0.85
+  calibration_completed:
+    operator: "=="
+    threshold: true
+
+aggregate_criteria:
+  unique_seed_count:
+    operator: ">="
+    threshold: 3
+  every_seed_passes:
+    operator: "=="
+    threshold: true
+
+holdout_unlock:
+  requires_release_decision: passed
+  required_seed_evidence: [13, 42, 97]
+  calibration_refit_on_holdout: forbidden
+  post_unlock_changes_to_model_or_system: forbidden
+
+notes:
+  - This amendment records validation-only corrections before any frozen holdout access.
+  - All numerical quality thresholds and the three-seed set are unchanged from v1.
+  - Validation is rerun from raw model predictions for every seed under one frozen v2 system.
+  - These gates qualify a community research release candidate, not production deployment.
+  - The stricter production targets in pii-detect-plan.md remain unmet until separately proven.

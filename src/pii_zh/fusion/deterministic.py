@@ -11,7 +11,10 @@ DEFAULT_SPECIFICITY: dict[str, int] = {
     "CN_ID_CARD": 120,
     "CN_RESIDENT_ID": 120,
     "BANK_CARD_NUMBER": 120,
-    "BANK_ACCOUNT_NUMBER": 115,
+    # Account/card surface forms overlap. Equal specificity lets the vetted
+    # contextual rule source break ties in either direction without globally
+    # preferring one financial type over the other.
+    "BANK_ACCOUNT_NUMBER": 120,
     "PASSPORT_NUMBER": 115,
     "DRIVER_LICENSE_NUMBER": 115,
     "CN_SOCIAL_SECURITY_NUMBER": 115,
@@ -43,6 +46,12 @@ DEFAULT_SPECIFICITY: dict[str, int] = {
     "GENERIC_ID": 10,
     "ID": 10,
     "NUMBER": 0,
+}
+DEFAULT_SOURCE_PRIORITY: dict[str, int] = {
+    "customer_rule": 50,
+    "rule:cn_common": 40,
+    "qwen": 30,
+    "ernie": 20,
 }
 
 
@@ -127,13 +136,7 @@ class DeterministicFusion:
             if not math.isfinite(value) or not 0.0 <= value <= 1.0:
                 raise ValueError("fusion thresholds must be finite and between zero and one")
         self.specificity = {**DEFAULT_SPECIFICITY, **dict(specificity or {})}
-        self.source_priority = {
-            "customer_rule": 50,
-            "rule:cn_common": 40,
-            "qwen": 30,
-            "ernie": 20,
-            **dict(source_priority or {}),
-        }
+        self.source_priority = {**DEFAULT_SOURCE_PRIORITY, **dict(source_priority or {})}
         self.keep_nested_different_types = keep_nested_different_types
 
     def _specificity(self, detection: FusedDetection) -> int:
@@ -218,6 +221,7 @@ class DeterministicFusion:
 
 __all__ = [
     "DEFAULT_SPECIFICITY",
+    "DEFAULT_SOURCE_PRIORITY",
     "DeterministicFusion",
     "FusedDetection",
     "as_detection",

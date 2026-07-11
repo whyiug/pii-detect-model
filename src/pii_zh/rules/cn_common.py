@@ -10,6 +10,37 @@ from typing import Any
 
 from pii_zh.data.validators import validate_cn_resident_id, validate_entity_value
 
+_IDENTITY_CONTEXT = ("身份证", "证件号", "公民身份", "无效证件", "证件串")
+_BANK_ACCOUNT_CONTEXT = (
+    "银行账户号码",
+    "银行账户号",
+    "银行账号",
+    "银行账户",
+    "工资账户",
+    "薪资账户",
+    "收款账户",
+    "结算账户",
+    "入账账户",
+    "转账账户",
+    "退款账户",
+    "付款账户",
+    "bank account",
+    "account number",
+    "account no",
+)
+_BANK_CARD_CONTEXT = (
+    "银行卡号",
+    "银行卡",
+    "信用卡号",
+    "信用卡",
+    "借记卡号",
+    "借记卡",
+    "储蓄卡号",
+    "储蓄卡",
+    "工资卡",
+    "卡号",
+)
+
 
 @dataclass(frozen=True, slots=True)
 class RuleDefinition:
@@ -64,6 +95,85 @@ def _rule(
     )
 
 
+def _nearest_context_distance(
+    text: str,
+    start: int,
+    end: int,
+    phrases: Sequence[str],
+    *,
+    window_size: int,
+) -> int | None:
+    window_start = max(0, start - window_size)
+    window_end = min(len(text), end + window_size)
+    window = text[window_start:window_end].lower()
+    distances: list[int] = []
+    for phrase in phrases:
+        normalized = phrase.lower()
+        offset = window.find(normalized)
+        while offset >= 0:
+            phrase_start = window_start + offset
+            phrase_end = phrase_start + len(normalized)
+            distances.append(
+                (start - phrase_end) * 2
+                if phrase_end <= start
+                else (phrase_start - end) * 2 + 1
+                if phrase_start >= end
+                else 0
+            )
+            offset = window.find(normalized, offset + 1)
+    return min(distances) if distances else None
+
+
+def _has_stronger_context(
+    text: str,
+    start: int,
+    end: int,
+    *,
+    stronger: Sequence[str],
+    weaker: Sequence[str],
+    window_size: int,
+) -> bool:
+    stronger_distance = _nearest_context_distance(
+        text, start, end, stronger, window_size=window_size
+    )
+    weaker_distance = _nearest_context_distance(text, start, end, weaker, window_size=window_size)
+    return stronger_distance is not None and (
+        weaker_distance is None or stronger_distance < weaker_distance
+    )
+
+
+def _nearest_preceding_context_distance(
+    text: str, start: int, phrases: Sequence[str], *, window_size: int
+) -> int | None:
+    window_start = max(0, start - window_size)
+    prefix = text[window_start:start].lower()
+    distances = [
+        start - (window_start + offset + len(phrase))
+        for phrase in (item.lower() for item in phrases)
+        if (offset := prefix.rfind(phrase)) >= 0
+    ]
+    return min(distances) if distances else None
+
+
+def _has_stronger_preceding_context(
+    text: str,
+    start: int,
+    *,
+    stronger: Sequence[str],
+    weaker: Sequence[str],
+    window_size: int,
+) -> bool:
+    stronger_distance = _nearest_preceding_context_distance(
+        text, start, stronger, window_size=window_size
+    )
+    weaker_distance = _nearest_preceding_context_distance(
+        text, start, weaker, window_size=window_size
+    )
+    return stronger_distance is not None and (
+        weaker_distance is None or stronger_distance < weaker_distance
+    )
+
+
 CN_COMMON_RULES: tuple[RuleDefinition, ...] = (
     _rule(
         "CN_ID_CARD",
@@ -96,9 +206,17 @@ CN_COMMON_RULES: tuple[RuleDefinition, ...] = (
         validator_label="EMAIL_ADDRESS",
     ),
     _rule(
+        "BANK_ACCOUNT_NUMBER",
+        "bank_account_strong_context",
+        r"(?<![A-Za-z0-9])(?<!\d[ -])\d(?:[ -]?\d){7,29}(?![A-Za-z0-9])(?![ -]\d)",
+        0.97,
+        required_context=_BANK_ACCOUNT_CONTEXT,
+    ),
+    _rule(
         "BANK_CARD_NUMBER",
         "bank_card_luhn",
-        r"(?<![A-Za-z0-9])(?:\d[ -]?){11,18}\d(?![A-Za-z0-9])",
+        r"(?<![A-Za-z0-9])(?<!\d[ -])(?:\d[ -]?){11,18}\d"
+        r"(?![A-Za-z0-9])(?![ -]\d)",
         0.99,
         validator_label="BANK_CARD_NUMBER",
     ),
@@ -274,14 +392,38 @@ class CnCommonRulePack:
                     else None
                 )
                 # An 18-digit resident ID can occasionally also satisfy Luhn;
-                # keep the semantically stronger checksum rule only.
+                # keep the semantically stronger checksum/context rule only.
                 if rule.entity_type == "BANK_CARD_NUMBER":
-                    nearby = text[max(0, start - self.context_window) : start]
-                    looks_like_id_field = any(
-                        phrase in nearby for phrase in ("身份证", "证件号", "公民身份")
+                    stronger_identity_context = _has_stronger_preceding_context(
+                        text,
+                        start,
+                        stronger=_IDENTITY_CONTEXT,
+                        weaker=_BANK_CARD_CONTEXT,
+                        window_size=self.context_window,
                     )
-                    if validate_cn_resident_id(value).valid or looks_like_id_field:
+                    stronger_account_context = _has_stronger_context(
+                        text,
+                        start,
+                        end,
+                        stronger=_BANK_ACCOUNT_CONTEXT,
+                        weaker=_BANK_CARD_CONTEXT,
+                        window_size=self.context_window,
+                    )
+                    if (
+                        validate_cn_resident_id(value).valid
+                        or stronger_identity_context
+                        or stronger_account_context
+                    ):
                         continue
+                if rule.entity_type == "BANK_ACCOUNT_NUMBER" and _has_stronger_context(
+                    text,
+                    start,
+                    end,
+                    stronger=_BANK_CARD_CONTEXT,
+                    weaker=_BANK_ACCOUNT_CONTEXT,
+                    window_size=self.context_window,
+                ):
+                    continue
                 valid = validation is None or validation.valid
                 if not valid and not include_invalid:
                     continue
