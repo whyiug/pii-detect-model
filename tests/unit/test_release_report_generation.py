@@ -394,6 +394,16 @@ def test_report_is_dynamic_source_bound_and_public_safe() -> None:
         "checksums",
         "source_registry",
     }
+    sources_by_id = {source["id"]: source for source in source_rows}
+    for item in (
+        *artifact["manifest"]["cards"],
+        *artifact["manifest"]["charts"],
+        *artifact["manifest"]["tables"],
+    ):
+        source = sources_by_id[item["sourceId"]]
+        assert source["query"]["engine"] == "sqlite"
+        assert source["query"]["sql"].startswith("WITH ")
+        assert source["query"]["metric_definitions"]
     serialized = json.dumps(artifact, ensure_ascii=False)
     assert "81.48%" not in serialized
     assert "23.83%" not in serialized

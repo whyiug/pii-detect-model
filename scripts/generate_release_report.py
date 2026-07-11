@@ -9,6 +9,7 @@ import json
 import math
 import os
 import re
+import sqlite3
 import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
@@ -817,6 +818,101 @@ def _source(
     return result
 
 
+def _sql_literal(value: object) -> str:
+    if value is None:
+        return "NULL"
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ReleaseReportError("report SQL dataset contains a non-finite value")
+        return repr(value)
+    if isinstance(value, str):
+        return "'" + value.replace("'", "''") + "'"
+    raise ReleaseReportError("report SQL datasets must contain only scalar values")
+
+
+def _materialize_sql_dataset(
+    dataset_id: str,
+    rows: Sequence[Mapping[str, Any]],
+) -> tuple[list[dict[str, Any]], str]:
+    """Execute a self-contained SQLite query that exactly reproduces aggregate rows."""
+
+    if _SAFE_ID.fullmatch(dataset_id) is None or not rows:
+        raise ReleaseReportError("report SQL dataset requires a safe id and at least one row")
+    columns = tuple(rows[0])
+    if not columns or any(_SAFE_ID.fullmatch(column) is None for column in columns):
+        raise ReleaseReportError(f"{dataset_id} has unsafe or empty SQL columns")
+    if any(tuple(row) != columns for row in rows):
+        raise ReleaseReportError(f"{dataset_id} rows do not share one ordered schema")
+
+    quoted_columns = ", ".join(f'"{column}"' for column in columns)
+    values = ",\n    ".join(
+        "(" + ", ".join(_sql_literal(row[column]) for column in columns) + ")" for row in rows
+    )
+    sql = (
+        f'WITH "source" ({quoted_columns}) AS (\n'
+        f"  VALUES\n    {values}\n"
+        f')\nSELECT {quoted_columns}\nFROM "source"'
+    )
+    boolean_fields = {
+        column
+        for column in columns
+        if any(row[column] is not None for row in rows)
+        and all(row[column] is None or isinstance(row[column], bool) for row in rows)
+    }
+    try:
+        with sqlite3.connect(":memory:") as connection:
+            cursor = connection.execute(sql)
+            materialized = [
+                {
+                    column: (
+                        bool(value) if column in boolean_fields and value is not None else value
+                    )
+                    for column, value in zip(columns, record, strict=True)
+                }
+                for record in cursor.fetchall()
+            ]
+    except sqlite3.Error as exc:
+        raise ReleaseReportError(f"failed to execute aggregate SQL for {dataset_id}") from exc
+    expected = [dict(row) for row in rows]
+    if materialized != expected:
+        raise ReleaseReportError(f"aggregate SQL did not reproduce {dataset_id} exactly")
+    return materialized, sql
+
+
+def _query_source(
+    *,
+    dataset_id: str,
+    label: str,
+    sql: str,
+    upstream_source_id: str,
+    generated_at: str,
+    metric_definitions: Sequence[str],
+) -> dict[str, Any]:
+    source_id = f"query_{dataset_id}"
+    return {
+        "id": source_id,
+        "label": label,
+        "sha256": _sha256_bytes(sql.encode("utf-8")),
+        "query": {
+            "id": source_id,
+            "engine": "sqlite",
+            "sql": sql,
+            "description": (
+                "Executed over aggregate rows derived from content-addressed source "
+                f"{upstream_source_id}; no record-level data is present."
+            ),
+            "tables_used": ["source"],
+            "filters": ["none"],
+            "metric_definitions": list(metric_definitions),
+            "executed_at": generated_at,
+        },
+    }
+
+
 def build_artifact(
     *,
     evaluation: Mapping[str, Any],
@@ -920,6 +1016,92 @@ def build_artifact(
     dependency_count_text = _count_text(int(dependency_info["dependency_count"]))
     bootstrap_confidence = _percent(float(bootstrap_info["confidence"]))
 
+    aggregate_rows: dict[str, list[dict[str, Any]]] = {
+        "pooled_metrics": [pooled_row],
+        "synthetic_risk": [{"fpr": synthetic_fpr}],
+        "frozen_metrics": frozen_rows,
+        "frozen_metrics_long": frozen_long,
+        "validation_seeds": seed_rows,
+        "gate_checks": gate_rows,
+        "coverage": coverage_rows,
+        "training_identity": training_rows,
+        "data_sources": data_rows,
+        "teacher_sources": teacher_rows,
+    }
+    query_metadata: dict[str, tuple[str, str, tuple[str, ...]]] = {
+        "pooled_metrics": (
+            "Pooled frozen metrics SQL",
+            "frozen_evaluation",
+            (
+                "precision = pooled TP / (pooled TP + pooled FP)",
+                "recall = pooled TP / (pooled TP + pooled FN)",
+                "f1 = harmonic mean of pooled precision and recall",
+            ),
+        ),
+        "synthetic_risk": (
+            "Synthetic PII-free risk SQL",
+            "frozen_evaluation",
+            ("fpr = PII-free documents with one or more false positives / PII-free documents",),
+        ),
+        "frozen_metrics": (
+            "Frozen suite metrics SQL",
+            "frozen_evaluation",
+            ("strict_f1 requires exact entity label and exact character boundaries",),
+        ),
+        "frozen_metrics_long": (
+            "Frozen suite chart SQL",
+            "frozen_evaluation",
+            ("value is the named strict precision, recall, or F1 metric for each suite",),
+        ),
+        "validation_seeds": (
+            "Validation seed metrics SQL",
+            "validation_gate",
+            ("strict_micro_f1 is validation-only and is not frozen-test performance",),
+        ),
+        "gate_checks": (
+            "Machine gate receipt SQL",
+            "release_gate",
+            ("status is PASS only when the gate has no recorded issue",),
+        ),
+        "coverage": (
+            "Evidence coverage SQL",
+            "combined_evaluation",
+            ("status distinguishes measured evidence from explicitly unmeasured scope",),
+        ),
+        "training_identity": (
+            "Training identity SQL",
+            "training_manifest",
+            ("source_id is the selected manifest's base_source_id",),
+        ),
+        "data_sources": (
+            "Training data provenance SQL",
+            "data_provenance",
+            ("sample_count and admission values are copied from validated data provenance",),
+        ),
+        "teacher_sources": (
+            "Teacher provenance SQL",
+            "teacher_provenance",
+            ("accepted and reviewed counts are copied from validated teacher provenance",),
+        ),
+    }
+    generated_at = _string(dependency_info.get("generated_at"), field="generated_at")
+    query_datasets: dict[str, list[dict[str, Any]]] = {}
+    query_sources: list[dict[str, Any]] = []
+    for dataset_id, rows in aggregate_rows.items():
+        materialized, sql = _materialize_sql_dataset(dataset_id, rows)
+        query_datasets[dataset_id] = materialized
+        label, upstream_source_id, metric_definitions = query_metadata[dataset_id]
+        query_sources.append(
+            _query_source(
+                dataset_id=dataset_id,
+                label=label,
+                sql=sql,
+                upstream_source_id=upstream_source_id,
+                generated_at=generated_at,
+                metric_definitions=metric_definitions,
+            )
+        )
+
     sources = [
         _source(
             source_id="combined_evaluation",
@@ -1004,6 +1186,7 @@ def build_artifact(
                 sha256=source_hashes["dependency_exceptions"],
             )
         )
+    sources.extend(query_sources)
 
     summary_body = (
         "## 结论：机器检查支持研究 RC，生产边界仍关闭\n\n"
@@ -1100,14 +1283,14 @@ def build_artifact(
                         "不是跨 suite bootstrap。"
                     ),
                     "dataset": "pooled_metrics",
-                    "sourceId": "frozen_evaluation",
+                    "sourceId": "query_pooled_metrics",
                     "metrics": [{"label": "Pooled strict F1", "field": "f1", "format": "percent"}],
                 },
                 {
                     "id": "pooled_precision",
                     "description": "冻结 suite 的 count-pooled strict precision。",
                     "dataset": "pooled_metrics",
-                    "sourceId": "frozen_evaluation",
+                    "sourceId": "query_pooled_metrics",
                     "metrics": [
                         {"label": "Pooled precision", "field": "precision", "format": "percent"}
                     ],
@@ -1116,7 +1299,7 @@ def build_artifact(
                     "id": "pooled_recall",
                     "description": "冻结 suite 的 count-pooled strict recall。",
                     "dataset": "pooled_metrics",
-                    "sourceId": "frozen_evaluation",
+                    "sourceId": "query_pooled_metrics",
                     "metrics": [{"label": "Pooled recall", "field": "recall", "format": "percent"}],
                 },
                 {
@@ -1125,7 +1308,7 @@ def build_artifact(
                         f"{synthetic_free_count} 篇 synthetic 无 PII 文档中出现至少一个误报的比例。"
                     ),
                     "dataset": "synthetic_risk",
-                    "sourceId": "frozen_evaluation",
+                    "sourceId": "query_synthetic_risk",
                     "metrics": [
                         {"label": "PII-free document FPR", "field": "fpr", "format": "percent"}
                     ],
@@ -1138,7 +1321,7 @@ def build_artifact(
                     "subtitle": f"最低 recall suite：{lowest_recall['suite']}。",
                     "type": "bar",
                     "dataset": "frozen_metrics_long",
-                    "sourceId": "frozen_evaluation",
+                    "sourceId": "query_frozen_metrics_long",
                     "valueFormat": "percent",
                     "encodings": {
                         "x": {"field": "suite", "type": "nominal", "label": "Suite"},
@@ -1155,7 +1338,7 @@ def build_artifact(
                     "subtitle": "Validation gate 不能替代冻结测试。",
                     "type": "bar",
                     "dataset": "validation_seeds",
-                    "sourceId": "validation_gate",
+                    "sourceId": "query_validation_seeds",
                     "valueFormat": "percent",
                     "encodings": {
                         "x": {"field": "seed", "type": "nominal", "label": "Seed"},
@@ -1176,7 +1359,7 @@ def build_artifact(
                         f" {bootstrap_info['method']}，confidence={bootstrap_confidence}。"
                     ),
                     "dataset": "frozen_metrics",
-                    "sourceId": "frozen_evaluation",
+                    "sourceId": "query_frozen_metrics",
                     "defaultSort": {"field": "strict_f1", "direction": "desc"},
                     "columns": [
                         {"field": "suite", "label": "Suite", "type": "text"},
@@ -1194,7 +1377,7 @@ def build_artifact(
                     "title": "机器发布闸门",
                     "subtitle": f"当前 gate receipt 含 {gate_count} 个唯一 PASS 项。",
                     "dataset": "gate_checks",
-                    "sourceId": "release_gate",
+                    "sourceId": "query_gate_checks",
                     "defaultSort": {"field": "gate", "direction": "asc"},
                     "columns": [
                         {"field": "gate", "label": "Gate", "type": "text"},
@@ -1207,7 +1390,7 @@ def build_artifact(
                     "title": "证据覆盖与缺口",
                     "subtitle": "未测项目不能由已测公开数据推断。",
                     "dataset": "coverage",
-                    "sourceId": "combined_evaluation",
+                    "sourceId": "query_coverage",
                     "defaultSort": {"field": "status", "direction": "asc"},
                     "columns": [
                         {"field": "evidence", "label": "Evidence", "type": "text"},
@@ -1219,7 +1402,7 @@ def build_artifact(
                     "title": "训练清单中的基座来源",
                     "subtitle": "不从训练清单之外推断许可或准入结论。",
                     "dataset": "training_identity",
-                    "sourceId": "training_manifest",
+                    "sourceId": "query_training_identity",
                     "defaultSort": {"field": "source_id", "direction": "asc"},
                     "columns": [
                         {"field": "source_id", "label": "Source", "type": "text"},
@@ -1231,7 +1414,7 @@ def build_artifact(
                     "title": "训练数据来源",
                     "subtitle": "角色、许可、计数与准入值直接来自已验证 provenance。",
                     "dataset": "data_sources",
-                    "sourceId": "data_provenance",
+                    "sourceId": "query_data_sources",
                     "defaultSort": {"field": "source_id", "direction": "asc"},
                     "columns": [
                         {"field": "source_id", "label": "Source", "type": "text"},
@@ -1250,7 +1433,7 @@ def build_artifact(
                     "title": "模板候选生成来源",
                     "subtitle": "角色、许可和候选计数直接来自已验证 provenance。",
                     "dataset": "teacher_sources",
-                    "sourceId": "teacher_provenance",
+                    "sourceId": "query_teacher_sources",
                     "defaultSort": {"field": "source_id", "direction": "asc"},
                     "columns": [
                         {"field": "source_id", "label": "Source", "type": "text"},
@@ -1362,20 +1545,9 @@ def build_artifact(
         },
         "snapshot": {
             "version": 1,
-            "generatedAt": dependency_info["generated_at"],
+            "generatedAt": generated_at,
             "status": "ready",
-            "datasets": {
-                "pooled_metrics": [pooled_row],
-                "synthetic_risk": [{"fpr": synthetic_fpr}],
-                "frozen_metrics": frozen_rows,
-                "frozen_metrics_long": frozen_long,
-                "validation_seeds": seed_rows,
-                "gate_checks": gate_rows,
-                "coverage": coverage_rows,
-                "training_identity": training_rows,
-                "data_sources": data_rows,
-                "teacher_sources": teacher_rows,
-            },
+            "datasets": query_datasets,
             "accessIssues": [],
         },
         "sources": sources,
