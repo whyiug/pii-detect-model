@@ -65,11 +65,17 @@ Loading this architecture executes the repository's Python files. Review them, p
 release revision, and require safetensors:
 
 ```python
-from transformers import AutoModelForTokenClassification, AutoTokenizer
+from transformers import AutoModelForTokenClassification, PreTrainedTokenizerFast
 
 model_id = "<org>/zh-pii-qwen3-0.6b-bi"
 revision = "v1.0.0"
-tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
+# Load the serialized backend graph directly. Model-specific AutoTokenizer
+# reconstruction does not preserve this model's character-boundary contract.
+tokenizer = PreTrainedTokenizerFast.from_pretrained(
+    model_id,
+    revision=revision,
+    fix_mistral_regex=False,
+)
 model = AutoModelForTokenClassification.from_pretrained(
     model_id,
     revision=revision,
@@ -77,6 +83,9 @@ model = AutoModelForTokenClassification.from_pretrained(
     use_safetensors=True,
 )
 ```
+
+Do not replace the generic tokenizer loader above with `AutoTokenizer`: exact per-character offsets
+are part of the trained and attested model contract.
 
 Record the tested lower/upper Transformers versions. The remote code performs no network, shell,
 or dynamic-download operation; `checksums.txt` covers the code and every public artifact.
@@ -86,4 +95,3 @@ or dynamic-download operation; `checksums.txt` covers the code and every public 
 The declared model license applies only after the release-specific source registry and legal
 review pass. See `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES.md`, and the provenance files. Report
 security, privacy, memorization, and provenance issues through the private route in `SECURITY.md`.
-

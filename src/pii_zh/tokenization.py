@@ -8,11 +8,30 @@ before applying the unchanged Qwen byte-level BPE.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 BOUNDARY_MODE_CONFIG_KEY = "pii_zh_boundary_mode"
 BOUNDARY_MODE = "unicode_codepoint_v1"
-_AUDIT_TEXT = "甲A 1\n🙂é"
+_AUDIT_TEXT = "甲乙AB 12\n🙂é"
+_BOUNDARY_PRETOKENIZER = {
+    "type": "Sequence",
+    "pretokenizers": [
+        {
+            "type": "Split",
+            "pattern": {"Regex": r"[\s\S]"},
+            "behavior": "Isolated",
+            "invert": False,
+        },
+        {
+            "type": "ByteLevel",
+            "add_prefix_space": False,
+            "trim_offsets": False,
+            "use_regex": False,
+        },
+    ],
+}
 
 
 class TokenizerBoundaryError(RuntimeError):
@@ -39,6 +58,14 @@ def assert_character_boundary_tokenizer(
     if require_marker and _marker(tokenizer) != BOUNDARY_MODE:
         raise TokenizerBoundaryError("tokenizer is missing the versioned PII boundary mode")
     try:
+        backend = json.loads(tokenizer.backend_tokenizer.to_str())
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise TokenizerBoundaryError("tokenizer backend graph is unavailable") from exc
+    if backend.get("pre_tokenizer") != _BOUNDARY_PRETOKENIZER:
+        raise TokenizerBoundaryError(
+            "tokenizer pre-tokenizer graph violates the Unicode code-point boundary contract"
+        )
+    try:
         encoded = tokenizer(
             _AUDIT_TEXT,
             add_special_tokens=False,
@@ -56,6 +83,42 @@ def assert_character_boundary_tokenizer(
     covered = {position for start, end in non_empty for position in range(start, end)}
     if covered != set(range(len(_AUDIT_TEXT))):
         raise TokenizerBoundaryError("tokenizer offsets do not cover every input code point")
+
+
+def load_serialized_fast_tokenizer(
+    checkpoint: str | Path,
+    *,
+    require_boundary: bool = False,
+) -> Any:
+    """Load a local ``tokenizer.json`` without model-specific reconstruction.
+
+    Transformers 5's unified model tokenizers may rebuild parts of a backend
+    graph from vocabulary files.  The serialized pre-tokenizer is a trained
+    and attested character-boundary contract, so this project deliberately
+    uses the generic fast-tokenizer loader to preserve the complete graph.
+    """
+
+    root = Path(checkpoint).expanduser().resolve(strict=True)
+    if not root.is_dir():
+        raise TokenizerBoundaryError("tokenizer checkpoint must be a local directory")
+    for name in ("tokenizer.json", "tokenizer_config.json"):
+        if not (root / name).is_file():
+            raise TokenizerBoundaryError(f"tokenizer checkpoint is missing {name}")
+    try:
+        from transformers import PreTrainedTokenizerFast
+    except ImportError as exc:  # pragma: no cover - optional dependency boundary
+        raise TokenizerBoundaryError("Transformers fast-tokenizer support is required") from exc
+
+    tokenizer = PreTrainedTokenizerFast.from_pretrained(
+        root,
+        local_files_only=True,
+        fix_mistral_regex=False,
+    )
+    if not getattr(tokenizer, "is_fast", False):
+        raise TokenizerBoundaryError("serialized tokenizer did not load as a fast tokenizer")
+    if require_boundary:
+        assert_character_boundary_tokenizer(tokenizer)
+    return tokenizer
 
 
 def configure_character_boundary_tokenizer(tokenizer: Any) -> Any:
@@ -95,4 +158,5 @@ __all__ = [
     "TokenizerBoundaryError",
     "assert_character_boundary_tokenizer",
     "configure_character_boundary_tokenizer",
+    "load_serialized_fast_tokenizer",
 ]

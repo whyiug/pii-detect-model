@@ -13,7 +13,6 @@ from typing import Any
 try:
     import torch
     from transformers import (
-        AutoTokenizer,
         EarlyStoppingCallback,
         TrainingArguments,
         set_seed,
@@ -24,7 +23,10 @@ except ImportError as exc:  # pragma: no cover - optional training dependency
     ) from exc
 
 from pii_zh.taxonomy import load_taxonomy
-from pii_zh.tokenization import configure_character_boundary_tokenizer
+from pii_zh.tokenization import (
+    configure_character_boundary_tokenizer,
+    load_serialized_fast_tokenizer,
+)
 from pii_zh.training.config import TrainingConfig
 from pii_zh.training.data import (
     DynamicTokenCollator,
@@ -136,15 +138,7 @@ def _runtime_environment(config: TrainingConfig) -> dict[str, Any]:
 
 def _safe_tokenizer(checkpoint: str) -> Any:
     path = Path(checkpoint).expanduser().resolve(strict=True)
-    tokenizer = AutoTokenizer.from_pretrained(
-        path,
-        local_files_only=True,
-        trust_remote_code=False,
-        use_fast=True,
-        # Transformers' Mistral-regex migration must never rewrite the
-        # versioned character-boundary pre-tokenizer contract.
-        fix_mistral_regex=False,
-    )
+    tokenizer = load_serialized_fast_tokenizer(path)
     if not tokenizer.is_fast:
         raise RuntimeError("Qwen3 training requires a fast tokenizer with offset mappings")
     configure_character_boundary_tokenizer(tokenizer)

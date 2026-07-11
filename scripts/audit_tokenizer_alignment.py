@@ -14,14 +14,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from transformers import AutoTokenizer
-
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPOSITORY_ROOT / "src"))
 
 from pii_zh.data.alignment import align_document_to_bio  # noqa: E402
 from pii_zh.data.schema import iter_jsonl  # noqa: E402
-from pii_zh.tokenization import configure_character_boundary_tokenizer  # noqa: E402
+from pii_zh.tokenization import (  # noqa: E402
+    configure_character_boundary_tokenizer,
+    load_serialized_fast_tokenizer,
+)
 from pii_zh.training.manifest import (  # noqa: E402
     canonical_json_hash,
     sha256_file,
@@ -93,13 +94,7 @@ def main() -> int:
     args = _parser().parse_args()
     base_model = args.base_model.expanduser().resolve(strict=True)
     inputs = [path.expanduser().resolve(strict=True) for path in args.input]
-    default_tokenizer = AutoTokenizer.from_pretrained(
-        base_model,
-        local_files_only=True,
-        trust_remote_code=False,
-        use_fast=True,
-        fix_mistral_regex=False,
-    )
+    default_tokenizer = load_serialized_fast_tokenizer(base_model)
     safe_tokenizer = configure_character_boundary_tokenizer(copy.deepcopy(default_tokenizer))
     report: dict[str, Any] = {
         "schema_version": 1,

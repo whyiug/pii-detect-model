@@ -23,6 +23,7 @@ from pii_zh.tokenization import (
     TokenizerBoundaryError,
     assert_character_boundary_tokenizer,
     configure_character_boundary_tokenizer,
+    load_serialized_fast_tokenizer,
 )
 
 
@@ -85,6 +86,22 @@ def test_character_boundary_mode_is_marked_persisted_and_fail_closed(tmp_path) -
         fix_mistral_regex=False,
     )
     assert_character_boundary_tokenizer(loaded)
+    assert (
+        json.loads(loaded.backend_tokenizer.to_str())["pre_tokenizer"]
+        == json.loads(tokenizer.backend_tokenizer.to_str())["pre_tokenizer"]
+    )
+
+
+def test_serialized_loader_preserves_model_specific_backend_graph(tmp_path) -> None:
+    tokenizer = configure_character_boundary_tokenizer(_byte_tokenizer())
+    tokenizer.save_pretrained(tmp_path)
+    config_path = tmp_path / "tokenizer_config.json"
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config["tokenizer_class"] = "Qwen2Tokenizer"
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+
+    loaded = load_serialized_fast_tokenizer(tmp_path, require_boundary=True)
+
     assert (
         json.loads(loaded.backend_tokenizer.to_str())["pre_tokenizer"]
         == json.loads(tokenizer.backend_tokenizer.to_str())["pre_tokenizer"]

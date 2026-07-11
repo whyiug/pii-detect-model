@@ -14,13 +14,19 @@ import hashlib
 import json
 import os
 import re
+import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM
+
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_REPOSITORY_ROOT / "src"))
+
+from pii_zh.tokenization import load_serialized_fast_tokenizer  # noqa: E402
 
 CORE_LABELS = (
     "PERSON_NAME",
@@ -323,9 +329,7 @@ def main() -> None:
     if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
         raise RuntimeError("Expose exactly one approved CUDA device before running this script")
 
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_path, local_files_only=True, trust_remote_code=False
-    )
+    tokenizer = load_serialized_fast_tokenizer(model_path)
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         local_files_only=True,

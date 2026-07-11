@@ -10,7 +10,7 @@ from typing import Any
 
 try:
     import torch
-    from transformers import AutoTokenizer, Qwen3ForTokenClassification
+    from transformers import Qwen3ForTokenClassification
 except ImportError as exc:  # pragma: no cover - optional inference dependency
     raise ImportError("Local inference requires torch and transformers.") from exc
 
@@ -20,7 +20,7 @@ from pii_zh.models.qwen3_bi import (
     Qwen3BiForTokenClassification,
 )
 from pii_zh.models.qwen3_jpt import build_jpt_inputs
-from pii_zh.tokenization import assert_character_boundary_tokenizer
+from pii_zh.tokenization import load_serialized_fast_tokenizer
 
 _BOUND_METADATA_FILES = (
     "config.json",
@@ -288,16 +288,7 @@ def load_local_predictor(
         isinstance(jpt_sep_token_id, bool) or not isinstance(jpt_sep_token_id, int)
     ):
         raise InferenceSafetyError("JPT artifact is missing its separator token id")
-    tokenizer = AutoTokenizer.from_pretrained(
-        path,
-        local_files_only=True,
-        trust_remote_code=False,
-        use_fast=True,
-        # The packaged tokenizer intentionally uses our code-point splitter,
-        # not the Mistral legacy regex targeted by Transformers' migration.
-        fix_mistral_regex=False,
-    )
-    assert_character_boundary_tokenizer(tokenizer)
+    tokenizer = load_serialized_fast_tokenizer(path, require_boundary=True)
     return TransformersSpanPredictor(
         model,
         tokenizer,

@@ -11,14 +11,14 @@ try:
     import torch
     from safetensors import safe_open
     from safetensors.torch import load_file
-    from transformers import AutoTokenizer, Qwen3Config
+    from transformers import Qwen3Config
 except ImportError as exc:  # pragma: no cover - optional training dependency
     raise ImportError(
         "Staged initialization requires torch, safetensors, and Transformers."
     ) from exc
 
 from pii_zh.models.qwen3_bi import Qwen3BiForTokenClassification
-from pii_zh.tokenization import assert_character_boundary_tokenizer
+from pii_zh.tokenization import load_serialized_fast_tokenizer
 from pii_zh.training.config import STAGED_INITIALIZATION_STRATEGY, TrainingConfig
 from pii_zh.training.data import TrainingDataSummary
 from pii_zh.training.loading import (
@@ -230,14 +230,7 @@ def _validate_tokenizers(
     if manifest.get("tokenizer") != target:
         raise CheckpointSafetyError("initial model training tokenizer disagrees with the target")
     try:
-        source_tokenizer = AutoTokenizer.from_pretrained(
-            root,
-            local_files_only=True,
-            trust_remote_code=False,
-            use_fast=True,
-            fix_mistral_regex=False,
-        )
-        assert_character_boundary_tokenizer(source_tokenizer)
+        source_tokenizer = load_serialized_fast_tokenizer(root, require_boundary=True)
         source_effective = tokenizer_fingerprint(root, tokenizer=source_tokenizer).get("effective")
     except Exception as exc:
         raise CheckpointSafetyError(
