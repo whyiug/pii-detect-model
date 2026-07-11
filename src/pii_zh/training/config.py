@@ -18,6 +18,9 @@ class TrainingConfigError(ValueError):
     """Raised when a training configuration is incomplete or unsafe."""
 
 
+DOCUMENT_SAMPLING_STRATEGY = "rare_positive_v1_preserve_negative_mass"
+
+
 @dataclass(frozen=True, slots=True)
 class LoraSettings:
     rank: int = 32
@@ -236,6 +239,9 @@ class TrainingConfig:
         if isinstance(result["resume"], str):
             result["resume"] = True
         result["effective_classifier_learning_rate"] = self.effective_classifier_learning_rate
+        result["document_sampling_strategy"] = (
+            DOCUMENT_SAMPLING_STRATEGY if self.document_sampling else "disabled"
+        )
         return result
 
     @property

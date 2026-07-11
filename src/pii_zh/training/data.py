@@ -380,24 +380,37 @@ def compute_document_sampling_weights(
     *,
     cap: float = 5.0,
 ) -> torch.Tensor:
-    """Weight whole documents by their rarest gold entity class."""
+    """Weight rare positive documents without diluting hard negatives.
+
+    Rare-class weights are normalized to mean one *within positive
+    documents*. Negative documents keep weight one, so their aggregate
+    sampling probability remains equal to their corpus proportion. This
+    satisfies the rare-label objective without silently undoing the configured
+    hard-negative ratio.
+    """
 
     document_frequency: Counter[str] = Counter()
     for document in documents:
         document_frequency.update({span.label for span in document.gold_spans})
     total_documents = len(documents)
     weights: list[float] = []
+    positive_indices: list[int] = []
     for document in documents:
         labels = {span.label for span in document.gold_spans}
         if not labels:
             weights.append(1.0)
             continue
+        positive_indices.append(len(weights))
         weights.append(
             min(
                 cap,
                 max((total_documents / document_frequency[label]) ** 0.5 for label in labels),
             )
         )
+    if positive_indices:
+        positive_mean = sum(weights[index] for index in positive_indices) / len(positive_indices)
+        for index in positive_indices:
+            weights[index] /= positive_mean
     return torch.tensor(weights, dtype=torch.double)
 
 

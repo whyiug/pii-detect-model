@@ -42,6 +42,7 @@ from pii_zh.training.data import (
     TrainingSourceSummary,
     assert_disjoint_training_splits,
     compute_class_weights,
+    compute_document_sampling_weights,
     load_aligned_jsonl,
 )
 from pii_zh.training.loading import load_token_classifier_from_local_causal_lm
@@ -110,6 +111,31 @@ def test_class_weights_use_sqrt_frequency_with_cap() -> None:
     assert weights[1].item() == pytest.approx(2.0)
     assert weights[2].item() == pytest.approx(2.0)
     assert weights[3].item() == pytest.approx(1.0)
+
+
+def test_document_sampling_preserves_hard_negative_mass() -> None:
+    def document(index: int, labels: tuple[str, ...]) -> EncodedDocument:
+        return EncodedDocument(
+            doc_id=f"doc-{index}",
+            input_ids=(1,),
+            attention_mask=(1,),
+            labels=(0,),
+            offset_mapping=((0, 1),),
+            gold_spans=tuple(GoldSpan(start=0, end=1, label=label) for label in labels),
+        )
+
+    documents = (
+        document(0, ()),
+        document(1, ()),
+        document(2, ("COMMON",)),
+        document(3, ("COMMON",)),
+        document(4, ("RARE",)),
+    )
+    weights = compute_document_sampling_weights(documents)
+
+    assert weights[4] > weights[2]
+    assert weights[:2].sum().item() / weights.sum().item() == pytest.approx(2 / 5)
+    assert weights[2:].mean().item() == pytest.approx(1.0)
 
 
 class _CharacterTokenizer:
