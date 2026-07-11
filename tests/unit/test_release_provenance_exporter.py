@@ -39,9 +39,11 @@ def _source_summary(*, split: str, count: int, revision: str) -> dict[str, Any]:
     }
 
 
-def _split_summary(*, split: str, count: int, revision: str) -> dict[str, Any]:
+def _split_summary(
+    *, split: str, count: int, revision: str, split_sha256: str | None = None
+) -> dict[str, Any]:
     return {
-        "sha256": hashlib.sha256(split.encode()).hexdigest(),
+        "sha256": split_sha256 or hashlib.sha256(split.encode()).hexdigest(),
         "summary": {
             "document_count": count,
             "entity_count": count,
@@ -60,7 +62,7 @@ def _split_summary(*, split: str, count: int, revision: str) -> dict[str, Any]:
     }
 
 
-def _training_manifest(path: Path, *, revision: str) -> dict[str, Any]:
+def _training_manifest(path: Path, *, revision: str, validation_sha256: str) -> dict[str, Any]:
     value: dict[str, Any] = {
         "schema_version": 4,
         "status": "completed",
@@ -75,7 +77,12 @@ def _training_manifest(path: Path, *, revision: str) -> dict[str, Any]:
         ],
         "datasets": {
             "train": _split_summary(split="train", count=16_000, revision=revision),
-            "validation": _split_summary(split="validation", count=2_000, revision=revision),
+            "validation": _split_summary(
+                split="validation",
+                count=2_000,
+                revision="sha256:" + "9" * 64,
+                split_sha256=validation_sha256,
+            ),
         },
         "output_artifact": {"weights_combined_sha256": "a" * 64},
     }
@@ -126,9 +133,15 @@ def test_exporter_is_deterministic_self_hashed_and_path_free(tmp_path: Path) -> 
     registry_path = repository_root / "configs/data/source_registry.yaml"
     asset_path = repository_root / "src/pii_zh/data/synthetic/assets/curated_templates_v1.json"
     registry = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
-    revision = _registry_source(registry, "repo_curated_synthetic_templates")["revision"]
+    data_registry = _registry_source(registry, "repo_curated_synthetic_templates")
+    revision = data_registry["revision"]
+    validation_sha256 = data_registry["frozen_holdout"]["validation_sha256"]
     training_path = tmp_path / "selected-full-training-manifest.json"
-    _training_manifest(training_path, revision=revision)
+    _training_manifest(
+        training_path,
+        revision=revision,
+        validation_sha256=validation_sha256,
+    )
 
     first_data = tmp_path / "first/data_provenance.json"
     first_teacher = tmp_path / "first/teacher_provenance.json"
@@ -176,6 +189,11 @@ def test_exporter_is_deterministic_self_hashed_and_path_free(tmp_path: Path) -> 
         "direct_span_annotation": False,
         "direct_pseudo_labeling": False,
     }
+    assert source["split_source_revisions"] == {
+        "train": revision,
+        "validation": "sha256:" + "9" * 64,
+    }
+    assert source["frozen_validation_lineage"]["copy_mode"] == "byte_for_byte"
     assert data["total_sample_count"] == 18_000
     entry = teacher["teachers"][0]
     assert entry["used_for_training"] is True
@@ -233,9 +251,15 @@ def test_exporter_fails_closed_on_lineage_count_and_registry_drift(
     original_registry = repository_root / "configs/data/source_registry.yaml"
     asset_path = repository_root / "src/pii_zh/data/synthetic/assets/curated_templates_v1.json"
     registry = yaml.safe_load(original_registry.read_text(encoding="utf-8"))
-    revision = _registry_source(registry, "repo_curated_synthetic_templates")["revision"]
+    data_registry = _registry_source(registry, "repo_curated_synthetic_templates")
+    revision = data_registry["revision"]
+    validation_sha256 = data_registry["frozen_holdout"]["validation_sha256"]
     training_path = tmp_path / "training_manifest.json"
-    manifest = _training_manifest(training_path, revision=revision)
+    manifest = _training_manifest(
+        training_path,
+        revision=revision,
+        validation_sha256=validation_sha256,
+    )
     mutate(manifest, registry)
     manifest.pop("manifest_sha256", None)
     manifest["manifest_sha256"] = _canonical_json_hash(manifest)

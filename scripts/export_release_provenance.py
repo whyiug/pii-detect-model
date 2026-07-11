@@ -222,9 +222,9 @@ def _validate_split_summary(
     split: Mapping[str, Any],
     *,
     count: int,
-    data_revision: str,
+    expected_revision: str | None,
     data_license: str,
-) -> str:
+) -> dict[str, str]:
     split_sha256 = _sha256(split.get("sha256"), field=f"datasets.{split_name}.sha256")
     summary = _mapping(split.get("summary"), field=f"datasets.{split_name}.summary")
     _exact_int(summary.get("document_count"), count, field=f"{split_name}.document_count")
@@ -248,10 +248,12 @@ def _validate_split_summary(
     if not isinstance(sources, list) or len(sources) != 1:
         raise ReleaseProvenanceError(f"{split_name} must contain exactly one direct data source")
     source = _mapping(sources[0], field=f"datasets.{split_name}.summary.sources[0]")
+    source_revision = _revision(
+        source.get("revision"), field=f"datasets.{split_name}.source.revision"
+    )
     expected_fields: dict[str, object] = {
         "source_id": _DATA_SOURCE_ID,
         "source_kind": "curated_deterministic_synthetic",
-        "revision": data_revision,
         "license": data_license,
         "data_pool": _EXPECTED_DATA_POOL,
         "split": split_name,
@@ -262,13 +264,17 @@ def _validate_split_summary(
             raise ReleaseProvenanceError(
                 f"{split_name} direct source {field} must equal {expected!r}"
             )
+    if expected_revision is not None and source_revision != expected_revision:
+        raise ReleaseProvenanceError(
+            f"{split_name} direct source revision must equal {expected_revision!r}"
+        )
     for field in (
         "quality_gate_passed_document_count",
         "validators_passed_document_count",
         "public_weight_training_allowed_document_count",
     ):
         _exact_int(source.get(field), count, field=f"{split_name}.source.{field}")
-    return split_sha256
+    return {"sha256": split_sha256, "source_revision": source_revision}
 
 
 def _validate_template_asset(
@@ -488,16 +494,35 @@ def build_release_provenance(
     datasets = _mapping(training.get("datasets"), field="training manifest.datasets")
     if set(datasets) != set(_EXPECTED_SPLIT_COUNTS):
         raise ReleaseProvenanceError("training manifest must contain only train and validation")
-    split_hashes = {
+    split_identities = {
         split_name: _validate_split_summary(
             split_name,
             _mapping(datasets.get(split_name), field=f"datasets.{split_name}"),
             count=count,
-            data_revision=str(data_source["revision"]),
+            expected_revision=(str(data_source["revision"]) if split_name == "train" else None),
             data_license=str(data_source["declared_license"]),
         )
         for split_name, count in _EXPECTED_SPLIT_COUNTS.items()
     }
+    frozen_holdout = _mapping(
+        data_source.get("frozen_holdout"), field="data registry.frozen_holdout"
+    )
+    if frozen_holdout.get("validation_sha256") != split_identities["validation"]["sha256"]:
+        raise ReleaseProvenanceError(
+            "validation split hash differs from the registered frozen holdout"
+        )
+    parent_dataset_version = _string(
+        frozen_holdout.get("parent_dataset_version"),
+        field="data registry.frozen_holdout.parent_dataset_version",
+    )
+    parent_manifest_sha256 = _sha256(
+        frozen_holdout.get("parent_manifest_sha256"),
+        field="data registry.frozen_holdout.parent_manifest_sha256",
+    )
+    parent_manifest_file_sha256 = _sha256(
+        frozen_holdout.get("parent_manifest_file_sha256"),
+        field="data registry.frozen_holdout.parent_manifest_file_sha256",
+    )
     total_sample_count = sum(_EXPECTED_SPLIT_COUNTS.values())
     registry_identity = {
         "schema_version": registry["schema_version"],
@@ -533,7 +558,19 @@ def build_release_provenance(
                         ),
                         "frozen_test_training_use": 0,
                     },
-                    "split_sha256": split_hashes,
+                    "split_sha256": {
+                        name: identity["sha256"] for name, identity in split_identities.items()
+                    },
+                    "split_source_revisions": {
+                        name: identity["source_revision"]
+                        for name, identity in split_identities.items()
+                    },
+                    "frozen_validation_lineage": {
+                        "parent_dataset_version": parent_dataset_version,
+                        "parent_manifest_sha256": parent_manifest_sha256,
+                        "parent_manifest_file_sha256": parent_manifest_file_sha256,
+                        "copy_mode": "byte_for_byte",
+                    },
                     "synthetic": True,
                     "contains_real_personal_data": False,
                     "public_weight_training_allowed": True,
