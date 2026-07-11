@@ -219,8 +219,8 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
             "decision config must be a pre-holdout amendment with schema version 1"
         )
     decision_id = _safe_id(config.get("decision_id"), field="decision_id")
-    if decision_id != "synthetic_v1_3_community_rc_v5":
-        raise CommunityRCEvidenceError("decision config must be community RC amendment v5")
+    if decision_id != "synthetic_v1_3_community_rc_v6":
+        raise CommunityRCEvidenceError("decision config must be community RC amendment v6")
     if (
         config.get("candidate_scope") != "community_research_release_candidate"
         or config.get("production_ready") is not False
@@ -230,8 +230,8 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
     parent_decision_id = _safe_id(
         parent_decision.get("decision_id"), field="parent_decision.decision_id"
     )
-    if parent_decision_id != "synthetic_v1_3_community_rc_v4":
-        raise CommunityRCEvidenceError("community RC v5 must amend community RC v4")
+    if parent_decision_id != "synthetic_v1_3_community_rc_v5":
+        raise CommunityRCEvidenceError("community RC v6 must amend community RC v5")
     parent_config_sha256 = _sha256(
         parent_decision.get("config_sha256"), field="parent_decision.config_sha256"
     )
@@ -250,11 +250,16 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
         raise CommunityRCEvidenceError("amendment must precede holdout access and preserve gates")
     allowed_changes = _sequence(amendment.get("allowed_changes"), field="amendment.allowed_changes")
     if tuple(allowed_changes) != (
-        "bind_composite_fusion_implementation_identity",
-        "bind_refinement_core_implementation_identity",
-        "regenerate_validation_system_manifests_and_evaluations",
+        "migrate_full_training_manifests_to_schema4",
+        "record_reviewed_upstream_template_generator",
+        "regenerate_prediction_system_and_evaluation_provenance",
     ):
         raise CommunityRCEvidenceError("amendment contains an unapproved system change")
+    if (
+        amendment.get("training_manifest_schema_changed") is not True
+        or amendment.get("training_source_lineage_changed") is not True
+    ):
+        raise CommunityRCEvidenceError("lineage amendment must declare its manifest migration")
     forbidden_changes = set(
         _sequence(amendment.get("forbidden_changes"), field="amendment.forbidden_changes")
     )
@@ -263,6 +268,7 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
         "change_seed_set",
         "change_selected_seed",
         "change_model_weights",
+        "change_training_data_or_recipe",
         "change_rules_fusion_or_refinement_behavior",
         "change_calibration_bundle",
         "inspect_or_tune_on_frozen_test",
@@ -289,15 +295,44 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
     initializer_attention_mode = _safe_id(
         system.get("initializer_attention_mode"), field="system.initializer_attention_mode"
     )
+    training_lineage = _mapping(system.get("training_lineage"), field="system.training_lineage")
+    if training_lineage.get("manifest_schema_version") != 4:
+        raise CommunityRCEvidenceError("community RC v6 requires training manifest schema 4")
+    required_training_source_ids = tuple(
+        _safe_id(value, field="system.training_lineage.required_training_source_ids")
+        for value in _sequence(
+            training_lineage.get("required_training_source_ids"),
+            field="system.training_lineage.required_training_source_ids",
+        )
+    )
+    if required_training_source_ids != (
+        "qwen3_0_6b_base",
+        "qwen3_8b_placeholder_template_generator",
+        "repo_curated_synthetic_templates",
+    ):
+        raise CommunityRCEvidenceError("community RC v6 training source set is invalid")
+    source_registry_sha256 = _sha256(
+        training_lineage.get("source_registry_sha256"),
+        field="system.training_lineage.source_registry_sha256",
+    )
+    migration_id = _safe_id(
+        training_lineage.get("migration_id"), field="system.training_lineage.migration_id"
+    )
+    if migration_id != "training_source_lineage_v1":
+        raise CommunityRCEvidenceError("community RC v6 lineage migration ID is invalid")
+    migration_implementation_sha256 = _sha256(
+        training_lineage.get("migration_implementation_sha256"),
+        field="system.training_lineage.migration_implementation_sha256",
+    )
     ruleset_id = _safe_id(system.get("ruleset_id"), field="system.ruleset_id")
     if ruleset_id != "cn_common_v5":
-        raise CommunityRCEvidenceError("community RC v5 requires cn_common_v5")
+        raise CommunityRCEvidenceError("community RC v6 requires cn_common_v5")
     rules_implementation_sha256 = _sha256(
         system.get("rules_implementation_sha256"), field="system.rules_implementation_sha256"
     )
     fusion_id = _safe_id(system.get("fusion"), field="system.fusion")
     if fusion_id != "deterministic_fusion_v1":
-        raise CommunityRCEvidenceError("community RC v5 requires deterministic_fusion_v1")
+        raise CommunityRCEvidenceError("community RC v6 requires deterministic_fusion_v1")
     fusion_implementation_sha256 = _sha256(
         system.get("fusion_implementation_sha256"),
         field="system.fusion_implementation_sha256",
@@ -340,7 +375,7 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
         raise CommunityRCEvidenceError("calibration.temperature_scaling must be boolean")
     refinement_contract = _safe_id(system.get("refinement"), field="system.refinement")
     if refinement_contract != "structured_prediction_refinement_v4":
-        raise CommunityRCEvidenceError("community RC v5 requires refinement v4")
+        raise CommunityRCEvidenceError("community RC v6 requires refinement v4")
     refinement_implementation_sha256 = _sha256(
         system.get("refinement_implementation_sha256"),
         field="system.refinement_implementation_sha256",
@@ -393,6 +428,11 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
         "validation_sha256": validation_sha256,
         "attention_mode": attention_mode,
         "initializer_attention_mode": initializer_attention_mode,
+        "training_manifest_schema_version": 4,
+        "required_training_source_ids": required_training_source_ids,
+        "source_registry_sha256": source_registry_sha256,
+        "lineage_migration_id": migration_id,
+        "lineage_migration_implementation_sha256": migration_implementation_sha256,
         "t0_floor": t0_floor,
         "t1_floor": t1_floor,
         "temperature_enabled": temperature_enabled,
@@ -450,6 +490,49 @@ def _verify_training_manifest(
     logical_sha256 = _verify_self_hash(manifest, description=f"seed {seed} training manifest")
     if manifest.get("status") != "completed" or manifest.get("seed") != seed:
         raise CommunityRCEvidenceError(f"seed {seed} training manifest is not completed/bound")
+    if manifest.get("schema_version") != contract["training_manifest_schema_version"]:
+        raise CommunityRCEvidenceError(f"seed {seed} training manifest schema is inconsistent")
+    if (
+        tuple(
+            _sequence(
+                manifest.get("training_source_ids"),
+                field=f"seed {seed} training.training_source_ids",
+            )
+        )
+        != contract["required_training_source_ids"]
+    ):
+        raise CommunityRCEvidenceError(f"seed {seed} training source lineage is incomplete")
+    migration = _mapping(
+        manifest.get("provenance_migration"),
+        field=f"seed {seed} training.provenance_migration",
+    )
+    if (
+        migration.get("migration_id") != contract["lineage_migration_id"]
+        or migration.get("previous_schema_version") != 3
+        or migration.get("reason") != "record_reviewed_upstream_placeholder_template_generator"
+        or any(
+            migration.get(field) is not False
+            for field in (
+                "model_weights_changed",
+                "tokenizer_changed",
+                "training_data_changed",
+                "training_recipe_changed",
+            )
+        )
+    ):
+        raise CommunityRCEvidenceError(f"seed {seed} provenance migration is invalid")
+    _sha256(
+        migration.get("previous_manifest_sha256"),
+        field=f"seed {seed} training previous manifest",
+    )
+    _sha256(
+        migration.get("previous_manifest_file_sha256"),
+        field=f"seed {seed} training previous manifest file",
+    )
+    _safe_id(
+        migration.get("migration_code_revision"),
+        field=f"seed {seed} training migration code revision",
+    )
     if manifest.get("attention_mode") != contract["attention_mode"]:
         raise CommunityRCEvidenceError(f"seed {seed} training attention mode is inconsistent")
     recipe = _mapping(manifest.get("recipe"), field=f"seed {seed} training.recipe")
@@ -1215,6 +1298,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "frozen_test_access": "not_accessed_by_summarizer",
                 },
                 "system_contract": {
+                    "training_lineage": {
+                        "manifest_schema_version": contract["training_manifest_schema_version"],
+                        "required_training_source_ids": list(
+                            contract["required_training_source_ids"]
+                        ),
+                        "source_registry_sha256": contract["source_registry_sha256"],
+                        "migration_id": contract["lineage_migration_id"],
+                        "migration_implementation_sha256": contract[
+                            "lineage_migration_implementation_sha256"
+                        ],
+                    },
                     "ruleset_id": contract["ruleset_id"],
                     "rules_implementation_sha256": contract["rules_implementation_sha256"],
                     "fusion_id": contract["fusion_id"],

@@ -1,0 +1,131 @@
+schema_version: 1
+decision_id: synthetic_v1_3_community_rc_v6
+status: amended_before_holdout_access
+candidate_scope: community_research_release_candidate
+production_ready: false
+
+parent_decision:
+  decision_id: synthetic_v1_3_community_rc_v5
+  config_sha256: 20a80f36b0941fef4b12898a8f4adb2d93427f7c5261247e4b421fdaa426d2a1
+  code_revision: 902b5a3a9e7d7d51245747b2a4f55005aca4de22
+
+amendment:
+  date: "2026-07-11"
+  holdout_accessed: false
+  thresholds_changed: false
+  quality_gate_thresholds_changed: false
+  seeds_changed: false
+  selected_seed_changed: false
+  model_weights_changed: false
+  calibration_bundle_changed: false
+  training_manifest_schema_changed: true
+  training_source_lineage_changed: true
+  reason: record_reviewed_upstream_template_generator_before_holdout
+  observed_lineage_gap:
+    direct_dataset_source_recorded: true
+    upstream_template_generator_recorded: false
+    upstream_role: placeholder_template_candidate_generator
+    direct_span_annotation: false
+    direct_pseudo_labeling: false
+    reviewed_candidate_count: 70
+    accepted_candidate_count: 53
+    rejected_candidate_count: 17
+    raw_rejected_outputs_included: false
+  allowed_changes:
+    - migrate_full_training_manifests_to_schema4
+    - record_reviewed_upstream_template_generator
+    - regenerate_prediction_system_and_evaluation_provenance
+  forbidden_changes:
+    - lower_quality_thresholds
+    - change_seed_set
+    - change_selected_seed
+    - change_model_weights
+    - change_training_data_or_recipe
+    - change_rules_fusion_or_refinement_behavior
+    - change_calibration_bundle
+    - inspect_or_tune_on_frozen_test
+    - refit_calibration_on_any_test_subset
+
+dataset:
+  dataset_id: pii_zh_synthetic_v1
+  dataset_version: 1.3.0
+  validation_sha256: 9affd99f5dd6a2aaac37b7975f3c3f051e7edb2d44be471a7238d27498c0b40d
+  frozen_test_sha256: 26e49949d0bd876b51c693b7b31135b5ce503ca6a5ab7cfca37177e0ccbd4384
+  frozen_test_access_before_validation_gate: forbidden
+
+system:
+  attention_mode: full
+  initializer_attention_mode: jpt
+  seeds: [13, 42, 97]
+  selected_seed: 42
+  selection_rule: fixed_conventional_seed_before_holdout_access
+  training_lineage:
+    manifest_schema_version: 4
+    required_training_source_ids:
+      - qwen3_0_6b_base
+      - qwen3_8b_placeholder_template_generator
+      - repo_curated_synthetic_templates
+    source_registry_sha256: 57db23212cd0f0c931328df39840c5f966ef93ee3cc22764e4f467d7613ed9b3
+    migration_id: training_source_lineage_v1
+    migration_implementation_sha256: 0940bced4a9a7e8996b236554e98c07b5847f199002bf8cd8bd01b25899740ef
+  ruleset_id: cn_common_v5
+  rules_implementation_sha256: dbd05c10e662e9a97d3a993b26b95ebcfb29edd5044e1265373f85b7dd57a432
+  fusion: deterministic_fusion_v1
+  fusion_implementation_sha256: e2ccf1f7201259128036a86a80509122662fbc5387558daf5a8c13989894b930
+  runtime:
+    transformers_version: 5.13.1
+    tokenizer_loader: serialized_fast_tokenizer_v1
+    tokenizer_boundary_mode: unicode_codepoint_v1
+    tokenizer_backend_sha256: 44b0242619b0826045d9bffe8b3c68de60b3b1b6e35f76d6e82f16f703164ac4
+    tokenizer_implementation_sha256: ccc093b082b47f4350399ed29e52bdbb7ab6a936c4883c1f6e1a68f2b64b2123
+    dependency_lock_sha256: a4d247de8a325c0eb4148740924099f4aad262461e10b606aab00548e3fba7e7
+  calibration:
+    fit_per_seed_on_validation: true
+    selected_seed_bundle_frozen_before_holdout_access: true
+    holdout_policy: apply_only_no_refit
+    refit_reason: release_runtime_compatibility_migration
+    t0_recall_floor: 0.90
+    t1_recall_floor: 0.85
+    temperature_scaling: true
+  refinement: structured_prediction_refinement_v4
+  refinement_implementation_sha256: 39830c70f526b2dc730a1e0d29067f9c92227b8a4be01ed71ede1595d0467366
+
+per_seed_criteria:
+  strict_micro_f1:
+    operator: ">="
+    threshold: 0.94
+  strict_macro_f1:
+    operator: ">="
+    threshold: 0.94
+  pii_free_false_positive_rate:
+    operator: "<="
+    threshold: 0.02
+  tier0_min_label_recall:
+    operator: ">="
+    threshold: 0.90
+  tier1_min_label_recall:
+    operator: ">="
+    threshold: 0.85
+  calibration_completed:
+    operator: "=="
+    threshold: true
+
+aggregate_criteria:
+  unique_seed_count:
+    operator: ">="
+    threshold: 3
+  every_seed_passes:
+    operator: "=="
+    threshold: true
+
+holdout_unlock:
+  requires_release_decision: passed
+  required_seed_evidence: [13, 42, 97]
+  calibration_refit_on_holdout: forbidden
+  post_unlock_changes_to_model_or_system: forbidden
+
+notes:
+  - This amendment was recorded after a release-provenance audit and before any holdout row was opened.
+  - Qwen3-8B generated placeholder-only template candidates; it did not annotate spans or pseudo-label rows directly.
+  - Human review accepted 53 of 70 candidates before deterministic value rendering and validation.
+  - The schema-4 migration changes only training provenance; weights, tokenizer, datasets, recipe, predictions, and calibration remain byte-identical.

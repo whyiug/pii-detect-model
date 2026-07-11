@@ -84,11 +84,28 @@ def _training_manifest(root: Path, seed: int) -> Path:
     _write_json(root / "special_tokens_map.json", {"unk_token": "[UNK]"})
     manifest = _self_hashed(
         {
-            "schema_version": 3,
+            "schema_version": 4,
             "status": "completed",
             "seed": seed,
             "attention_mode": "full",
             "fine_tuning": "lora",
+            "training_source_ids": [
+                "qwen3_0_6b_base",
+                "qwen3_8b_placeholder_template_generator",
+                "repo_curated_synthetic_templates",
+            ],
+            "provenance_migration": {
+                "migration_id": "training_source_lineage_v1",
+                "migration_code_revision": "a" * 40,
+                "previous_schema_version": 3,
+                "previous_manifest_sha256": "b" * 64,
+                "previous_manifest_file_sha256": "c" * 64,
+                "reason": "record_reviewed_upstream_placeholder_template_generator",
+                "model_weights_changed": False,
+                "tokenizer_changed": False,
+                "training_data_changed": False,
+                "training_recipe_changed": False,
+            },
             "recipe": {"seed": seed, "attention_mode": "full"},
             "initialization": {"source_attention_mode": "jpt"},
             "datasets": {
@@ -266,12 +283,12 @@ def _evaluation_report(path: Path, seed: int, training_path: Path, diagnostics_p
 def _decision_config(path: Path) -> Path:
     value = {
         "schema_version": 1,
-        "decision_id": "synthetic_v1_3_community_rc_v5",
+        "decision_id": "synthetic_v1_3_community_rc_v6",
         "status": "amended_before_holdout_access",
         "candidate_scope": "community_research_release_candidate",
         "production_ready": False,
         "parent_decision": {
-            "decision_id": "synthetic_v1_3_community_rc_v4",
+            "decision_id": "synthetic_v1_3_community_rc_v5",
             "config_sha256": "c" * 64,
             "code_revision": "d" * 40,
         },
@@ -283,16 +300,19 @@ def _decision_config(path: Path) -> Path:
             "selected_seed_changed": False,
             "model_weights_changed": False,
             "calibration_bundle_changed": False,
+            "training_manifest_schema_changed": True,
+            "training_source_lineage_changed": True,
             "allowed_changes": [
-                "bind_composite_fusion_implementation_identity",
-                "bind_refinement_core_implementation_identity",
-                "regenerate_validation_system_manifests_and_evaluations",
+                "migrate_full_training_manifests_to_schema4",
+                "record_reviewed_upstream_template_generator",
+                "regenerate_prediction_system_and_evaluation_provenance",
             ],
             "forbidden_changes": [
                 "lower_quality_thresholds",
                 "change_seed_set",
                 "change_selected_seed",
                 "change_model_weights",
+                "change_training_data_or_recipe",
                 "change_rules_fusion_or_refinement_behavior",
                 "change_calibration_bundle",
                 "inspect_or_tune_on_frozen_test",
@@ -310,6 +330,17 @@ def _decision_config(path: Path) -> Path:
             "seeds": [13, 42, 97],
             "selected_seed": 42,
             "selection_rule": "fixed_conventional_seed_before_holdout_access",
+            "training_lineage": {
+                "manifest_schema_version": 4,
+                "required_training_source_ids": [
+                    "qwen3_0_6b_base",
+                    "qwen3_8b_placeholder_template_generator",
+                    "repo_curated_synthetic_templates",
+                ],
+                "source_registry_sha256": "7" * 64,
+                "migration_id": "training_source_lineage_v1",
+                "migration_implementation_sha256": "8" * 64,
+            },
             "ruleset_id": "cn_common_v5",
             "rules_implementation_sha256": _RULES_IMPLEMENTATION_SHA256,
             "fusion": "deterministic_fusion_v1",
