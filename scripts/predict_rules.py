@@ -40,7 +40,7 @@ RULE_TO_MODEL = {
     "CN_VEHICLE_LICENSE_PLATE": "VEHICLE_LICENSE_PLATE",
     "SECRET": "SECRET",
 }
-RULESET_ID = "cn_common_v3"
+RULESET_ID = "cn_common_v4"
 
 
 def parse_args() -> argparse.Namespace:

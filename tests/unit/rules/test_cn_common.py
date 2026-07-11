@@ -61,6 +61,18 @@ def test_contextual_identifier_fallbacks_require_semantic_context() -> None:
     )
 
 
+def test_luhn_valid_student_suffix_is_not_reclassified_as_a_bank_card() -> None:
+    digits = "20260000123" + luhn_check_digit("20260000123")
+    student_id = "S" + digits
+    text = f"学生{student_id}使用校园服务。"
+
+    matches = CnCommonRulePack().analyze(text)
+
+    assert [(match.entity_type, text[match.start : match.end]) for match in matches] == [
+        ("STUDENT_ID", student_id)
+    ]
+
+
 def test_opaque_secret_rule_includes_the_full_self_identifying_prefix() -> None:
     secret = "key_abcdefghijklmnopqrstuvwxyz"
     text = f"会话令牌是{secret}，请立即轮换。"

@@ -15,7 +15,7 @@ system:
   attention_mode: full
   initializer_attention_mode: jpt
   seeds: [13, 42, 97]
-  ruleset_id: cn_common_v3
+  ruleset_id: cn_common_v4
   fusion: deterministic_fusion_v1
   calibration:
     fit_per_seed: true

@@ -98,7 +98,7 @@ CN_COMMON_RULES: tuple[RuleDefinition, ...] = (
     _rule(
         "BANK_CARD_NUMBER",
         "bank_card_luhn",
-        r"(?<!\d)(?:\d[ -]?){11,18}\d(?!\d)",
+        r"(?<![A-Za-z0-9])(?:\d[ -]?){11,18}\d(?![A-Za-z0-9])",
         0.99,
         validator_label="BANK_CARD_NUMBER",
     ),
