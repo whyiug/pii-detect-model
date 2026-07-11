@@ -20,6 +20,7 @@ class RuleDefinition:
     validator_label: str | None = None
     required_context: tuple[str, ...] = ()
     already_masked: bool = False
+    value_group: str | int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +49,7 @@ def _rule(
     validator_label: str | None = None,
     required_context: Sequence[str] = (),
     already_masked: bool = False,
+    value_group: str | int | None = None,
     flags: int = 0,
 ) -> RuleDefinition:
     return RuleDefinition(
@@ -58,6 +60,7 @@ def _rule(
         validator_label=validator_label,
         required_context=tuple(required_context),
         already_masked=already_masked,
+        value_group=value_group,
     )
 
 
@@ -145,12 +148,27 @@ CN_COMMON_RULES: tuple[RuleDefinition, ...] = (
         required_context=("驾驶证", "驾照"),
     ),
     _rule(
+        "EMPLOYEE_ID",
+        "employee_id_context",
+        r"(?<![A-Za-z0-9])(?:E\d{6,12}|EMP[-_]?[A-Z0-9]{4,12})(?![A-Za-z0-9])",
+        0.90,
+        required_context=("员工", "工号", "雇员", "人事"),
+        flags=re.IGNORECASE,
+    ),
+    _rule(
         "CN_VEHICLE_LICENSE_PLATE",
         "cn_vehicle_plate_common",
         r"(?<![\u4e00-\u9fffA-Z0-9])"
         r"[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼]"
         r"[A-Z][A-Z0-9]{5,6}(?![A-Z0-9])",
         0.88,
+    ),
+    _rule(
+        "CN_VEHICLE_LICENSE_PLATE",
+        "vehicle_plate_context_fallback",
+        r"(?<![A-Z0-9])[\u4e00-\u9fff][A-Z][·•.-]?[A-Z0-9]{5,8}(?![A-Z0-9])",
+        0.90,
+        required_context=("车牌", "车辆", "号牌"),
     ),
     _rule(
         "POSTAL_CODE",
@@ -168,10 +186,18 @@ CN_COMMON_RULES: tuple[RuleDefinition, ...] = (
     ),
     _rule(
         "SECRET",
+        "opaque_secret_token",
+        r"(?i)(?<![A-Za-z0-9_])(?:key_|sk_|tok_|secret_)[A-Za-z0-9_./+=-]{12,64}"
+        r"(?![A-Za-z0-9_./+=-])",
+        0.94,
+    ),
+    _rule(
+        "SECRET",
         "key_assignment",
         r"(?i)(?:api[_-]?key|access[_-]?token|secret|session[_-]?token)\s*[:=]\s*"
-        r"[\"']?[A-Za-z0-9_./+=-]{12,}[\"']?",
+        r"[\"']?(?P<value>[A-Za-z0-9_./+=-]{12,})[\"']?",
         0.90,
+        value_group="value",
     ),
     _rule(
         "SECRET",
@@ -230,10 +256,10 @@ class CnCommonRulePack:
             if requested is not None and rule.entity_type not in requested:
                 continue
             for candidate in rule.pattern.finditer(text):
-                start, end = candidate.span()
+                start, end = candidate.span(rule.value_group or 0)
                 if not self._has_required_context(text, start, end, rule):
                     continue
-                value = candidate.group(0)
+                value = candidate.group(rule.value_group or 0)
                 validation = (
                     validate_entity_value(rule.validator_label, value)
                     if rule.validator_label is not None
@@ -258,6 +284,7 @@ class CnCommonRulePack:
                     "validator_valid": validation.valid if validation is not None else None,
                     "validation_reason": validation.reason if validation is not None else None,
                     "already_masked": rule.already_masked,
+                    "value_group": rule.value_group,
                 }
                 matches.append(
                     RuleMatch(

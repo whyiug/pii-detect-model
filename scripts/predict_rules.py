@@ -35,9 +35,11 @@ RULE_TO_MODEL = {
     "GEO_COORDINATE": "GEO_COORDINATE",
     "PASSPORT_NUMBER": "PASSPORT_NUMBER",
     "DRIVER_LICENSE_NUMBER": "DRIVER_LICENSE_NUMBER",
+    "EMPLOYEE_ID": "EMPLOYEE_ID",
     "CN_VEHICLE_LICENSE_PLATE": "VEHICLE_LICENSE_PLATE",
     "SECRET": "SECRET",
 }
+RULESET_ID = "cn_common_v2"
 
 
 def parse_args() -> argparse.Namespace:
@@ -122,6 +124,7 @@ def main() -> int:
                     "required_context": list(rule.required_context),
                     "score": rule.score,
                     "validator_label": rule.validator_label,
+                    "value_group": rule.value_group,
                 }
                 for rule in CN_COMMON_RULES
             ],
@@ -130,7 +133,7 @@ def main() -> int:
             predictions_path=args.output,
             dataset_manifest_path=args.dataset_manifest,
             prediction_document_count=count,
-            ruleset_id="cn_common_v1",
+            ruleset_id=RULESET_ID,
             implementation_sha256=sha256_file(Path(cn_common_module.__file__)),
             configuration_sha256=canonical_json_hash(rule_configuration),
         )

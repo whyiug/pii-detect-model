@@ -21,11 +21,14 @@ DEFAULT_SPECIFICITY: dict[str, int] = {
     "MAC_ADDRESS": 110,
     "IP_ADDRESS": 105,
     "CN_VEHICLE_LICENSE_PLATE": 105,
+    "VEHICLE_LICENSE_PLATE": 105,
     "GEO_COORDINATE": 105,
     "SECRET": 105,
     "WECHAT_ID": 100,
     "QQ_NUMBER": 100,
-    "ALIPAY_ACCOUNT": 100,
+    # An Alipay account may deliberately use an email-shaped identifier.  A
+    # contextual account type is more specific than its surface EMAIL form.
+    "ALIPAY_ACCOUNT": 115,
     "EMPLOYEE_ID": 100,
     "STUDENT_ID": 100,
     "DEVICE_ID": 95,
@@ -149,9 +152,9 @@ class DeterministicFusion:
         # offsets and using the reversed sort below.
         return (
             self._specificity(detection),
-            detection.score,
             int(validator_valid),
             source_priority,
+            detection.score,
             -(detection.end - detection.start),
             -detection.start,
             detection.entity_type,

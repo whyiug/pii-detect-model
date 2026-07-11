@@ -8,9 +8,11 @@ from pii_zh.calibration import (
     CalibrationBundle,
     CalibrationExample,
     TemperatureScaler,
+    apply_calibration,
     fit_temperature,
     select_entity_thresholds,
 )
+from pii_zh.evaluation import PredictionRecord, Span
 
 
 def _nll(logits: list[list[float]], labels: list[int], temperature: float) -> float:
@@ -53,3 +55,33 @@ def test_entity_temperature_and_threshold_selection() -> None:
     )
 
     assert thresholds == {"CN_ID_CARD": 0.8, "PERSON": 0.7}
+
+
+def test_apply_calibration_filters_and_persists_calibrated_scores() -> None:
+    bundle = CalibrationBundle(
+        global_temperature=2.0,
+        entity_thresholds={"PERSON_NAME": 0.70},
+        default_threshold=0.60,
+    )
+    records = [
+        PredictionRecord(
+            doc_id="one",
+            spans=(
+                Span(0, 2, "PERSON_NAME", 0.90),
+                Span(3, 8, "PHONE_NUMBER", 0.60),
+            ),
+        )
+    ]
+
+    calibrated = apply_calibration(records, bundle)
+
+    assert len(calibrated[0].spans) == 1
+    assert calibrated[0].spans[0].label == "PERSON_NAME"
+    assert calibrated[0].spans[0].score == pytest.approx(0.75)
+
+
+def test_apply_calibration_rejects_unscored_spans() -> None:
+    records = [PredictionRecord(doc_id="one", spans=(Span(0, 2, "PERSON_NAME"),))]
+
+    with pytest.raises(ValueError, match="score on every prediction span"):
+        apply_calibration(records, CalibrationBundle())
