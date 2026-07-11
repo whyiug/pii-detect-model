@@ -23,7 +23,7 @@ from pii_zh.evaluation import (  # noqa: E402
 )
 from pii_zh.fusion import suppress_invalid_structured_spans  # noqa: E402
 
-REFINEMENT_ID = "structured_refinement_v3"
+REFINEMENT_ID = "structured_refinement_v4"
 
 
 def _parser() -> argparse.ArgumentParser:

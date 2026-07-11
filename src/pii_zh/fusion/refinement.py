@@ -43,11 +43,15 @@ _BIRTH_CONTEXT_RE = re.compile(
     r"date\s+of\s+birth|birth[_ -]?date|dob|出生(?:日期|年月|信息)?|生日|生于|年龄",
     re.IGNORECASE,
 )
-_BIRTH_NEGATING_PREFIX_RE = re.compile(
+_QQ_CONTEXT_RE = re.compile(
+    r"(?<![A-Za-z0-9])qq(?:(?:号码?|号|账号?|id))?|(?<![A-Za-z0-9])q号|企鹅号",
+    re.IGNORECASE,
+)
+_CONTEXT_NEGATING_PREFIX_RE = re.compile(
     r"(?:不是|并非|非|不属于|不代表|不含|不涉及|无需|不要|未提供|未登记|未知|无).{0,5}$",
     re.IGNORECASE,
 )
-_BIRTH_NEGATING_SUFFIX_RE = re.compile(
+_CONTEXT_NEGATING_SUFFIX_RE = re.compile(
     r"^(?:信息|字段|日期|数据)?\s*(?:无关|不详|未知|缺失|不存在|不可用|不适用|否|未提供)",
     re.IGNORECASE,
 )
@@ -133,21 +137,28 @@ def _bank_card_is_in_a_stronger_account_context(text: str, start: int, end: int)
     )
 
 
-def _birth_context_is_negated(window: str, marker_start: int, marker_end: int) -> bool:
+def _context_is_negated(window: str, marker_start: int, marker_end: int) -> bool:
     prefix = window[max(0, marker_start - 10) : marker_start]
     suffix = window[marker_end : marker_end + 10]
     return (
-        _BIRTH_NEGATING_PREFIX_RE.search(prefix) is not None
-        or _BIRTH_NEGATING_SUFFIX_RE.match(suffix) is not None
+        _CONTEXT_NEGATING_PREFIX_RE.search(prefix) is not None
+        or _CONTEXT_NEGATING_SUFFIX_RE.match(suffix) is not None
     )
 
 
-def _has_affirmative_birth_context(text: str, start: int, end: int) -> bool:
-    window_start = max(0, start - 24)
-    window_end = min(len(text), end + 24)
+def _has_affirmative_context(
+    text: str,
+    start: int,
+    end: int,
+    *,
+    pattern: re.Pattern[str],
+    radius: int,
+) -> bool:
+    window_start = max(0, start - radius)
+    window_end = min(len(text), end + radius)
     window = text[window_start:window_end]
     candidates: list[tuple[int, bool]] = []
-    for marker in _BIRTH_CONTEXT_RE.finditer(window):
+    for marker in pattern.finditer(window):
         marker_start = window_start + marker.start()
         marker_end = window_start + marker.end()
         distance = (
@@ -157,13 +168,31 @@ def _has_affirmative_birth_context(text: str, start: int, end: int) -> bool:
             if marker_start >= end
             else 0
         )
-        candidates.append(
-            (distance, not _birth_context_is_negated(window, marker.start(), marker.end()))
-        )
+        candidates.append((distance, not _context_is_negated(window, marker.start(), marker.end())))
     if not candidates:
         return False
     nearest_distance = min(distance for distance, _ in candidates)
     return any(affirmative for distance, affirmative in candidates if distance == nearest_distance)
+
+
+def _has_affirmative_birth_context(text: str, start: int, end: int) -> bool:
+    return _has_affirmative_context(
+        text,
+        start,
+        end,
+        pattern=_BIRTH_CONTEXT_RE,
+        radius=24,
+    )
+
+
+def _has_affirmative_qq_context(text: str, start: int, end: int) -> bool:
+    return _has_affirmative_context(
+        text,
+        start,
+        end,
+        pattern=_QQ_CONTEXT_RE,
+        radius=20,
+    )
 
 
 def _enclosing_digit_run(text: str, start: int, end: int) -> tuple[int, int] | None:
@@ -214,6 +243,11 @@ def suppress_invalid_structured_spans(
             suppressed[span.label] += 1
             continue
         if span.label == "DATE_OF_BIRTH" and not _has_affirmative_birth_context(
+            text, span.start, span.end
+        ):
+            suppressed[span.label] += 1
+            continue
+        if span.label == "QQ_NUMBER" and not _has_affirmative_qq_context(
             text, span.start, span.end
         ):
             suppressed[span.label] += 1

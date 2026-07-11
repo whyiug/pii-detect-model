@@ -300,3 +300,49 @@ def test_birth_date_refinement_suppresses_business_dates_and_negated_birth_conte
 
     assert refined.spans == ()
     assert suppressed == {"DATE_OF_BIRTH": 1}
+
+
+@pytest.mark.parametrize(
+    ("text", "number"),
+    [
+        ("QQ号码：123456789", "123456789"),
+        ("备用QQ号为876543210", "876543210"),
+        ("企鹅号 55667788", "55667788"),
+        ("contact_qq_id=11223344", "11223344"),
+    ],
+)
+def test_qq_refinement_keeps_affirmative_qq_semantics(text: str, number: str) -> None:
+    start = text.index(number)
+    record = PredictionRecord(
+        doc_id="affirmative-qq",
+        spans=(Span(start, start + len(number), "QQ_NUMBER", 0.9),),
+    )
+
+    refined, suppressed = suppress_invalid_structured_spans(record, text)
+
+    assert len(refined.spans) == 1
+    assert suppressed == {}
+
+
+@pytest.mark.parametrize(
+    ("text", "number"),
+    [
+        ("无效卡号校验值：6222021234567890", "6222021234567890"),
+        ("普通业务编号：123456789", "123456789"),
+        ("这不是QQ号码，校验值为123456789", "123456789"),
+        ("QQ号码不适用：123456789", "123456789"),
+    ],
+)
+def test_qq_refinement_suppresses_unrelated_and_negated_numeric_surfaces(
+    text: str, number: str
+) -> None:
+    start = text.index(number)
+    record = PredictionRecord(
+        doc_id="non-qq-number",
+        spans=(Span(start, start + len(number), "QQ_NUMBER", 0.9),),
+    )
+
+    refined, suppressed = suppress_invalid_structured_spans(record, text)
+
+    assert refined.spans == ()
+    assert suppressed == {"QQ_NUMBER": 1}

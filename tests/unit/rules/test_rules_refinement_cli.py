@@ -195,7 +195,7 @@ def test_refinement_cli_suppresses_business_dob_and_keeps_path_text_free_audit(
     audit = json.loads(serialized)
     unsigned = dict(audit)
     assert unsigned.pop("manifest_sha256") == canonical_json_hash(unsigned)
-    assert audit["refinement_id"] == "structured_refinement_v3"
+    assert audit["refinement_id"] == "structured_refinement_v4"
     assert audit["suppressed_by_label"] == {"DATE_OF_BIRTH": 1}
     assert all(value is False for value in audit["privacy"].values())
     assert str(tmp_path) not in serialized
