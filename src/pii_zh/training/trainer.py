@@ -21,6 +21,12 @@ from pii_zh.models.decoding import decode_bio_ids
 from pii_zh.training.config import LoraSettings
 from pii_zh.training.data import DocumentTokenDataset
 
+# Keep these fail-closed eligibility floors aligned with the validation-only
+# span calibration defaults in ``scripts/calibrate_predictions.py``.  They do
+# not change the existing early-stop score; they make a checkpoint that loses
+# one risk-bearing label explicitly ineligible for downstream calibration.
+_CALIBRATION_RECALL_FLOORS = {"T0": 0.90, "T1": 0.85}
+
 
 def prepare_parameter_efficient_model(
     model: torch.nn.Module,
@@ -301,9 +307,17 @@ class CharacterValidationComputer:
             )
 
         all_labels = set(self.label_to_risk_tiers)
+        label_counts = {
+            label: _strict_counts(
+                gold_documents,
+                predicted_documents,
+                allowed_labels={label},
+            )
+            for label in sorted(all_labels)
+        }
         macro_scores: list[float] = []
         for label in sorted(all_labels):
-            tp, fp, fn = _strict_counts(gold_documents, predicted_documents, allowed_labels={label})
+            tp, fp, fn = label_counts[label]
             if tp + fp + fn:
                 macro_scores.append(_prf(tp, fp, fn)[2])
         strict_macro_f1 = sum(macro_scores) / len(macro_scores) if macro_scores else 0.0
@@ -313,6 +327,37 @@ class CharacterValidationComputer:
             labels = {label for label, tiers in self.label_to_risk_tiers.items() if tier in tiers}
             tp, fp, fn = _strict_counts(gold_documents, predicted_documents, allowed_labels=labels)
             tier_scores[tier] = _prf(tp, fp, fn, beta=2.0)[2]
+
+        # Threshold calibration cannot recover an exact span/label candidate
+        # that the checkpoint never emits.  Mirror calibration's T0-first risk
+        # precedence and require every configured T0/T1 label to meet the same
+        # recall floor used by ``calibrate_predictions.py``.  A configured
+        # label with no validation gold is deliberately assigned zero recall:
+        # absence of evidence must not make a release candidate eligible.
+        calibration_labels = {
+            "T0": {label for label, tiers in self.label_to_risk_tiers.items() if "T0" in tiers},
+            "T1": {
+                label
+                for label, tiers in self.label_to_risk_tiers.items()
+                if "T0" not in tiers and "T1" in tiers
+            },
+        }
+        minimum_label_recall: dict[str, float] = {}
+        recall_floor_met: dict[str, float] = {}
+        for tier, floor in _CALIBRATION_RECALL_FLOORS.items():
+            labels = calibration_labels[tier]
+            recalls = []
+            for label in sorted(labels):
+                tp, _, fn = label_counts[label]
+                recalls.append(tp / (tp + fn) if tp + fn else 0.0)
+            # A tier that is not part of a reduced label schema is vacuously
+            # satisfied; an entirely risk-free schema remains ineligible below.
+            minimum_label_recall[tier] = min(recalls) if recalls else 1.0
+            recall_floor_met[tier] = float(minimum_label_recall[tier] >= floor)
+        has_calibratable_label = any(calibration_labels.values())
+        calibration_recall_eligible = float(
+            has_calibratable_label and all(recall_floor_met.values())
+        )
 
         pii_free_rows = [index for index, gold in enumerate(gold_documents) if not gold]
         if pii_free_rows:
@@ -336,6 +381,11 @@ class CharacterValidationComputer:
         return {
             "tier0_f2": tier_scores["T0"],
             "tier1_f2": tier_scores["T1"],
+            "tier0_min_label_recall": minimum_label_recall["T0"],
+            "tier1_min_label_recall": minimum_label_recall["T1"],
+            "tier0_recall_floor_met": recall_floor_met["T0"],
+            "tier1_recall_floor_met": recall_floor_met["T1"],
+            "calibration_recall_eligible": calibration_recall_eligible,
             "strict_macro_f1": strict_macro_f1,
             "pii_free_precision": pii_free_precision,
             "calibration_score": calibration_score,

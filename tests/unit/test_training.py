@@ -533,6 +533,105 @@ def test_jpt_validation_uses_collated_width_for_different_length_rows() -> None:
     metrics = computer(EvalPrediction(predictions=logits, label_ids=labels))
     assert metrics["strict_macro_f1"] == pytest.approx(1.0)
     assert metrics["tier1_f2"] == pytest.approx(1.0)
+    assert metrics["tier1_min_label_recall"] == pytest.approx(1.0)
+    assert metrics["calibration_recall_eligible"] == pytest.approx(1.0)
+
+
+def test_validation_flags_single_tier1_label_collapse_despite_high_pooled_score() -> None:
+    documents = [
+        EncodedDocument(
+            doc_id=f"person-{index}",
+            input_ids=(1,),
+            attention_mask=(1,),
+            labels=(1,),
+            offset_mapping=((0, 1),),
+            gold_spans=(GoldSpan(0, 1, "PERSON_NAME"),),
+        )
+        for index in range(20)
+    ]
+    documents.append(
+        EncodedDocument(
+            doc_id="student-collapse",
+            input_ids=(1,),
+            attention_mask=(1,),
+            labels=(3,),
+            offset_mapping=((0, 1),),
+            gold_spans=(GoldSpan(0, 1, "STUDENT_ID"),),
+        )
+    )
+    logits = np.full((len(documents), 1, 5), -10.0, dtype=np.float32)
+    logits[:20, 0, 1] = 10.0
+    logits[20, 0, 0] = 10.0
+    labels = np.asarray([[document.labels[0]] for document in documents], dtype=np.int64)
+    computer = CharacterValidationComputer(
+        DocumentTokenDataset(documents),
+        id2label={
+            0: "O",
+            1: "B-PERSON_NAME",
+            2: "I-PERSON_NAME",
+            3: "B-STUDENT_ID",
+            4: "I-STUDENT_ID",
+        },
+        label_to_risk_tiers={"PERSON_NAME": ("T1",), "STUDENT_ID": ("T1", "T2")},
+        attention_mode="full",
+    )
+
+    metrics = computer(EvalPrediction(predictions=logits, label_ids=labels))
+
+    assert metrics["tier1_f2"] > 0.95
+    assert metrics["tier1_min_label_recall"] == pytest.approx(0.0)
+    assert metrics["tier1_recall_floor_met"] == pytest.approx(0.0)
+    assert metrics["calibration_recall_eligible"] == pytest.approx(0.0)
+
+
+def test_validation_calibration_eligibility_uses_t0_t1_recall_floors() -> None:
+    specifications = [
+        *(("CN_RESIDENT_ID", 1, index < 9) for index in range(10)),
+        *(("EMPLOYEE_ID", 3, index < 17) for index in range(20)),
+    ]
+    documents = [
+        EncodedDocument(
+            doc_id=f"floor-{index}",
+            input_ids=(1,),
+            attention_mask=(1,),
+            labels=(label_id,),
+            offset_mapping=((0, 1),),
+            gold_spans=(GoldSpan(0, 1, label),),
+        )
+        for index, (label, label_id, _) in enumerate(specifications)
+    ]
+    logits = np.full((len(documents), 1, 5), -10.0, dtype=np.float32)
+    labels = np.asarray([[document.labels[0]] for document in documents], dtype=np.int64)
+    for index, (_, label_id, correct) in enumerate(specifications):
+        logits[index, 0, label_id if correct else 0] = 10.0
+    computer = CharacterValidationComputer(
+        DocumentTokenDataset(documents),
+        id2label={
+            0: "O",
+            1: "B-CN_RESIDENT_ID",
+            2: "I-CN_RESIDENT_ID",
+            3: "B-EMPLOYEE_ID",
+            4: "I-EMPLOYEE_ID",
+        },
+        label_to_risk_tiers={"CN_RESIDENT_ID": ("T0",), "EMPLOYEE_ID": ("T1", "T2")},
+        attention_mode="full",
+    )
+
+    metrics = computer(EvalPrediction(predictions=logits, label_ids=labels))
+
+    assert metrics["tier0_min_label_recall"] == pytest.approx(0.90)
+    assert metrics["tier1_min_label_recall"] == pytest.approx(0.85)
+    assert metrics["tier0_recall_floor_met"] == pytest.approx(1.0)
+    assert metrics["tier1_recall_floor_met"] == pytest.approx(1.0)
+    assert metrics["calibration_recall_eligible"] == pytest.approx(1.0)
+
+    # One fewer T1 hit falls below calibration's existing 0.85 floor.
+    logits[26, 0, 3] = -10.0
+    logits[26, 0, 0] = 10.0
+    failed = computer(EvalPrediction(predictions=logits, label_ids=labels))
+    assert failed["tier1_min_label_recall"] == pytest.approx(0.80)
+    assert failed["tier1_recall_floor_met"] == pytest.approx(0.0)
+    assert failed["calibration_recall_eligible"] == pytest.approx(0.0)
 
 
 def _boundary_tokenizer() -> PreTrainedTokenizerFast:
