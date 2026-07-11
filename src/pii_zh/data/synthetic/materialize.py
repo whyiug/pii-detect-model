@@ -28,8 +28,8 @@ from .templates import (
 )
 
 DATASET_ID = "pii_zh_synthetic_v1"
-DATASET_VERSION = "1.0.0"
-MATERIALIZER_VERSION = "1.0.0"
+DATASET_VERSION = "1.1.0"
+MATERIALIZER_VERSION = "1.1.0"
 SPLIT_ALGORITHM_VERSION = "template-family-pilot-v1"
 DEFAULT_COUNT = 20_000
 DEFAULT_SEED = 20_260_711

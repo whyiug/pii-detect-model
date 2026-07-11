@@ -13,8 +13,11 @@ from pii_zh.data.synthetic import (
     CURATED_ASSET_SHA256,
     CURATED_ASSET_VERSION,
     CURATION_AUDIT_SHA256,
+    DATASET_VERSION,
     GENERATOR_VERSION,
     HARD_NEGATIVE_TEMPLATES,
+    MATERIALIZER_VERSION,
+    POSITIVE_TEMPLATES,
     SURFACE_SHORTCUTS,
     SYNTHETIC_CARD_IIN,
     SYNTHETIC_ID_REGION_PREFIX,
@@ -78,7 +81,10 @@ def test_checksum_values_use_nonproduction_sentinels_and_explicit_provenance() -
 
 
 def test_curated_asset_provenance_and_candidate_audit_are_complete() -> None:
-    assert CURATED_ASSET_VERSION == "1.0.0"
+    assert CURATED_ASSET_VERSION == "1.1.0"
+    assert GENERATOR_VERSION == "2.3.0"
+    assert DATASET_VERSION == "1.1.0"
+    assert MATERIALIZER_VERSION == "1.1.0"
     assert len(CURATED_ASSET_SHA256) == 64
     assert len(CURATION_AUDIT_SHA256) == 64
     assert CURATED_ASSET_METADATA["license"] == "Apache-2.0"
@@ -91,6 +97,8 @@ def test_curated_asset_provenance_and_candidate_audit_are_complete() -> None:
     }
     assert len(source["prompt_hashes"]) == 7
     assert CURATED_ASSET_METADATA["curation"]["raw_rejected_outputs_included"] is False
+    assert CURATED_ASSET_METADATA["curation"]["human_authored_positive_count"] == 23
+    assert CURATED_ASSET_METADATA["curation"]["human_authored_hard_negative_count"] == 20
     assert CURATION_AUDIT_METADATA["reviewed_candidate_count"] == 70
     assert len(CURATION_AUDIT_METADATA["accepted_candidate_ids"]) == 53
     assert len(CURATION_AUDIT_METADATA["rejected_candidates"]) == 17
@@ -103,6 +111,90 @@ def test_every_core_label_has_three_distinct_semantic_families() -> None:
     assert all(len(families) >= 3 for families in coverage.values())
     for label in ("DATE_OF_BIRTH", "SECRET", "MAC_ADDRESS", "QQ_NUMBER", "WECHAT_ID"):
         assert len(coverage[label]) >= 3
+
+
+def test_authored_secret_and_medical_families_have_diverse_context_boundaries() -> None:
+    templates = {template.template_id: template for template in POSITIVE_TEMPLATES}
+    generator = SyntheticGenerator(20260711)
+    secret_boundaries = {
+        "authored_secret_database_password": ("password='", "'，"),
+        "authored_secret_bearer_header": ("Bearer ", "；"),
+        "authored_secret_private_key_fragment": ("[", "]"),
+    }
+    for template_id, (left_boundary, right_boundary) in secret_boundaries.items():
+        template = templates[template_id]
+        left, right = template.body.split("<<SECRET_1>>")
+        assert template.origin_kind == "human_authored"
+        assert template.source_candidate_id is None
+        assert left.endswith(left_boundary)
+        assert right.startswith(right_boundary)
+        assert {spec.label for spec in template.placeholders} >= {"SECRET"}
+        record = generator.generate_document(template)
+        record.validate()
+        assert record.provenance.license == "Apache-2.0"
+        assert record.quality.validators_passed is True
+        assert record.metadata["contains_real_personal_data"] is False
+    assert (
+        len(
+            {
+                template.family
+                for template in POSITIVE_TEMPLATES
+                if any(spec.label == "SECRET" for spec in template.placeholders)
+            }
+        )
+        >= 6
+    )
+
+    medical_boundaries = {
+        "authored_medical_laboratory_result": ("就诊号:", "]"),
+        "authored_medical_discharge_summary": ("住院编号（", "）"),
+    }
+    for template_id, (left_boundary, right_boundary) in medical_boundaries.items():
+        template = templates[template_id]
+        left, right = template.body.split("<<MEDICAL_RECORD_NUMBER_1>>")
+        assert template.origin_kind == "human_authored"
+        assert template.source_candidate_id is None
+        assert left.endswith(left_boundary)
+        assert right.startswith(right_boundary)
+        assert {spec.label for spec in template.placeholders} >= {"MEDICAL_RECORD_NUMBER"}
+        record = generator.generate_document(template)
+        record.validate()
+        assert record.provenance.license == "Apache-2.0"
+        assert record.quality.validators_passed is True
+        assert record.metadata["contains_real_personal_data"] is False
+    assert (
+        len(
+            {
+                template.family
+                for template in POSITIVE_TEMPLATES
+                if any(spec.label == "MEDICAL_RECORD_NUMBER" for spec in template.placeholders)
+            }
+        )
+        >= 8
+    )
+
+
+def test_new_hard_negative_families_are_non_entity_semantic_contrasts() -> None:
+    expected = {
+        "hard_negative_build_id": ("BUILD_ID", "软件构建"),
+        "hard_negative_config_key_name": ("CONFIG_KEY_NAME", "未保存对应凭据值"),
+        "hard_negative_release_date": ("RELEASE_DATE", "系统发布计划"),
+        "hard_negative_device_model": ("DEVICE_MODEL", "产品系列"),
+    }
+    templates = {template.template_id: template for template in HARD_NEGATIVE_TEMPLATES}
+    generator = SyntheticGenerator(20260711)
+    for template_id, (generator_key, semantic_guard) in expected.items():
+        template = templates[template_id]
+        assert template.hard_negative is True
+        assert template.origin_kind == "human_authored"
+        assert {spec.generator_key for spec in template.placeholders} == {generator_key}
+        assert all(spec.label is None and spec.risk_tier is None for spec in template.placeholders)
+        record = generator.generate_document(template)
+        assert record.entities == ()
+        assert record.provenance.license == "Apache-2.0"
+        assert record.quality.validators_passed is True
+        assert record.quality.metadata["validator_results"] == {}
+        assert semantic_guard in record.text
 
 
 def test_training_template_text_has_no_synthetic_shortcut_words() -> None:
@@ -207,6 +299,25 @@ def test_materialization_build_is_exact_balanced_and_group_safe() -> None:
         {"train": 1_600, "validation": 200, "test": 200}
     )
     assert not detect_group_leakage(records).has_leakage
+    newly_authored_template_ids = {
+        "authored_secret_database_password",
+        "authored_secret_bearer_header",
+        "authored_secret_private_key_fragment",
+        "authored_medical_laboratory_result",
+        "authored_medical_discharge_summary",
+        "hard_negative_build_id",
+        "hard_negative_config_key_name",
+        "hard_negative_release_date",
+        "hard_negative_device_model",
+    }
+    assert newly_authored_template_ids <= {record.provenance.template_id for record in records}
+    for template_id in newly_authored_template_ids:
+        assert (
+            len(
+                {record.split for record in records if record.provenance.template_id == template_id}
+            )
+            == 1
+        )
     for split, expected_count in (("train", 1_600), ("validation", 200), ("test", 200)):
         selected = [record for record in records if record.split == split]
         assert len(selected) == expected_count

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "audit_id": "pii-zh-template-candidate-audit-v1",
   "asset_id": "pii-zh-curated-synthetic-templates",
-  "asset_version": "1.0.0",
+  "asset_version": "1.1.0",
   "candidate_payload_sha256": "d4e96aa69f0aba0bb5d03e2b7876769be1bf327898196729dc92531a77abadce",
   "review_method": "manual_semantic_label_and_near_duplicate_review",
   "accepted_decision_rule": "label semantics are correct and the template adds a distinct domain, scene, or surface family",

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "asset_id": "pii-zh-curated-synthetic-templates",
-  "asset_version": "1.0.0",
+  "asset_version": "1.1.0",
   "license": "Apache-2.0",
   "candidate_source": {
     "candidate_payload_sha256": "d4e96aa69f0aba0bb5d03e2b7876769be1bf327898196729dc92531a77abadce",
@@ -35,8 +35,8 @@
     "reviewed_candidate_count": 70,
     "accepted_candidate_count": 53,
     "rejected_candidate_count": 17,
-    "human_authored_positive_count": 18,
-    "human_authored_hard_negative_count": 16,
+    "human_authored_positive_count": 23,
+    "human_authored_hard_negative_count": 20,
     "raw_rejected_outputs_included": false,
     "training_text_uses_synthetic_shortcut_words": false
   },
@@ -107,6 +107,9 @@
     {"id":"authored_secret_ci_deployment","family":"ci_deployment_secret","domain":"持续集成","scene":"部署任务","text":"部署任务使用的访问令牌为<<SECRET_1>>，执行账号<<USERNAME_1>>。","entities":{"SECRET_1":"T0","USERNAME_1":"T1"},"source_candidate_id":null},
     {"id":"authored_secret_webhook_config","family":"webhook_signing_secret","domain":"系统集成","scene":"回调配置","text":"回调配置的签名密钥<<SECRET_1>>由设备<<DEVICE_ID_1>>调用。","entities":{"SECRET_1":"T0","DEVICE_ID_1":"T1"},"source_candidate_id":null},
     {"id":"authored_secret_mobile_session","family":"mobile_session_secret","domain":"移动应用","scene":"会话核验","text":"设备<<DEVICE_ID_1>>提交的会话令牌是<<SECRET_1>>，来源地址<<IP_ADDRESS_1>>。","entities":{"DEVICE_ID_1":"T1","SECRET_1":"T0","IP_ADDRESS_1":"T2"},"source_candidate_id":null},
+    {"id":"authored_secret_database_password","family":"database_password_assignment","domain":"数据库运维","scene":"连接配置","text":"连接条目写作password='<<SECRET_1>>'，使用账号<<USERNAME_1>>。","entities":{"SECRET_1":"T0","USERNAME_1":"T1"},"source_candidate_id":null},
+    {"id":"authored_secret_bearer_header","family":"api_bearer_authorization","domain":"API网关","scene":"请求鉴权","text":"鉴权头Authorization: Bearer <<SECRET_1>>；调用来源为<<IP_ADDRESS_1>>。","entities":{"SECRET_1":"T0","IP_ADDRESS_1":"T2"},"source_candidate_id":null},
+    {"id":"authored_secret_private_key_fragment","family":"private_key_custody_record","domain":"密钥管理","scene":"密钥轮换","text":"轮换单登记私钥片段[<<SECRET_1>>]，责任账号为<<USERNAME_1>>。","entities":{"SECRET_1":"T0","USERNAME_1":"T1"},"source_candidate_id":null},
     {"id":"authored_mac_network_admission","family":"network_admission_mac","domain":"网络运维","scene":"终端接入","text":"终端<<DEVICE_ID_1>>接入网络，网卡地址<<MAC_ADDRESS_1>>。","entities":{"DEVICE_ID_1":"T1","MAC_ADDRESS_1":"T2"},"source_candidate_id":null},
     {"id":"authored_mac_asset_inventory","family":"asset_inventory_mac","domain":"资产管理","scene":"设备领用","text":"员工<<EMPLOYEE_ID_1>>领用设备的MAC地址为<<MAC_ADDRESS_1>>。","entities":{"EMPLOYEE_ID_1":"T1","MAC_ADDRESS_1":"T2"},"source_candidate_id":null},
     {"id":"authored_mac_router_ticket","family":"router_support_mac","domain":"技术支持","scene":"路由故障工单","text":"故障工单记录IP<<IP_ADDRESS_1>>，对应MAC地址<<MAC_ADDRESS_1>>。","entities":{"IP_ADDRESS_1":"T2","MAC_ADDRESS_1":"T2"},"source_candidate_id":null},
@@ -118,7 +121,9 @@
     {"id":"authored_qq_alumni_profile","family":"alumni_profile_qq","domain":"校友服务","scene":"联系方式更新","text":"校友<<STUDENT_ID_1>>登记的QQ号码<<QQ_NUMBER_1>>需要更新。","entities":{"STUDENT_ID_1":"T1","QQ_NUMBER_1":"T1"},"source_candidate_id":null},
     {"id":"authored_passport_airline_checkin","family":"airline_passport_checkin","domain":"航空出行","scene":"值机","text":"旅客<<PERSON_NAME_1>>办理值机时提交护照号<<PASSPORT_NUMBER_1>>。","entities":{"PERSON_NAME_1":"T1","PASSPORT_NUMBER_1":"T0"},"source_candidate_id":null},
     {"id":"authored_employee_payroll_account","family":"payroll_employee_account","domain":"薪酬管理","scene":"工资账户","text":"员工<<EMPLOYEE_ID_1>>的工资账户为<<BANK_ACCOUNT_NUMBER_1>>。","entities":{"EMPLOYEE_ID_1":"T1","BANK_ACCOUNT_NUMBER_1":"T0"},"source_candidate_id":null},
-    {"id":"authored_medical_referral_notice","family":"medical_referral_notice","domain":"医疗","scene":"转诊通知","text":"转诊单关联病历号<<MEDICAL_RECORD_NUMBER_1>>，通知电话<<PHONE_NUMBER_1>>。","entities":{"MEDICAL_RECORD_NUMBER_1":"T0","PHONE_NUMBER_1":"T1"},"source_candidate_id":null}
+    {"id":"authored_medical_referral_notice","family":"medical_referral_notice","domain":"医疗","scene":"转诊通知","text":"转诊单关联病历号<<MEDICAL_RECORD_NUMBER_1>>，通知电话<<PHONE_NUMBER_1>>。","entities":{"MEDICAL_RECORD_NUMBER_1":"T0","PHONE_NUMBER_1":"T1"},"source_candidate_id":null},
+    {"id":"authored_medical_laboratory_result","family":"laboratory_result_record","domain":"医学检验","scene":"报告归档","text":"检验报告[就诊号:<<MEDICAL_RECORD_NUMBER_1>>]已归入患者<<PERSON_NAME_1>>档案。","entities":{"MEDICAL_RECORD_NUMBER_1":"T0","PERSON_NAME_1":"T1"},"source_candidate_id":null},
+    {"id":"authored_medical_discharge_summary","family":"discharge_summary_record","domain":"住院服务","scene":"出院结算","text":"出院小结记录住院编号（<<MEDICAL_RECORD_NUMBER_1>>），结算联系人为<<PERSON_NAME_1>>。","entities":{"MEDICAL_RECORD_NUMBER_1":"T0","PERSON_NAME_1":"T1"},"source_candidate_id":null}
   ],
   "hard_negative_templates": [
     {"id":"hard_negative_order_id","family":"business_order_identifier","domain":"电商","scene":"订单查询","text":"订单号<<ORDER_ID_1>>用于查询物流状态。","non_entities":{"ORDER_ID_1":"ORDER_ID"}},
@@ -136,6 +141,10 @@
     {"id":"hard_negative_org_address","family":"organization_address_context","domain":"企业信息","scene":"办公地点","text":"公司办公地址为<<ORG_ADDRESS_1>>，该地点对外公开。","non_entities":{"ORG_ADDRESS_1":"ORG_ADDRESS"}},
     {"id":"hard_negative_quad_version","family":"quad_software_version","domain":"软件发布","scene":"版本记录","text":"客户端版本<<QUAD_VERSION_1>>已经进入稳定通道。","non_entities":{"QUAD_VERSION_1":"QUAD_VERSION"}},
     {"id":"hard_negative_invalid_card","family":"invalid_card_checksum","domain":"支付","scene":"卡号校验","text":"号码<<INVALID_CARD_1>>未通过银行卡校验。","non_entities":{"INVALID_CARD_1":"INVALID_CARD"}},
-    {"id":"hard_negative_region_code","family":"administrative_region_code","domain":"统计报表","scene":"区域汇总","text":"行政区划代码<<REGION_CODE_1>>的季度数据已汇总。","non_entities":{"REGION_CODE_1":"REGION_CODE"}}
+    {"id":"hard_negative_region_code","family":"administrative_region_code","domain":"统计报表","scene":"区域汇总","text":"行政区划代码<<REGION_CODE_1>>的季度数据已汇总。","non_entities":{"REGION_CODE_1":"REGION_CODE"}},
+    {"id":"hard_negative_build_id","family":"software_build_identifier","domain":"持续集成","scene":"构建记录","text":"构建流水线的任务ID为<<BUILD_ID_1>>，它只定位一次软件构建。","non_entities":{"BUILD_ID_1":"BUILD_ID"}},
+    {"id":"hard_negative_config_key_name","family":"credential_configuration_key","domain":"配置审计","scene":"字段盘点","text":"配置审计只记录键名<<CONFIG_KEY_NAME_1>>，未保存对应凭据值。","non_entities":{"CONFIG_KEY_NAME_1":"CONFIG_KEY_NAME"}},
+    {"id":"hard_negative_release_date","family":"software_release_schedule","domain":"软件发布","scene":"维护窗口","text":"维护窗口日期<<RELEASE_DATE_1>>属于系统发布计划，不是人员出生信息。","non_entities":{"RELEASE_DATE_1":"RELEASE_DATE"}},
+    {"id":"hard_negative_device_model","family":"device_product_model","domain":"设备目录","scene":"型号归档","text":"设备目录中的型号<<DEVICE_MODEL_1>>代表产品系列，不对应单台终端。","non_entities":{"DEVICE_MODEL_1":"DEVICE_MODEL"}}
   ]
 }

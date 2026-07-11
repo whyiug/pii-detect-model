@@ -31,7 +31,7 @@ from .templates import (
 from .values import SyntheticValueFactory, generate_value
 
 GENERATOR_NAME = "pii_zh_deterministic_synthetic"
-GENERATOR_VERSION = "2.2.0"
+GENERATOR_VERSION = "2.3.0"
 DEFAULT_LICENSE = "Apache-2.0"
 _PLACEHOLDER_RE = re.compile(r"<<([A-Z0-9_]+)>>")
 

@@ -332,6 +332,20 @@ class SyntheticValueFactory:
     def region_code(self) -> str:
         return "RGN-" + self._unique_digits("region_code", 8)
 
+    def build_id(self) -> str:
+        return "BLD-" + self._unique_digits("build_id", 12)
+
+    def config_key_name(self) -> str:
+        return "auth.token.rotation_policy." + self._unique_digits("config_key_name", 6)
+
+    def release_date(self) -> str:
+        origin = date(2030, 1, 1)
+        value = origin + timedelta(days=self._unique_number("release_date", 20 * 365))
+        return value.isoformat()
+
+    def device_model(self) -> str:
+        return "EDGE-MODEL-" + self._unique_token("device_model", 8).upper()
+
 
 GENERATOR_METHODS = {
     "PERSON_NAME": "person_name",
@@ -373,6 +387,10 @@ GENERATOR_METHODS = {
     "QUAD_VERSION": "quad_version",
     "INVALID_CARD": "invalid_card",
     "REGION_CODE": "region_code",
+    "BUILD_ID": "build_id",
+    "CONFIG_KEY_NAME": "config_key_name",
+    "RELEASE_DATE": "release_date",
+    "DEVICE_MODEL": "device_model",
 }
 
 

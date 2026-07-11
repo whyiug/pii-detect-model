@@ -43,10 +43,10 @@ sources:
   - id: repo_curated_synthetic_templates
     kind: deterministic_synthetic_dataset
     locator: src/pii_zh/data/synthetic/assets/curated_templates_v1.json
-    revision: sha256:5b30b11f0238e5bc42da3841fdb0aaa6880a73014a8211f15ab5b672b8aca4a7
-    curation_audit_sha256: 75b5dea606a319af198cfadf1cdeb0e32f885714ad5336c7c01d2d2a74558456
+    revision: sha256:ed3b8b0d13c5c36b3a7a93d6b6e6a456c5319322463f494864dcf5f6bcb6522c
+    curation_audit_sha256: 5fe18c3499065e3e3419a2c1666f2747e8a02456836988ccbd34ec62c4b0937b
     generator_name: pii_zh_deterministic_synthetic
-    generator_version: 2.2.0
+    generator_version: 2.3.0
     declared_license: Apache-2.0
     input_class: programmatic_without_real_personal_data
     review_status: human_curated_templates_and_deterministic_validators_passed
