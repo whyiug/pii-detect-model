@@ -11,6 +11,8 @@ from importlib.resources import files
 from types import MappingProxyType
 from typing import Any
 
+from .values import LEGACY_VALUE_VARIANT, supports_value_variant
+
 TEMPLATE_ASSET_FILENAME = "curated_templates_v1.json"
 CURATION_AUDIT_FILENAME = "curation_audit_v1.json"
 _PLACEHOLDER_RE = re.compile(r"<<([A-Z][A-Z0-9_]*_[1-9][0-9]*)>>")
@@ -55,6 +57,7 @@ class PlaceholderSpec:
     generator_key: str
     label: str | None
     risk_tier: str | None = None
+    value_variant: str = LEGACY_VALUE_VARIANT
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,14 +105,17 @@ def _parse_template(item: Any, *, hard_negative: bool) -> SyntheticTemplate:
     if not isinstance(item, dict):
         raise TemplateAssetError("each template entry must be an object")
     context = str(item.get("id", "<missing-template-id>"))
-    expected = (
+    required = (
         {"id", "family", "domain", "scene", "text", "non_entities"}
         if hard_negative
         else {"id", "family", "domain", "scene", "text", "entities", "source_candidate_id"}
     )
-    if set(item) != expected:
+    allowed = {frozenset(required)}
+    if not hard_negative:
+        allowed.add(frozenset(required | {"value_variants"}))
+    if frozenset(item) not in allowed:
         raise TemplateAssetError(
-            f"{context} fields differ from schema: expected={sorted(expected)}, "
+            f"{context} fields differ from schema: allowed={sorted(map(sorted, allowed))}, "
             f"observed={sorted(item)}"
         )
 
@@ -141,6 +147,17 @@ def _parse_template(item: Any, *, hard_negative: bool) -> SyntheticTemplate:
     if not hard_negative and not observed:
         raise TemplateAssetError(f"positive template {context} must contain an entity")
 
+    raw_variants = item.get("value_variants", {})
+    if not isinstance(raw_variants, dict) or not all(
+        isinstance(key, str) and isinstance(value, str) and value
+        for key, value in raw_variants.items()
+    ):
+        raise TemplateAssetError(f"{context}.value_variants must be a string-to-string object")
+    if set(raw_variants) - set(observed):
+        raise TemplateAssetError(f"{context}.value_variants contains an unknown placeholder")
+    if LEGACY_VALUE_VARIANT in raw_variants.values():
+        raise TemplateAssetError(f"{context}.value_variants must omit explicit legacy entries")
+
     specs: list[PlaceholderSpec] = []
     for key in observed:
         configured = config[key]
@@ -154,12 +171,18 @@ def _parse_template(item: Any, *, hard_negative: bool) -> SyntheticTemplate:
             raise TemplateAssetError(f"{context} uses non-core entity label {label}")
         if configured not in {"T0", "T1", "T2"}:
             raise TemplateAssetError(f"{context}.{key} must declare T0, T1, or T2")
+        value_variant = raw_variants.get(key, LEGACY_VALUE_VARIANT)
+        if not supports_value_variant(label, value_variant):
+            raise TemplateAssetError(
+                f"{context}.{key} uses unsupported value variant {value_variant!r}"
+            )
         specs.append(
             PlaceholderSpec(
                 key=key,
                 generator_key=label,
                 label=label,
                 risk_tier=configured,
+                value_variant=value_variant,
             )
         )
 
@@ -205,7 +228,7 @@ def core_label_family_coverage(
 
 _ASSET_RAW = _asset_bytes(TEMPLATE_ASSET_FILENAME)
 _ASSET = _decode_json(TEMPLATE_ASSET_FILENAME, _ASSET_RAW)
-if _ASSET.get("schema_version") != 1:
+if _ASSET.get("schema_version") != 2:
     raise TemplateAssetError("unsupported curated template schema_version")
 if _ASSET.get("license") != "Apache-2.0":
     raise TemplateAssetError("curated template asset must remain Apache-2.0")

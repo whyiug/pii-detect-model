@@ -16,6 +16,7 @@ from ..validators import cn_resident_id_check_code, luhn_check_digit
 SYNTHETIC_ID_REGION_PREFIX = "990000"
 SYNTHETIC_CARD_IIN = "999999"
 _TOKEN_ALPHABET = "0123456789abcdefghjkmnpqruvwxyz"
+LEGACY_VALUE_VARIANT = "legacy"
 _SINGLE_SURNAMES = tuple(
     "赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦尤许何吕施张孔曹严华金魏陶姜戚谢邹喻柏水窦章苏潘葛奚范彭郎鲁韦昌马苗凤花方俞任袁柳"
 )
@@ -332,6 +333,51 @@ class SyntheticValueFactory:
     def region_code(self) -> str:
         return "RGN-" + self._unique_digits("region_code", 8)
 
+    def vehicle_plate_fictional_compact(self) -> str:
+        return "岚B" + self._unique_token("vehicle_plate_fictional_compact", 5).upper()
+
+    def vehicle_plate_fictional_hyphenated(self) -> str:
+        return "岚C-" + self._unique_token("vehicle_plate_fictional_hyphenated", 6).upper()
+
+    def vehicle_plate_fictional_extended(self) -> str:
+        return "岚D·" + self._unique_token("vehicle_plate_fictional_extended", 8).upper()
+
+    def employee_id_department_hyphenated(self) -> str:
+        return "DPT-ZZ-" + self._unique_digits("employee_id_department_hyphenated", 8)
+
+    def employee_id_staff_slash(self) -> str:
+        return "STAFF/ZZ/" + self._unique_digits("employee_id_staff_slash", 8)
+
+    def date_of_birth_compact_yyyymmdd(self) -> str:
+        origin = date(1980, 1, 1)
+        value = origin + timedelta(
+            days=self._unique_number("date_of_birth_compact_yyyymmdd", 30 * 365)
+        )
+        return value.strftime("%Y%m%d")
+
+    def date_of_birth_dot_separated(self) -> str:
+        origin = date(1980, 1, 1)
+        value = origin + timedelta(
+            days=self._unique_number("date_of_birth_dot_separated", 30 * 365)
+        )
+        return value.strftime("%Y.%m.%d")
+
+    def driver_license_fictional_hyphenated(self) -> str:
+        return "DL-ZZ-" + self._unique_token("driver_license_fictional_hyphenated", 8).upper()
+
+    def coordinate_signed_spaced(self) -> str:
+        serial = self._unique_number("coordinate_signed_spaced", 4_000_000_000_000)
+        latitude = (serial % 2_000_000) / 1_000_000 - 1.0
+        longitude = (serial // 2_000_000) / 1_000_000 - 1.0
+        return f"{latitude:+.6f}, {longitude:+.6f}"
+
+    def mac_address_hyphen_lowercase(self) -> str:
+        suffix = self._unique_number("mac_address_hyphen_lowercase", 2**24)
+        return "02-00-00-" + "-".join(f"{(suffix >> shift) & 0xFF:02x}" for shift in (16, 8, 0))
+
+    def passport_fictional_hyphenated(self) -> str:
+        return "PZ-" + self._unique_token("passport_fictional_hyphenated", 8).upper()
+
     def build_id(self) -> str:
         return "BLD-" + self._unique_digits("build_id", 12)
 
@@ -393,8 +439,49 @@ GENERATOR_METHODS = {
     "DEVICE_MODEL": "device_model",
 }
 
+VALUE_VARIANT_METHODS = {
+    ("VEHICLE_LICENSE_PLATE", "fictional_compact"): "vehicle_plate_fictional_compact",
+    ("VEHICLE_LICENSE_PLATE", "fictional_hyphenated"): "vehicle_plate_fictional_hyphenated",
+    ("VEHICLE_LICENSE_PLATE", "fictional_extended"): "vehicle_plate_fictional_extended",
+    ("EMPLOYEE_ID", "department_hyphenated"): "employee_id_department_hyphenated",
+    ("EMPLOYEE_ID", "staff_slash"): "employee_id_staff_slash",
+    ("DATE_OF_BIRTH", "compact_yyyymmdd"): "date_of_birth_compact_yyyymmdd",
+    ("DATE_OF_BIRTH", "dot_separated"): "date_of_birth_dot_separated",
+    (
+        "DRIVER_LICENSE_NUMBER",
+        "fictional_hyphenated",
+    ): "driver_license_fictional_hyphenated",
+    ("GEO_COORDINATE", "signed_spaced"): "coordinate_signed_spaced",
+    ("MAC_ADDRESS", "hyphen_lowercase"): "mac_address_hyphen_lowercase",
+    ("PASSPORT_NUMBER", "fictional_hyphenated"): "passport_fictional_hyphenated",
+}
 
-def generate_value(factory: SyntheticValueFactory, generator_key: str) -> str:
+
+def supports_value_variant(generator_key: str, value_variant: str) -> bool:
+    return (
+        value_variant == LEGACY_VALUE_VARIANT
+        or (
+            generator_key,
+            value_variant,
+        )
+        in VALUE_VARIANT_METHODS
+    )
+
+
+def generate_value(
+    factory: SyntheticValueFactory,
+    generator_key: str,
+    *,
+    value_variant: str = LEGACY_VALUE_VARIANT,
+) -> str:
+    if value_variant != LEGACY_VALUE_VARIANT:
+        try:
+            method_name = VALUE_VARIANT_METHODS[(generator_key, value_variant)]
+        except KeyError as exc:
+            raise KeyError(
+                f"unknown synthetic value variant: {generator_key}:{value_variant}"
+            ) from exc
+        return str(getattr(factory, method_name)())
     try:
         method_name = GENERATOR_METHODS[generator_key]
     except KeyError as exc:

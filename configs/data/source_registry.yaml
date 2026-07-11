@@ -43,19 +43,33 @@ sources:
   - id: repo_curated_synthetic_templates
     kind: deterministic_synthetic_dataset
     locator: src/pii_zh/data/synthetic/assets/curated_templates_v1.json
-    revision: sha256:ed3b8b0d13c5c36b3a7a93d6b6e6a456c5319322463f494864dcf5f6bcb6522c
-    curation_audit_sha256: 5fe18c3499065e3e3419a2c1666f2747e8a02456836988ccbd34ec62c4b0937b
+    template_schema_version: 2
+    template_asset_version: 1.2.0
+    revision: sha256:d65c7b50a21c48ce217a4d44ea6f7333bdb0c385847f8c1d4d067507f4b2563f
+    curation_audit_sha256: cfc550ace46627131005860e97982504bcab6525ee2cbf838d37331e3697594a
     generator_name: pii_zh_deterministic_synthetic
-    generator_version: 2.3.0
-    dataset_version: 1.2.0
-    materializer_version: 1.2.0
-    split_algorithm_version: stable-pinned-v2
+    generator_version: 2.4.0
+    dataset_version: 1.3.0
+    materializer_version: 1.3.0
+    split_algorithm_version: stable-pinned-v3
     family_allocation_asset:
-      locator: src/pii_zh/data/synthetic/assets/stable_family_allocation_v2.json
-      revision: sha256:755e4d77e18003afd82bbb30a91942022fe68a19acb9e5e310592fc39552984f
-      legacy_template_families_pinned: 87
-      train_only_addition_families: 9
+      locator: src/pii_zh/data/synthetic/assets/stable_family_allocation_v3.json
+      revision: sha256:49b3c265991f2659ae3796f278da48361c440f57acbd91665df06616bf071647
+      prior_revision: sha256:755e4d77e18003afd82bbb30a91942022fe68a19acb9e5e310592fc39552984f
+      pre_v1_3_render_projection_sha256: df4c63239ae319a287ed7ecaa966aa3fdbbdaeff3987f3ecdd6916b60de53b76
+      legacy_template_families_pinned: 96
+      train_only_addition_families: 11
       unregistered_template_policy: reject
+    frozen_holdout:
+      parent_dataset_version: 1.2.0
+      parent_manifest_sha256: 58a6067b93c04ba4a4d3a245145a0a501af07d6eb4f3c740b8e82e5681b07c2e
+      parent_manifest_file_sha256: e1bd5a6b094bdcd6566c94f5774313505924051d551d74c74617a21e309d023b
+      entity_value_group_count: 6832
+      entity_value_groups_sha256: 28d7eda8260a8f908defef2a36d4434500b0c3244aa5d62e9d7daf3988306ae3
+      train_value_namespace_algorithm: v1.2-parent-sequence-continuation-v1
+      parent_records_preconsumed: 20000
+      validation_sha256: 9affd99f5dd6a2aaac37b7975f3c3f051e7edb2d44be471a7238d27498c0b40d
+      test_sha256: 26e49949d0bd876b51c693b7b31135b5ce503ca6a5ab7cfca37177e0ccbd4384
     declared_license: Apache-2.0
     input_class: programmatic_without_real_personal_data
     review_status: human_curated_templates_and_deterministic_validators_passed

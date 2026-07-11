@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "asset_id": "pii-zh-curated-synthetic-templates",
-  "asset_version": "1.1.0",
+  "asset_version": "1.2.0",
   "license": "Apache-2.0",
   "candidate_source": {
     "candidate_payload_sha256": "d4e96aa69f0aba0bb5d03e2b7876769be1bf327898196729dc92531a77abadce",
@@ -35,7 +35,7 @@
     "reviewed_candidate_count": 70,
     "accepted_candidate_count": 53,
     "rejected_candidate_count": 17,
-    "human_authored_positive_count": 23,
+    "human_authored_positive_count": 34,
     "human_authored_hard_negative_count": 20,
     "raw_rejected_outputs_included": false,
     "training_text_uses_synthetic_shortcut_words": false
@@ -123,7 +123,18 @@
     {"id":"authored_employee_payroll_account","family":"payroll_employee_account","domain":"薪酬管理","scene":"工资账户","text":"员工<<EMPLOYEE_ID_1>>的工资账户为<<BANK_ACCOUNT_NUMBER_1>>。","entities":{"EMPLOYEE_ID_1":"T1","BANK_ACCOUNT_NUMBER_1":"T0"},"source_candidate_id":null},
     {"id":"authored_medical_referral_notice","family":"medical_referral_notice","domain":"医疗","scene":"转诊通知","text":"转诊单关联病历号<<MEDICAL_RECORD_NUMBER_1>>，通知电话<<PHONE_NUMBER_1>>。","entities":{"MEDICAL_RECORD_NUMBER_1":"T0","PHONE_NUMBER_1":"T1"},"source_candidate_id":null},
     {"id":"authored_medical_laboratory_result","family":"laboratory_result_record","domain":"医学检验","scene":"报告归档","text":"检验报告[就诊号:<<MEDICAL_RECORD_NUMBER_1>>]已归入患者<<PERSON_NAME_1>>档案。","entities":{"MEDICAL_RECORD_NUMBER_1":"T0","PERSON_NAME_1":"T1"},"source_candidate_id":null},
-    {"id":"authored_medical_discharge_summary","family":"discharge_summary_record","domain":"住院服务","scene":"出院结算","text":"出院小结记录住院编号（<<MEDICAL_RECORD_NUMBER_1>>），结算联系人为<<PERSON_NAME_1>>。","entities":{"MEDICAL_RECORD_NUMBER_1":"T0","PERSON_NAME_1":"T1"},"source_candidate_id":null}
+    {"id":"authored_medical_discharge_summary","family":"discharge_summary_record","domain":"住院服务","scene":"出院结算","text":"出院小结记录住院编号（<<MEDICAL_RECORD_NUMBER_1>>），结算联系人为<<PERSON_NAME_1>>。","entities":{"MEDICAL_RECORD_NUMBER_1":"T0","PERSON_NAME_1":"T1"},"source_candidate_id":null},
+    {"id":"authored_vehicle_plate_parking_subscription","family":"parking_subscription_vehicle","domain":"停车运营","scene":"月卡绑定","text":"月卡申请将车辆《<<VEHICLE_LICENSE_PLATE_1>>》绑定到停车账户。","entities":{"VEHICLE_LICENSE_PLATE_1":"T1"},"source_candidate_id":null,"value_variants":{"VEHICLE_LICENSE_PLATE_1":"fictional_compact"}},
+    {"id":"authored_vehicle_plate_inspection_queue","family":"vehicle_inspection_queue","domain":"车辆年检","scene":"排队叫号","text":"年检叫号记录plate=<<VEHICLE_LICENSE_PLATE_1>>; queue=待检。","entities":{"VEHICLE_LICENSE_PLATE_1":"T1"},"source_candidate_id":null,"value_variants":{"VEHICLE_LICENSE_PLATE_1":"fictional_hyphenated"}},
+    {"id":"authored_vehicle_plate_toll_dispute","family":"toll_charge_vehicle_review","domain":"高速通行","scene":"账单复核","text":"通行费复核项（<<VEHICLE_LICENSE_PLATE_1>>/入口车道）等待确认。","entities":{"VEHICLE_LICENSE_PLATE_1":"T1"},"source_candidate_id":null,"value_variants":{"VEHICLE_LICENSE_PLATE_1":"fictional_extended"}},
+    {"id":"authored_employee_shift_roster","family":"shift_roster_employee","domain":"排班管理","scene":"值班交接","text":"交接表{工号:<<EMPLOYEE_ID_1>>}对应夜间值班席位。","entities":{"EMPLOYEE_ID_1":"T1"},"source_candidate_id":null,"value_variants":{"EMPLOYEE_ID_1":"department_hyphenated"}},
+    {"id":"authored_employee_facility_access","family":"facility_access_employee","domain":"办公门禁","scene":"区域授权","text":"门禁授权字段employee_no=\"<<EMPLOYEE_ID_1>>\"，权限范围为档案室。","entities":{"EMPLOYEE_ID_1":"T1"},"source_candidate_id":null,"value_variants":{"EMPLOYEE_ID_1":"staff_slash"}},
+    {"id":"authored_birthdate_age_verification","family":"age_eligibility_birthdate","domain":"资格审核","scene":"年龄核验","text":"年龄资格核验：birth_date/<<DATE_OF_BIRTH_1>>/已提交。","entities":{"DATE_OF_BIRTH_1":"T1"},"source_candidate_id":null,"value_variants":{"DATE_OF_BIRTH_1":"compact_yyyymmdd"}},
+    {"id":"authored_birthdate_benefit_enrollment","family":"member_benefit_birthdate","domain":"会员权益","scene":"生日权益登记","text":"会员生日权益登记（<<DATE_OF_BIRTH_1>>），用于到期前核验年龄。","entities":{"DATE_OF_BIRTH_1":"T1"},"source_candidate_id":null,"value_variants":{"DATE_OF_BIRTH_1":"dot_separated"}},
+    {"id":"authored_driver_license_ride_hailing","family":"ride_hailing_driver_qualification","domain":"网约车运营","scene":"司机资质复核","text":"司机资质档案[license_no=<<DRIVER_LICENSE_NUMBER_1>>]等待年度复核。","entities":{"DRIVER_LICENSE_NUMBER_1":"T0"},"source_candidate_id":null,"value_variants":{"DRIVER_LICENSE_NUMBER_1":"fictional_hyphenated"}},
+    {"id":"authored_coordinate_rescue_dispatch","family":"rescue_dispatch_coordinate","domain":"应急救援","scene":"现场定位","text":"救援调度定位坐标=(<<GEO_COORDINATE_1>>)，供现场队伍导航。","entities":{"GEO_COORDINATE_1":"T0"},"source_candidate_id":null,"value_variants":{"GEO_COORDINATE_1":"signed_spaced"}},
+    {"id":"authored_mac_zero_trust_admission","family":"zero_trust_mac_admission","domain":"零信任接入","scene":"终端准入","text":"零信任准入请求{\"client_mac\":\"<<MAC_ADDRESS_1>>\"}已进入策略评估。","entities":{"MAC_ADDRESS_1":"T2"},"source_candidate_id":null,"value_variants":{"MAC_ADDRESS_1":"hyphen_lowercase"}},
+    {"id":"authored_passport_cross_border_lodging","family":"cross_border_lodging_passport","domain":"跨境住宿","scene":"旅客登记","text":"跨境住宿登记passport#<<PASSPORT_NUMBER_1>>/guest_status=pending。","entities":{"PASSPORT_NUMBER_1":"T0"},"source_candidate_id":null,"value_variants":{"PASSPORT_NUMBER_1":"fictional_hyphenated"}}
   ],
   "hard_negative_templates": [
     {"id":"hard_negative_order_id","family":"business_order_identifier","domain":"电商","scene":"订单查询","text":"订单号<<ORDER_ID_1>>用于查询物流状态。","non_entities":{"ORDER_ID_1":"ORDER_ID"}},

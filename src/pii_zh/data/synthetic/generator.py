@@ -28,10 +28,10 @@ from .templates import (
     POSITIVE_TEMPLATES,
     SyntheticTemplate,
 )
-from .values import SyntheticValueFactory, generate_value
+from .values import LEGACY_VALUE_VARIANT, SyntheticValueFactory, generate_value
 
 GENERATOR_NAME = "pii_zh_deterministic_synthetic"
-GENERATOR_VERSION = "2.3.0"
+GENERATOR_VERSION = "2.4.0"
 DEFAULT_LICENSE = "Apache-2.0"
 _PLACEHOLDER_RE = re.compile(r"<<([A-Z0-9_]+)>>")
 
@@ -97,7 +97,15 @@ def render_template(
                     source="synthetic",
                     risk_tier=spec.risk_tier,
                     validator_state=state,
-                    metadata={"synthetic": True, "placeholder": key},
+                    metadata={
+                        "synthetic": True,
+                        "placeholder": key,
+                        **(
+                            {"value_variant": spec.value_variant}
+                            if spec.value_variant != LEGACY_VALUE_VARIANT
+                            else {}
+                        ),
+                    },
                 )
             )
         cursor = match.end()
@@ -139,7 +147,11 @@ class SyntheticGenerator:
 
     def _values_for(self, template: SyntheticTemplate) -> dict[str, str]:
         return {
-            spec.key: generate_value(self._factory, spec.generator_key)
+            spec.key: generate_value(
+                self._factory,
+                spec.generator_key,
+                value_variant=spec.value_variant,
+            )
             for spec in template.placeholders
         }
 

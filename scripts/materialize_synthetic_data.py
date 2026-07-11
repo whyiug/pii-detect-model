@@ -5,38 +5,39 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPOSITORY_ROOT / "src"))
 
 from pii_zh.data.synthetic.materialize import (  # noqa: E402
-    DEFAULT_COUNT,
-    DEFAULT_HARD_NEGATIVE_RATIO,
-    DEFAULT_SEED,
+    DEFAULT_FROZEN_HOLDOUT_SOURCE_DIR,
     materialize_synthetic_corpus,
 )
 
-DEFAULT_OUTPUT = Path("/data1/datasets/pii-detect-model/processed/public_release_pool/synthetic_v1")
+DEFAULT_OUTPUT = Path(
+    "/data1/datasets/pii-detect-model/processed/public_release_pool/synthetic_v1_3"
+)
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Generate deterministic synthetic Chinese PII JSONL splits and a raw-text-free "
-            "manifest. Existing output directories are never overwritten."
+            "Generate deterministic synthetic Chinese PII train data, byte-copy the frozen "
+            "v1.2 validation/test splits, and write a raw-text-free lineage manifest. "
+            "Existing output directories are never overwritten."
         )
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--plan", type=Path, default=_REPOSITORY_ROOT / "pii-detect-plan.md")
-    parser.add_argument("--count", type=int, default=DEFAULT_COUNT)
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument(
-        "--hard-negative-ratio",
-        type=float,
-        default=DEFAULT_HARD_NEGATIVE_RATIO,
+        "--holdout-source-dir",
+        type=Path,
+        default=DEFAULT_FROZEN_HOLDOUT_SOURCE_DIR,
+        help="Frozen synthetic v1.2 directory; validation/test are hash-verified and byte-copied.",
     )
-    return parser.parse_args()
+    parser.add_argument("--plan", type=Path, default=_REPOSITORY_ROOT / "pii-detect-plan.md")
+    return parser.parse_args(argv)
 
 
 def main() -> None:
@@ -44,9 +45,7 @@ def main() -> None:
     manifest = materialize_synthetic_corpus(
         args.output_dir,
         plan_path=args.plan,
-        count=args.count,
-        seed=args.seed,
-        hard_negative_ratio=args.hard_negative_ratio,
+        holdout_source_dir=args.holdout_source_dir,
     )
     counts = manifest["counts"]
     print(

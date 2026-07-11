@@ -1,0 +1,574 @@
+{
+  "schema_version": 2,
+  "asset_id": "pii-zh-synthetic-stable-family-allocation",
+  "asset_version": "3.0.0",
+  "algorithm_version": "stable-pinned-v3",
+  "source_snapshot": {
+    "dataset_id": "pii_zh_synthetic_v1",
+    "snapshot_role": "immutable_pre_1_3_0_family_catalog",
+    "source_asset_filename": "stable_family_allocation_v2.json",
+    "source_asset_sha256": "755e4d77e18003afd82bbb30a91942022fe68a19acb9e5e310592fc39552984f",
+    "fields_read": [
+      "provenance.template_id",
+      "template_group",
+      "split"
+    ],
+    "raw_text_or_entity_values_read": false,
+    "legacy_template_count": 96
+  },
+  "policy": {
+    "legacy_assignments": "exactly_pinned",
+    "new_assignments": "explicit_train_only",
+    "unregistered_templates": "reject"
+  },
+  "legacy_assignments": [
+    {
+      "template_id": "asr_address_email",
+      "template_group": "synthetic-family:asr_contact_capture",
+      "split": "test"
+    },
+    {
+      "template_id": "asr_ip_address_mac_address",
+      "template_group": "synthetic-family:asr_network_diagnostics",
+      "split": "test"
+    },
+    {
+      "template_id": "authored_birth_hospital_registration",
+      "template_group": "synthetic-family:hospital_birth_registration",
+      "split": "validation"
+    },
+    {
+      "template_id": "authored_birth_insurance_profile",
+      "template_group": "synthetic-family:insurance_birth_profile",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_birth_student_profile",
+      "template_group": "synthetic-family:school_birth_profile",
+      "split": "test"
+    },
+    {
+      "template_id": "authored_employee_payroll_account",
+      "template_group": "synthetic-family:payroll_employee_account",
+      "split": "test"
+    },
+    {
+      "template_id": "authored_mac_asset_inventory",
+      "template_group": "synthetic-family:asset_inventory_mac",
+      "split": "validation"
+    },
+    {
+      "template_id": "authored_mac_network_admission",
+      "template_group": "synthetic-family:network_admission_mac",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_mac_router_ticket",
+      "template_group": "synthetic-family:router_support_mac",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_medical_referral_notice",
+      "template_group": "synthetic-family:medical_referral_notice",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_passport_airline_checkin",
+      "template_group": "synthetic-family:airline_passport_checkin",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_qq_alumni_profile",
+      "template_group": "synthetic-family:alumni_profile_qq",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_qq_game_support",
+      "template_group": "synthetic-family:game_support_qq",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_qq_recruiting_contact",
+      "template_group": "synthetic-family:recruiting_contact_qq",
+      "split": "test"
+    },
+    {
+      "template_id": "authored_secret_ci_deployment",
+      "template_group": "synthetic-family:ci_deployment_secret",
+      "split": "test"
+    },
+    {
+      "template_id": "authored_secret_mobile_session",
+      "template_group": "synthetic-family:mobile_session_secret",
+      "split": "validation"
+    },
+    {
+      "template_id": "authored_secret_webhook_config",
+      "template_group": "synthetic-family:webhook_signing_secret",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_wechat_class_group",
+      "template_group": "synthetic-family:campus_group_wechat",
+      "split": "validation"
+    },
+    {
+      "template_id": "authored_wechat_member_binding",
+      "template_group": "synthetic-family:retail_member_wechat",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_wechat_property_contact",
+      "template_group": "synthetic-family:property_service_wechat",
+      "split": "train"
+    },
+    {
+      "template_id": "chat_person_name_phone_number",
+      "template_group": "synthetic-family:chat_self_introduction",
+      "split": "train"
+    },
+    {
+      "template_id": "contact_and_identity_001",
+      "template_group": "synthetic-family:ecommerce_order_confirmation",
+      "split": "train"
+    },
+    {
+      "template_id": "contact_and_identity_002",
+      "template_group": "synthetic-family:logistics_delivery_notification",
+      "split": "validation"
+    },
+    {
+      "template_id": "contact_and_identity_003",
+      "template_group": "synthetic-family:customer_service_intake",
+      "split": "train"
+    },
+    {
+      "template_id": "contact_and_identity_004",
+      "template_group": "synthetic-family:legal_contract_signature",
+      "split": "train"
+    },
+    {
+      "template_id": "contact_and_identity_005",
+      "template_group": "synthetic-family:hospitality_checkin",
+      "split": "train"
+    },
+    {
+      "template_id": "contact_and_identity_006",
+      "template_group": "synthetic-family:recruiting_application",
+      "split": "train"
+    },
+    {
+      "template_id": "contact_and_identity_007",
+      "template_group": "synthetic-family:travel_pickup_arrangement",
+      "split": "train"
+    },
+    {
+      "template_id": "contact_and_identity_008",
+      "template_group": "synthetic-family:ecommerce_return_request",
+      "split": "train"
+    },
+    {
+      "template_id": "contact_and_identity_009",
+      "template_group": "synthetic-family:logistics_exception_resolution",
+      "split": "train"
+    },
+    {
+      "template_id": "digital_accounts_001",
+      "template_group": "synthetic-family:wechat_login_event",
+      "split": "train"
+    },
+    {
+      "template_id": "digital_accounts_002",
+      "template_group": "synthetic-family:qq_account_verification",
+      "split": "train"
+    },
+    {
+      "template_id": "digital_accounts_003",
+      "template_group": "synthetic-family:application_connection_log",
+      "split": "train"
+    },
+    {
+      "template_id": "digital_accounts_004",
+      "template_group": "synthetic-family:device_configuration_record",
+      "split": "validation"
+    },
+    {
+      "template_id": "digital_accounts_005",
+      "template_group": "synthetic-family:device_registration_ticket",
+      "split": "train"
+    },
+    {
+      "template_id": "financial_001",
+      "template_group": "synthetic-family:bank_remittance_instruction",
+      "split": "train"
+    },
+    {
+      "template_id": "financial_002",
+      "template_group": "synthetic-family:payment_refund_destination",
+      "split": "validation"
+    },
+    {
+      "template_id": "financial_003",
+      "template_group": "synthetic-family:insurance_bank_payout",
+      "split": "train"
+    },
+    {
+      "template_id": "financial_005",
+      "template_group": "synthetic-family:payment_failure_followup",
+      "split": "test"
+    },
+    {
+      "template_id": "financial_007",
+      "template_group": "synthetic-family:bank_transfer_confirmation",
+      "split": "train"
+    },
+    {
+      "template_id": "financial_008",
+      "template_group": "synthetic-family:bank_card_phone_binding",
+      "split": "test"
+    },
+    {
+      "template_id": "financial_009",
+      "template_group": "synthetic-family:insurance_alipay_payout",
+      "split": "train"
+    },
+    {
+      "template_id": "financial_010",
+      "template_group": "synthetic-family:bank_account_profile_update",
+      "split": "train"
+    },
+    {
+      "template_id": "financial_011",
+      "template_group": "synthetic-family:bank_card_refund",
+      "split": "train"
+    },
+    {
+      "template_id": "financial_012",
+      "template_group": "synthetic-family:alipay_payment_confirmation",
+      "split": "train"
+    },
+    {
+      "template_id": "government_documents_001",
+      "template_group": "synthetic-family:government_identity_application",
+      "split": "validation"
+    },
+    {
+      "template_id": "government_documents_002",
+      "template_group": "synthetic-family:visa_identity_application",
+      "split": "test"
+    },
+    {
+      "template_id": "government_documents_003",
+      "template_group": "synthetic-family:insurance_driver_claim",
+      "split": "train"
+    },
+    {
+      "template_id": "government_documents_004",
+      "template_group": "synthetic-family:vehicle_owner_registration",
+      "split": "train"
+    },
+    {
+      "template_id": "government_documents_005",
+      "template_group": "synthetic-family:social_insurance_enrollment",
+      "split": "train"
+    },
+    {
+      "template_id": "government_documents_006",
+      "template_group": "synthetic-family:hr_identity_onboarding",
+      "split": "train"
+    },
+    {
+      "template_id": "government_documents_008",
+      "template_group": "synthetic-family:visa_social_insurance_check",
+      "split": "train"
+    },
+    {
+      "template_id": "government_documents_009",
+      "template_group": "synthetic-family:insurance_license_claim",
+      "split": "test"
+    },
+    {
+      "template_id": "hard_negative_generic_date",
+      "template_group": "synthetic-family:ordinary_business_date",
+      "split": "validation"
+    },
+    {
+      "template_id": "hard_negative_invalid_card",
+      "template_group": "synthetic-family:invalid_card_checksum",
+      "split": "validation"
+    },
+    {
+      "template_id": "hard_negative_invalid_resident_id",
+      "template_group": "synthetic-family:invalid_identity_checksum",
+      "split": "validation"
+    },
+    {
+      "template_id": "hard_negative_invoice_code",
+      "template_group": "synthetic-family:invoice_business_code",
+      "split": "test"
+    },
+    {
+      "template_id": "hard_negative_job_title",
+      "template_group": "synthetic-family:job_title_context",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_masked_phone",
+      "template_group": "synthetic-family:masked_contact_display",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_metrics",
+      "template_group": "synthetic-family:software_metric_numbers",
+      "split": "test"
+    },
+    {
+      "template_id": "hard_negative_order_id",
+      "template_group": "synthetic-family:business_order_identifier",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_org_address",
+      "template_group": "synthetic-family:organization_address_context",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_organization",
+      "template_group": "synthetic-family:organization_name_context",
+      "split": "validation"
+    },
+    {
+      "template_id": "hard_negative_product_code",
+      "template_group": "synthetic-family:catalog_product_identifier",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_public_hotline",
+      "template_group": "synthetic-family:public_service_hotline",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_quad_version",
+      "template_group": "synthetic-family:quad_software_version",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_region_code",
+      "template_group": "synthetic-family:administrative_region_code",
+      "split": "test"
+    },
+    {
+      "template_id": "hard_negative_trace_version",
+      "template_group": "synthetic-family:software_trace_identifier",
+      "split": "test"
+    },
+    {
+      "template_id": "hard_negative_transaction_id",
+      "template_group": "synthetic-family:payment_transaction_identifier",
+      "split": "train"
+    },
+    {
+      "template_id": "html_bank_account_driver_license",
+      "template_group": "synthetic-family:html_bank_license_form",
+      "split": "validation"
+    },
+    {
+      "template_id": "html_employee_student_id",
+      "template_group": "synthetic-family:html_affiliation_form",
+      "split": "train"
+    },
+    {
+      "template_id": "markdown_social_security_vehicle_plate",
+      "template_group": "synthetic-family:markdown_insurance_vehicle_record",
+      "split": "train"
+    },
+    {
+      "template_id": "mixed_chat_alipay_username",
+      "template_group": "synthetic-family:chat_payment_account",
+      "split": "train"
+    },
+    {
+      "template_id": "ocr_bank_card_id_card",
+      "template_group": "synthetic-family:ocr_financial_identity_scan",
+      "split": "train"
+    },
+    {
+      "template_id": "ocr_device_id_geo_coordinate",
+      "template_group": "synthetic-family:ocr_device_location",
+      "split": "train"
+    },
+    {
+      "template_id": "security_location_vehicle_001",
+      "template_group": "synthetic-family:vehicle_movement_alert",
+      "split": "validation"
+    },
+    {
+      "template_id": "security_location_vehicle_006",
+      "template_group": "synthetic-family:vehicle_intrusion_alert",
+      "split": "train"
+    },
+    {
+      "template_id": "security_location_vehicle_007",
+      "template_group": "synthetic-family:vehicle_tracking_request",
+      "split": "test"
+    },
+    {
+      "template_id": "table_medical_record_wechat_id",
+      "template_group": "synthetic-family:tabular_medical_contact_record",
+      "split": "test"
+    },
+    {
+      "template_id": "table_passport_number_qq_number",
+      "template_group": "synthetic-family:tabular_passport_contact_record",
+      "split": "validation"
+    },
+    {
+      "template_id": "work_education_health_001",
+      "template_group": "synthetic-family:employee_onboarding_record",
+      "split": "train"
+    },
+    {
+      "template_id": "work_education_health_002",
+      "template_group": "synthetic-family:student_registration_record",
+      "split": "train"
+    },
+    {
+      "template_id": "work_education_health_004",
+      "template_group": "synthetic-family:outpatient_appointment_record",
+      "split": "train"
+    },
+    {
+      "template_id": "work_education_health_005",
+      "template_group": "synthetic-family:inpatient_admission_record",
+      "split": "train"
+    },
+    {
+      "template_id": "work_education_health_007",
+      "template_group": "synthetic-family:campus_library_access",
+      "split": "train"
+    },
+    {
+      "template_id": "work_education_health_009",
+      "template_group": "synthetic-family:medical_record_update",
+      "split": "train"
+    },
+    {
+      "template_id": "work_education_health_011",
+      "template_group": "synthetic-family:employee_training_registration",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_secret_database_password",
+      "template_group": "synthetic-family:database_password_assignment",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_secret_bearer_header",
+      "template_group": "synthetic-family:api_bearer_authorization",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_secret_private_key_fragment",
+      "template_group": "synthetic-family:private_key_custody_record",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_medical_laboratory_result",
+      "template_group": "synthetic-family:laboratory_result_record",
+      "split": "train"
+    },
+    {
+      "template_id": "authored_medical_discharge_summary",
+      "template_group": "synthetic-family:discharge_summary_record",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_build_id",
+      "template_group": "synthetic-family:software_build_identifier",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_config_key_name",
+      "template_group": "synthetic-family:credential_configuration_key",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_release_date",
+      "template_group": "synthetic-family:software_release_schedule",
+      "split": "train"
+    },
+    {
+      "template_id": "hard_negative_device_model",
+      "template_group": "synthetic-family:device_product_model",
+      "split": "train"
+    }
+  ],
+  "train_only_additions": [
+    {
+      "template_id": "authored_vehicle_plate_parking_subscription",
+      "template_group": "synthetic-family:parking_subscription_vehicle",
+      "split": "train",
+      "coverage_role": "VEHICLE_LICENSE_PLATE"
+    },
+    {
+      "template_id": "authored_vehicle_plate_inspection_queue",
+      "template_group": "synthetic-family:vehicle_inspection_queue",
+      "split": "train",
+      "coverage_role": "VEHICLE_LICENSE_PLATE"
+    },
+    {
+      "template_id": "authored_vehicle_plate_toll_dispute",
+      "template_group": "synthetic-family:toll_charge_vehicle_review",
+      "split": "train",
+      "coverage_role": "VEHICLE_LICENSE_PLATE"
+    },
+    {
+      "template_id": "authored_employee_shift_roster",
+      "template_group": "synthetic-family:shift_roster_employee",
+      "split": "train",
+      "coverage_role": "EMPLOYEE_ID"
+    },
+    {
+      "template_id": "authored_employee_facility_access",
+      "template_group": "synthetic-family:facility_access_employee",
+      "split": "train",
+      "coverage_role": "EMPLOYEE_ID"
+    },
+    {
+      "template_id": "authored_birthdate_age_verification",
+      "template_group": "synthetic-family:age_eligibility_birthdate",
+      "split": "train",
+      "coverage_role": "DATE_OF_BIRTH"
+    },
+    {
+      "template_id": "authored_birthdate_benefit_enrollment",
+      "template_group": "synthetic-family:member_benefit_birthdate",
+      "split": "train",
+      "coverage_role": "DATE_OF_BIRTH"
+    },
+    {
+      "template_id": "authored_driver_license_ride_hailing",
+      "template_group": "synthetic-family:ride_hailing_driver_qualification",
+      "split": "train",
+      "coverage_role": "DRIVER_LICENSE_NUMBER"
+    },
+    {
+      "template_id": "authored_coordinate_rescue_dispatch",
+      "template_group": "synthetic-family:rescue_dispatch_coordinate",
+      "split": "train",
+      "coverage_role": "GEO_COORDINATE"
+    },
+    {
+      "template_id": "authored_mac_zero_trust_admission",
+      "template_group": "synthetic-family:zero_trust_mac_admission",
+      "split": "train",
+      "coverage_role": "MAC_ADDRESS"
+    },
+    {
+      "template_id": "authored_passport_cross_border_lodging",
+      "template_group": "synthetic-family:cross_border_lodging_passport",
+      "split": "train",
+      "coverage_role": "PASSPORT_NUMBER"
+    }
+  ]
+}
