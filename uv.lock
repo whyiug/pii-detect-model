@@ -2125,7 +2125,7 @@ requires-dist = [
     { name = "scikit-learn", marker = "extra == 'training'", specifier = ">=1.5,<2" },
     { name = "scipy", marker = "extra == 'training'", specifier = ">=1.13,<2" },
     { name = "torch", marker = "extra == 'training'", specifier = ">=2.4,<3" },
-    { name = "transformers", marker = "extra == 'training'", specifier = ">=4.51,<5" },
+    { name = "transformers", marker = "extra == 'training'", specifier = ">=4.57.6,<4.58" },
     { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6.0.12.20241230" },
 ]
 provides-extras = ["core", "training", "presidio", "dev"]
