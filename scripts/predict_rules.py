@@ -36,10 +36,11 @@ RULE_TO_MODEL = {
     "PASSPORT_NUMBER": "PASSPORT_NUMBER",
     "DRIVER_LICENSE_NUMBER": "DRIVER_LICENSE_NUMBER",
     "EMPLOYEE_ID": "EMPLOYEE_ID",
+    "STUDENT_ID": "STUDENT_ID",
     "CN_VEHICLE_LICENSE_PLATE": "VEHICLE_LICENSE_PLATE",
     "SECRET": "SECRET",
 }
-RULESET_ID = "cn_common_v2"
+RULESET_ID = "cn_common_v3"
 
 
 def parse_args() -> argparse.Namespace:

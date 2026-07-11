@@ -38,8 +38,9 @@ def test_common_contact_rule_offsets_are_character_exact() -> None:
 
 def test_contextual_identifier_fallbacks_require_semantic_context() -> None:
     employee_id = "E1234567890"
+    student_id = "S202600001234"
     vehicle_plate = "岚A·AB12CD3"
-    text = f"员工{employee_id}已登记，所属车辆{vehicle_plate}已核验。"
+    text = f"员工{employee_id}已登记，学生{student_id}使用校园服务，车辆{vehicle_plate}已核验。"
 
     matches = CnCommonRulePack().analyze(text)
 
@@ -49,7 +50,15 @@ def test_contextual_identifier_fallbacks_require_semantic_context() -> None:
     assert ("CN_VEHICLE_LICENSE_PLATE", vehicle_plate) in {
         (match.entity_type, text[match.start : match.end]) for match in matches
     }
-    assert CnCommonRulePack().analyze(f"构建产物{employee_id}，版本别名{vehicle_plate}") == []
+    assert ("STUDENT_ID", student_id) in {
+        (match.entity_type, text[match.start : match.end]) for match in matches
+    }
+    assert (
+        CnCommonRulePack().analyze(
+            f"构建产物{employee_id}，发布编号{student_id}，版本别名{vehicle_plate}"
+        )
+        == []
+    )
 
 
 def test_opaque_secret_rule_includes_the_full_self_identifying_prefix() -> None:

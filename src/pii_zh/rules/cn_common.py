@@ -156,6 +156,14 @@ CN_COMMON_RULES: tuple[RuleDefinition, ...] = (
         flags=re.IGNORECASE,
     ),
     _rule(
+        "STUDENT_ID",
+        "student_id_context",
+        r"(?<![A-Za-z0-9])S[-_]?\d{8,16}(?![A-Za-z0-9])",
+        0.90,
+        required_context=("学生", "学号", "校园", "校友", "student"),
+        flags=re.IGNORECASE,
+    ),
+    _rule(
         "CN_VEHICLE_LICENSE_PLATE",
         "cn_vehicle_plate_common",
         r"(?<![\u4e00-\u9fffA-Z0-9])"
