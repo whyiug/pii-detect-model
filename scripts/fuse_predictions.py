@@ -13,13 +13,8 @@ from pathlib import Path
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPOSITORY_ROOT / "src"))
 
-from pii_zh.evaluation import (  # noqa: E402
-    PredictionRecord,
-    Span,
-    load_prediction_jsonl,
-    write_prediction_jsonl,
-)
-from pii_zh.fusion import DeterministicFusion  # noqa: E402
+from pii_zh.evaluation import load_prediction_jsonl, write_prediction_jsonl  # noqa: E402
+from pii_zh.fusion import fuse_prediction_records  # noqa: E402
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -36,27 +31,12 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _indexed(
-    records: list[PredictionRecord], *, kind: str
-) -> tuple[list[str], dict[str, PredictionRecord]]:
-    order = [record.doc_id for record in records]
-    indexed = {record.doc_id: record for record in records}
-    if len(order) != len(indexed):  # defensive; loader already rejects this
-        raise ValueError(f"{kind} predictions contain duplicate document identifiers")
-    return order, indexed
-
-
 def main() -> int:
     args = _parser().parse_args()
-    if not 0.0 <= args.model_threshold <= 1.0:
-        raise ValueError("model threshold must be between zero and one")
-    rule_order, rules = _indexed(load_prediction_jsonl(args.rules), kind="rule")
-    _, model = _indexed(load_prediction_jsonl(args.model), kind="model")
-    if set(rules) != set(model):
-        raise ValueError("rule and model prediction document sets differ")
-
-    fusion = DeterministicFusion(
-        default_threshold=0.0,
+    output = fuse_prediction_records(
+        load_prediction_jsonl(args.rules),
+        load_prediction_jsonl(args.model),
+        model_threshold=args.model_threshold,
         keep_nested_different_types=args.keep_nested_different_types,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -69,51 +49,12 @@ def main() -> int:
     ) as handle:
         temporary = Path(handle.name)
         try:
-            output: list[PredictionRecord] = []
-            for doc_id in rule_order:
-                rule_items = [
-                    {
-                        "entity_type": span.label,
-                        "start": span.start,
-                        "end": span.end,
-                        "score": 1.0 if span.score is None else span.score,
-                        "source": "rule:cn_common",
-                        "metadata": {"validator_valid": True},
-                    }
-                    for span in rules[doc_id].spans
-                ]
-                model_items = [
-                    {
-                        "entity_type": span.label,
-                        "start": span.start,
-                        "end": span.end,
-                        "score": 1.0 if span.score is None else span.score,
-                        "source": "qwen",
-                    }
-                    for span in model[doc_id].spans
-                    if span.score is None or span.score >= args.model_threshold
-                ]
-                fused = fusion.fuse(rule_items, model_items)
-                output.append(
-                    PredictionRecord(
-                        doc_id=doc_id,
-                        spans=tuple(
-                            Span(
-                                start=item.start,
-                                end=item.end,
-                                label=item.entity_type,
-                                score=item.score,
-                            )
-                            for item in fused
-                        ),
-                    )
-                )
             write_prediction_jsonl(output, handle)
         except BaseException:
             temporary.unlink(missing_ok=True)
             raise
     os.replace(temporary, args.output)
-    print(json.dumps({"documents": len(rule_order), "output": args.output.name}, sort_keys=True))
+    print(json.dumps({"documents": len(output), "output": args.output.name}, sort_keys=True))
     return 0
 
 

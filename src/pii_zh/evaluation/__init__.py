@@ -16,8 +16,10 @@ from .provenance import (
     build_evaluation_provenance,
     build_model_prediction_manifest,
     build_rule_prediction_manifest,
+    build_system_prediction_manifest,
     canonical_json_hash,
     sha256_file,
+    validate_system_prediction_manifest,
     verified_manifest_hash,
 )
 
@@ -30,6 +32,7 @@ __all__ = [
     "build_evaluation_provenance",
     "build_model_prediction_manifest",
     "build_rule_prediction_manifest",
+    "build_system_prediction_manifest",
     "canonical_json_hash",
     "dumps_prediction",
     "evaluate",
@@ -38,6 +41,7 @@ __all__ = [
     "load_prediction_jsonl",
     "span_iou",
     "sha256_file",
+    "validate_system_prediction_manifest",
     "verified_manifest_hash",
     "write_prediction_jsonl",
 ]
