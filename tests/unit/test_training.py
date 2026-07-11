@@ -580,6 +580,35 @@ def test_optimizer_groups_classifier_without_omission_or_duplication(tmp_path) -
         assert identities <= head_ids or identities.isdisjoint(head_ids)
 
 
+@pytest.mark.parametrize("classifier_learning_rate", [None, 2e-4])
+def test_optimizer_uses_explicit_prepared_model_across_transformers_versions(
+    tmp_path, classifier_learning_rate: float | None
+) -> None:
+    original_model = _OptimizerGroupingModel()
+    prepared_model = _OptimizerGroupingModel()
+    trainer = SecureTokenTrainer(
+        model=original_model,
+        args=TrainingArguments(
+            output_dir=str(tmp_path),
+            learning_rate=2e-5,
+            weight_decay=0.1,
+            report_to=[],
+            use_cpu=True,
+        ),
+        classifier_learning_rate=classifier_learning_rate,
+    )
+
+    optimizer = trainer.create_optimizer(prepared_model)
+
+    grouped_ids = {
+        id(parameter) for group in optimizer.param_groups for parameter in group["params"]
+    }
+    prepared_ids = {id(parameter) for parameter in prepared_model.parameters()}
+    original_ids = {id(parameter) for parameter in original_model.parameters()}
+    assert grouped_ids == prepared_ids
+    assert grouped_ids.isdisjoint(original_ids)
+
+
 def test_jpt_validation_uses_collated_width_for_different_length_rows() -> None:
     documents = [
         EncodedDocument(

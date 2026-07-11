@@ -68,7 +68,9 @@ class Qwen3BiConfig(Qwen3Config):
         # states depend on later tokens.  Ignore stale upstream config values.
         kwargs["use_cache"] = False
         kwargs["attn_implementation"] = requested_backend
-        super().__init__(**kwargs)
+        # Transformers does not publish complete annotations for Qwen config
+        # construction.  Keep the suppression at that external call boundary.
+        super().__init__(**kwargs)  # type: ignore[no-untyped-call]
 
         self.bi_attention_backend = requested_backend
         self.architecture_version = architecture_version
@@ -171,10 +173,12 @@ def convert_qwen3_token_classifier_state_dict(
     return dict(state_dict)
 
 
-class Qwen3BiForTokenClassification(Qwen3PreTrainedModel):
+class Qwen3BiForTokenClassification(Qwen3PreTrainedModel):  # type: ignore[no-untyped-call]
     """Qwen3 token classifier with non-causal, key-padding-only attention."""
 
-    config_class = Qwen3BiConfig
+    # The upstream base leaves ``config_class`` inferred as ``None`` even
+    # though subclasses are expected to replace it with their config type.
+    config_class = Qwen3BiConfig  # type: ignore[assignment]
     base_model_prefix = "model"
     _supports_flash_attn = False
     _supports_flex_attn = False
@@ -210,12 +214,20 @@ class Qwen3BiForTokenClassification(Qwen3PreTrainedModel):
 
         self.num_labels = config.num_labels
         self.model = Qwen3Model(config)
+        # Keep this import inside the extracted class so the generated
+        # Hugging Face remote-code module remains self-contained.
+        from numbers import Real
+
         classifier_dropout = getattr(config, "classifier_dropout", None)
         if classifier_dropout is None:
-            classifier_dropout = getattr(config, "hidden_dropout", 0.1)
-        self.dropout = nn.Dropout(classifier_dropout)
+            classifier_dropout = getattr(config, "hidden_dropout", None)
+        if classifier_dropout is None:
+            classifier_dropout = 0.1
+        if isinstance(classifier_dropout, bool) or not isinstance(classifier_dropout, Real):
+            raise TypeError("classifier dropout must be a real number")
+        self.dropout = nn.Dropout(float(classifier_dropout))
         self.score = nn.Linear(config.hidden_size, config.num_labels)
-        self.post_init()
+        self.post_init()  # type: ignore[no-untyped-call]
 
     def forward(
         self,
@@ -263,6 +275,8 @@ class Qwen3BiForTokenClassification(Qwen3PreTrainedModel):
             if inputs_embeds is not None
             else self.get_input_embeddings().weight.dtype
         )
+        if not isinstance(mask_dtype, torch.dtype):
+            raise TypeError("model embedding dtype must be a torch.dtype")
         full_attention_mask = build_full_attention_mask(attention_mask, dtype=mask_dtype)
         prepared_mask = {"full_attention": full_attention_mask}
 
@@ -343,4 +357,7 @@ class Qwen3BiForTokenClassification(Qwen3PreTrainedModel):
         bi_config = Qwen3BiConfig.from_qwen3_config(
             config, bi_attention_backend=bi_attention_backend
         )
-        return cls.from_pretrained(pretrained_model_name_or_path, config=bi_config, **kwargs)
+        # Transformers leaves this generic factory return type as ``Any``.
+        return cls.from_pretrained(  # type: ignore[no-any-return]
+            pretrained_model_name_or_path, config=bi_config, **kwargs
+        )

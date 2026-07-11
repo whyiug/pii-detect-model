@@ -94,7 +94,12 @@ def _parse_entries(
     return tuple(entries)
 
 
-_RAW = files("pii_zh.data.synthetic").joinpath("assets", FAMILY_ALLOCATION_FILENAME).read_bytes()
+_RAW = (
+    files("pii_zh.data.synthetic")
+    .joinpath("assets")
+    .joinpath(FAMILY_ALLOCATION_FILENAME)
+    .read_bytes()
+)
 try:
     _ASSET = json.loads(_RAW)
 except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -147,7 +152,10 @@ if _source_snapshot.get("source_asset_filename") != PRIOR_FAMILY_ALLOCATION_FILE
     raise FamilyAllocationAssetError("source_snapshot must name the immediately prior allocation")
 
 _PRIOR_RAW = (
-    files("pii_zh.data.synthetic").joinpath("assets", PRIOR_FAMILY_ALLOCATION_FILENAME).read_bytes()
+    files("pii_zh.data.synthetic")
+    .joinpath("assets")
+    .joinpath(PRIOR_FAMILY_ALLOCATION_FILENAME)
+    .read_bytes()
 )
 PRIOR_FAMILY_ALLOCATION_SHA256 = hashlib.sha256(_PRIOR_RAW).hexdigest()
 if _source_snapshot.get("source_asset_sha256") != PRIOR_FAMILY_ALLOCATION_SHA256:

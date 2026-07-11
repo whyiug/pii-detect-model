@@ -7,6 +7,8 @@ installed.
 
 from __future__ import annotations
 
+from typing import Any
+
 from .decoding import DecodedSpan, decode_bio_ids, decode_bio_spans, repair_bio_tags
 from .qwen3_jpt import apply_second_copy_label_mask, build_jpt_inputs
 
@@ -31,7 +33,7 @@ _QWEN_EXPORTS = {
 }
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name not in _QWEN_EXPORTS:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

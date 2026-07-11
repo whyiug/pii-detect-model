@@ -1143,7 +1143,7 @@ def _normalized_system_components(
         "prediction_document_count",
     }
     _require_exact_keys(fusion, field="prediction.components.fusion", allowed=fusion_fields)
-    normalized_fusion = {
+    normalized_fusion: dict[str, str | int] = {
         name: _require_sha256(fusion.get(name), field=f"prediction.components.fusion.{name}")
         for name in fusion_fields - {"prediction_document_count"}
     }

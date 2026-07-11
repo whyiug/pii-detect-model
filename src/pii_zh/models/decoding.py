@@ -149,7 +149,10 @@ def decode_bio_ids(
     label_ids: Sequence[int],
     offsets: Sequence[tuple[int, int]],
     id2label: Mapping[int, str],
-    **kwargs,
+    *,
+    text: str | None = None,
+    token_scores: Sequence[float] | None = None,
+    repair: bool = True,
 ) -> list[DecodedSpan]:
     """Map integer predictions through ``id2label`` and decode their spans."""
 
@@ -157,4 +160,10 @@ def decode_bio_ids(
         tags = [id2label[int(label_id)] for label_id in label_ids]
     except KeyError as exc:
         raise ValueError(f"Label id {exc.args[0]!r} is absent from id2label.") from exc
-    return decode_bio_spans(tags, offsets, **kwargs)
+    return decode_bio_spans(
+        tags,
+        offsets,
+        text=text,
+        token_scores=token_scores,
+        repair=repair,
+    )

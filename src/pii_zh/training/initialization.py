@@ -272,7 +272,10 @@ def _validate_state_header(
             raise CheckpointSafetyError("target model contains an unsupported tensor dtype")
         expected[name] = (tuple(tensor.shape), dtype)
     try:
-        with safe_open(weights_path, framework="pt", device="cpu") as handle:
+        # ``safe_open`` is a compiled extension without Python typing metadata.
+        with safe_open(  # type: ignore[no-untyped-call]
+            weights_path, framework="pt", device="cpu"
+        ) as handle:
             actual = {
                 name: (
                     tuple(handle.get_slice(name).get_shape()),

@@ -8,12 +8,13 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 try:
     import torch
     from transformers import (
         EarlyStoppingCallback,
+        PreTrainedModel,
         TrainingArguments,
         set_seed,
     )
@@ -211,15 +212,21 @@ def run_training(config: TrainingConfig) -> TrainingRunResult:
             train_summary=train_summary,
             validation_summary=validation_summary,
         )
-    model = prepare_parameter_efficient_model(
+    prepared_model = prepare_parameter_efficient_model(
         model, fine_tuning=config.fine_tuning, lora=config.lora
     )
+    # PEFT proxies the complete PreTrainedModel API but its third-party class is
+    # nominally typed as a plain torch Module.
+    model = cast(PreTrainedModel, prepared_model)
     if config.gradient_checkpointing:
-        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        model.gradient_checkpointing_enable(  # type: ignore[no-untyped-call]
+            gradient_checkpointing_kwargs={"use_reentrant": False}
+        )
         if config.fine_tuning == "lora" and hasattr(model, "enable_input_require_grads"):
-            model.enable_input_require_grads()
+            model.enable_input_require_grads()  # type: ignore[no-untyped-call]
 
     separator: int | None = None
+    collator: JPTTokenCollator | DynamicTokenCollator
     if config.attention_mode == "jpt":
         separator = config.jpt_sep_token_id
         if separator is None:

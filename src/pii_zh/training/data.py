@@ -6,7 +6,7 @@ import hashlib
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 try:
     import torch
@@ -480,9 +480,9 @@ class JPTTokenCollator:
     def __call__(self, features: list[dict[str, list[int]]]) -> dict[str, torch.Tensor]:
         batch = self.base_collator(features)
         repeated = build_jpt_inputs(
-            batch["input_ids"],
+            cast(torch.LongTensor, batch["input_ids"]),
             attention_mask=batch["attention_mask"],
-            labels=batch["labels"],
+            labels=cast(torch.LongTensor, batch["labels"]),
             sep_token_id=self.sep_token_id,
             pad_token_id=self.pad_token_id,
             max_length=self.max_length,

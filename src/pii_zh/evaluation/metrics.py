@@ -469,20 +469,20 @@ def _align_documents(
     gold_records: Iterable[GoldRecord], prediction_records: Iterable[PredictionRecord]
 ) -> tuple[list[_DocumentPair], list[str]]:
     gold_by_id: dict[str, GoldRecord] = {}
-    for record in gold_records:
-        record.validate()
-        if record.doc_id in gold_by_id:
-            raise EvaluationDataError(f"duplicate gold doc_id: {record.doc_id}")
-        gold_by_id[record.doc_id] = record
+    for gold_record in gold_records:
+        gold_record.validate()
+        if gold_record.doc_id in gold_by_id:
+            raise EvaluationDataError(f"duplicate gold doc_id: {gold_record.doc_id}")
+        gold_by_id[gold_record.doc_id] = gold_record
     if not gold_by_id:
         raise EvaluationDataError("at least one gold document is required")
 
     prediction_by_id: dict[str, PredictionRecord] = {}
-    for record in prediction_records:
-        record.validate()
-        if record.doc_id in prediction_by_id:
-            raise EvaluationDataError(f"duplicate prediction doc_id: {record.doc_id}")
-        prediction_by_id[record.doc_id] = record
+    for prediction_record in prediction_records:
+        prediction_record.validate()
+        if prediction_record.doc_id in prediction_by_id:
+            raise EvaluationDataError(f"duplicate prediction doc_id: {prediction_record.doc_id}")
+        prediction_by_id[prediction_record.doc_id] = prediction_record
     unknown = sorted(set(prediction_by_id) - set(gold_by_id))
     if unknown:
         raise EvaluationDataError(

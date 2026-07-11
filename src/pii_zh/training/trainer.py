@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Callable, Mapping, Sized
+from inspect import signature
+from typing import Any, cast
 
 try:
     import numpy as np
     import torch
     from torch.nn import functional as F
-    from torch.utils.data import WeightedRandomSampler
-    from transformers import EvalPrediction, Trainer
+    from torch.utils.data import Dataset, Sampler, WeightedRandomSampler
+    from transformers import EvalPrediction, PreTrainedModel, Trainer
 except ImportError as exc:  # pragma: no cover - optional training dependency
     raise ImportError(
         "Training requires numpy, torch, and Transformers (install the training extra)."
@@ -29,7 +30,7 @@ _CALIBRATION_RECALL_FLOORS = {"T0": 0.90, "T1": 0.85}
 
 
 def prepare_parameter_efficient_model(
-    model: torch.nn.Module,
+    model: PreTrainedModel,
     *,
     fine_tuning: str,
     lora: LoraSettings,
@@ -66,7 +67,7 @@ def merge_parameter_efficient_model_for_release(
     fine_tuning: str,
     attention_mode: str = "full",
     jpt_sep_token_id: int | None = None,
-) -> torch.nn.Module:
+) -> PreTrainedModel:
     """Return a complete standalone model, merging adapters with safe checks."""
 
     if fine_tuning == "full":
@@ -84,7 +85,10 @@ def merge_parameter_efficient_model_for_release(
 
     if attention_mode not in {"causal", "full", "jpt"}:
         raise ValueError("attention_mode must be causal, full, or jpt")
-    config = getattr(merged, "config", None)
+    # Both native Transformers models and PEFT's merge result expose the
+    # PreTrainedModel release API; PEFT does not declare that nominally.
+    release_model = cast(PreTrainedModel, merged)
+    config = getattr(release_model, "config", None)
     expected_model_type = "qwen3_bi" if attention_mode == "full" else "qwen3"
     if config is None or getattr(config, "model_type", None) != expected_model_type:
         raise RuntimeError("final model architecture disagrees with its attention mode")
@@ -105,7 +109,7 @@ def merge_parameter_efficient_model_for_release(
     # Transformers persists this private field in config.json.  A local base
     # directory is neither portable nor appropriate for a public artifact.
     config._name_or_path = ""
-    return merged
+    return release_model
 
 
 class SecureTokenTrainer(Trainer):
@@ -135,19 +139,45 @@ class SecureTokenTrainer(Trainer):
         # ``score.modules_to_save.default.*`` without relying on adapter names.
         return "score" in name.split(".")
 
-    def create_optimizer(self):
+    def create_optimizer(
+        self,
+        model: torch.nn.Module | None = None,
+    ) -> torch.optim.Optimizer:
         """Assign the newly initialized classifier a separate learning rate."""
 
         if self.classifier_learning_rate is None:
-            return super().create_optimizer()
+            base_create_optimizer: Callable[..., object] = super().create_optimizer
+            accepts_model = "model" in signature(base_create_optimizer).parameters
+            if model is None:
+                base_create_optimizer()
+            elif accepts_model:
+                # Transformers 5 accepts a model prepared for delayed optimizer
+                # creation (for example FSDP); use that model directly.
+                base_create_optimizer(model)
+            else:
+                # Transformers 4.57 has a self-only override point.  Preserve
+                # its optimizer implementation while making an explicit model
+                # call use the same model it would have received in 5.x.
+                original_model = self.model
+                original_model_wrapped = self.model_wrapped
+                try:
+                    self.model = model
+                    self.model_wrapped = model
+                    base_create_optimizer()
+                finally:
+                    self.model = original_model
+                    self.model_wrapped = original_model_wrapped
+            if self.optimizer is None:
+                raise RuntimeError("Transformers did not create an optimizer")
+            return self.optimizer
         if self.optimizer is not None:
             return self.optimizer
 
-        model = self.model_wrapped
-        decay_names = set(self.get_decay_parameter_names(model))
+        optimizer_model = self.model_wrapped if model is None else model
+        decay_names = set(self.get_decay_parameter_names(optimizer_model))
         grouped: dict[tuple[bool, bool], list[torch.nn.Parameter]] = {}
         seen: set[int] = set()
-        for name, parameter in model.named_parameters():
+        for name, parameter in optimizer_model.named_parameters():
             if not parameter.requires_grad:
                 continue
             identity = id(parameter)
@@ -157,7 +187,9 @@ class SecureTokenTrainer(Trainer):
             key = (self._is_classifier_parameter(name), name in decay_names)
             grouped.setdefault(key, []).append(parameter)
 
-        expected = {id(parameter) for parameter in model.parameters() if parameter.requires_grad}
+        expected = {
+            id(parameter) for parameter in optimizer_model.parameters() if parameter.requires_grad
+        }
         if seen != expected:
             raise RuntimeError("optimizer parameter grouping omitted trainable parameters")
         if not any(is_head and parameters for (is_head, _), parameters in grouped.items()):
@@ -174,7 +206,12 @@ class SecureTokenTrainer(Trainer):
         if self.optimizer_cls_and_kwargs is not None:
             optimizer_cls, optimizer_kwargs = self.optimizer_cls_and_kwargs
         else:
-            optimizer_cls, optimizer_kwargs = self.get_optimizer_cls_and_kwargs(self.args, model)
+            # Trainer accepts arbitrary torch modules, but this helper's third-party
+            # annotation is narrower than its implementation (PreTrainedModel only).
+            pretrained_optimizer_model = cast(PreTrainedModel, optimizer_model)
+            optimizer_cls, optimizer_kwargs = self.get_optimizer_cls_and_kwargs(
+                self.args, pretrained_optimizer_model
+            )
         optimizer_kwargs = dict(optimizer_kwargs)
         if any(key in optimizer_kwargs for key in ("params", "model", "optimizer_dict")):
             raise RuntimeError("selected optimizer is incompatible with explicit LR groups")
@@ -206,24 +243,31 @@ class SecureTokenTrainer(Trainer):
         )
         return (loss, outputs) if return_outputs else loss
 
-    def _get_train_sampler(self, train_dataset=None):
+    def _get_train_sampler(
+        self,
+        train_dataset: Dataset[Any] | None = None,
+    ) -> Sampler[int] | None:
         if self.document_sampling_weights is None:
             return super()._get_train_sampler(train_dataset)
         dataset = train_dataset if train_dataset is not None else self.train_dataset
         if dataset is None:
             return None
+        if not isinstance(dataset, Sized):
+            raise TypeError("document-weighted sampling requires a sized training dataset")
         if self.args.world_size > 1:
             raise RuntimeError(
                 "document-weighted sampling currently supports one training process; "
                 "disable it before distributed training"
             )
-        if len(self.document_sampling_weights) != len(dataset):
+        dataset_length = len(dataset)
+        if len(self.document_sampling_weights) != dataset_length:
             raise ValueError("document sampling weights do not match the training dataset")
         generator = torch.Generator()
         generator.manual_seed(self.sampler_seed)
+        weights = [float(value) for value in self.document_sampling_weights.tolist()]
         return WeightedRandomSampler(
-            self.document_sampling_weights,
-            num_samples=len(dataset),
+            weights,
+            num_samples=dataset_length,
             replacement=True,
             generator=generator,
         )
@@ -393,7 +437,10 @@ class CharacterValidationComputer:
         }
 
     @staticmethod
-    def _token_calibration_score(logits: np.ndarray, labels: np.ndarray) -> float:
+    def _token_calibration_score(
+        logits: np.ndarray[Any, np.dtype[Any]],
+        labels: np.ndarray[Any, np.dtype[Any]],
+    ) -> float:
         valid = labels != -100
         if not valid.any():
             return 0.0

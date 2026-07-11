@@ -11,7 +11,7 @@ from typing import Any
 try:
     import torch
     from safetensors import safe_open
-    from transformers import Qwen3Config, Qwen3ForTokenClassification
+    from transformers import PreTrainedModel, Qwen3Config, Qwen3ForTokenClassification
 except ImportError as exc:  # pragma: no cover - optional training dependency
     raise ImportError(
         "Checkpoint loading requires torch, safetensors, and Transformers with Qwen3 support."
@@ -129,7 +129,10 @@ def inspect_local_qwen3_checkpoint(
     lm_head_present = False
     for weight_path in safetensor_files:
         try:
-            with safe_open(weight_path, framework="pt", device="cpu") as handle:
+            # ``safe_open`` is a compiled extension without Python typing metadata.
+            with safe_open(  # type: ignore[no-untyped-call]
+                weight_path, framework="pt", device="cpu"
+            ) as handle:
                 if "lm_head.weight" in handle.keys():
                     lm_head_present = True
         except Exception as exc:
@@ -183,7 +186,10 @@ def _safetensor_schema(safetensor_files: tuple[Path, ...]) -> dict[str, tuple[in
     schema: dict[str, tuple[int, ...]] = {}
     for weight_path in safetensor_files:
         try:
-            with safe_open(weight_path, framework="pt", device="cpu") as handle:
+            # ``safe_open`` is a compiled extension without Python typing metadata.
+            with safe_open(  # type: ignore[no-untyped-call]
+                weight_path, framework="pt", device="cpu"
+            ) as handle:
                 for key in handle.keys():
                     if key in schema:
                         raise CheckpointSafetyError(
@@ -294,7 +300,7 @@ def load_token_classifier_from_local_causal_lm(
     id2label: dict[int, str],
     classifier_dropout: float = 0.1,
     dtype: torch.dtype | None = None,
-) -> tuple[torch.nn.Module, BackboneLoadingAudit]:
+) -> tuple[PreTrainedModel, BackboneLoadingAudit]:
     """Load a causal or full-attention classifier from local CausalLM weights.
 
     ``jpt`` uses the causal classifier architecture; only its input/collation

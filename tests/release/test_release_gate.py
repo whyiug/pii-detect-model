@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from pathlib import Path
+from typing import cast
 
 from conftest import ReleaseFixture, rewrite_checksums, run_script, write_json
 
@@ -12,27 +14,41 @@ def _gate(
     fixture: ReleaseFixture,
     report: Path,
     *extra: str,
-):
-    return run_script(
-        repository_root,
-        "release_gate.py",
-        "--artifact",
-        str(fixture.artifact),
-        "--source-registry",
-        str(fixture.registry),
-        "--dependency-scan",
-        str(fixture.dependency_scan),
-        "--dependency-exceptions",
-        str(fixture.dependency_exceptions),
-        "--json-output",
-        str(report),
-        *extra,
+) -> subprocess.CompletedProcess[str]:
+    return cast(
+        subprocess.CompletedProcess[str],
+        run_script(
+            repository_root,
+            "release_gate.py",
+            "--artifact",
+            str(fixture.artifact),
+            "--source-registry",
+            str(fixture.registry),
+            "--dependency-scan",
+            str(fixture.dependency_scan),
+            "--dependency-exceptions",
+            str(fixture.dependency_exceptions),
+            "--json-output",
+            str(report),
+            *extra,
+        ),
     )
 
 
 def _issue_codes(report: Path) -> set[str]:
     document = json.loads(report.read_text(encoding="utf-8"))
     return {issue["code"] for gate in document["gates"] for issue in gate["issues"]}
+
+
+def _canonical_hash(value: object) -> str:
+    encoded = json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode()).hexdigest()
+
+
+def _assert_receipt_self_hash(document: dict[str, object]) -> None:
+    unsigned = dict(document)
+    claimed = unsigned.pop("manifest_sha256")
+    assert claimed == _canonical_hash(unsigned)
 
 
 def _upgrade_artifact_to_schema4_lineage(
@@ -87,6 +103,142 @@ def test_gate_detects_checksum_tampering(
     result = _gate(repository_root, built_release, report)
     assert result.returncode == 1
     assert "RC_BLOCKED_CHECKSUM_MISMATCH" in _issue_codes(report)
+    document = json.loads(report.read_text(encoding="utf-8"))
+    assert document["schema_version"] == 2
+    assert document["status"] == "RC_BLOCKED"
+    assert (
+        document["artifact_identity"]["checksums_sha256"]
+        == hashlib.sha256((built_release.artifact / "checksums.txt").read_bytes()).hexdigest()
+    )
+    _assert_receipt_self_hash(document)
+
+
+def test_gate_receipt_v2_binds_package_and_evidence_inputs(
+    built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
+) -> None:
+    report = tmp_path / "gate.json"
+    result = _gate(repository_root, built_release, report)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    document = json.loads(report.read_text(encoding="utf-8"))
+    identity = document["artifact_identity"]
+    assert document["schema_version"] == 2
+    assert identity == {
+        "checksums_sha256": hashlib.sha256(
+            (built_release.artifact / "checksums.txt").read_bytes()
+        ).hexdigest(),
+        "dependency_exceptions_sha256": hashlib.sha256(
+            built_release.dependency_exceptions.read_bytes()
+        ).hexdigest(),
+        "dependency_scan_sha256": hashlib.sha256(
+            built_release.dependency_scan.read_bytes()
+        ).hexdigest(),
+        "package_file_count": sum(path.is_file() for path in built_release.artifact.rglob("*")),
+        "sbom_sha256": hashlib.sha256(
+            (built_release.artifact / "sbom.cdx.json").read_bytes()
+        ).hexdigest(),
+        "source_registry_sha256": hashlib.sha256(built_release.registry.read_bytes()).hexdigest(),
+    }
+    assert str(tmp_path) not in json.dumps(identity)
+    receipt_gate = next(gate for gate in document["gates"] if gate["name"] == "receipt_identity")
+    assert receipt_gate["passed"] is True
+    _assert_receipt_self_hash(document)
+
+
+def test_gate_receipt_identity_changes_with_package_and_scan_content(
+    built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
+) -> None:
+    baseline_report = tmp_path / "baseline.json"
+    baseline_result = _gate(repository_root, built_release, baseline_report)
+    assert baseline_result.returncode == 0, baseline_result.stdout + baseline_result.stderr
+    baseline = json.loads(baseline_report.read_text(encoding="utf-8"))
+    _assert_receipt_self_hash(baseline)
+
+    with (built_release.artifact / "README.md").open("a", encoding="utf-8") as stream:
+        stream.write("\nAdditional reviewed release note.\n")
+    rewrite_checksums(built_release.artifact)
+    package_report = tmp_path / "package-change.json"
+    package_result = _gate(repository_root, built_release, package_report)
+    assert package_result.returncode == 0, package_result.stdout + package_result.stderr
+    package_changed = json.loads(package_report.read_text(encoding="utf-8"))
+    _assert_receipt_self_hash(package_changed)
+    assert (
+        package_changed["artifact_identity"]["checksums_sha256"]
+        != baseline["artifact_identity"]["checksums_sha256"]
+    )
+    assert (
+        package_changed["artifact_identity"]["dependency_scan_sha256"]
+        == baseline["artifact_identity"]["dependency_scan_sha256"]
+    )
+
+    dependency_scan = json.loads(built_release.dependency_scan.read_text(encoding="utf-8"))
+    dependency_scan["generated_at"] = "2026-07-11T01:00:00Z"
+    write_json(built_release.dependency_scan, dependency_scan)
+    scan_report = tmp_path / "scan-change.json"
+    scan_result = _gate(repository_root, built_release, scan_report)
+    assert scan_result.returncode == 0, scan_result.stdout + scan_result.stderr
+    scan_changed = json.loads(scan_report.read_text(encoding="utf-8"))
+    _assert_receipt_self_hash(scan_changed)
+    assert (
+        scan_changed["artifact_identity"]["checksums_sha256"]
+        == package_changed["artifact_identity"]["checksums_sha256"]
+    )
+    assert (
+        scan_changed["artifact_identity"]["dependency_scan_sha256"]
+        != package_changed["artifact_identity"]["dependency_scan_sha256"]
+    )
+
+
+def test_gate_writes_self_hashed_receipt_for_missing_artifact(
+    built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
+) -> None:
+    report = tmp_path / "missing-artifact.json"
+    missing_artifact = tmp_path / "does-not-exist"
+    result = run_script(
+        repository_root,
+        "release_gate.py",
+        "--artifact",
+        str(missing_artifact),
+        "--source-registry",
+        str(built_release.registry),
+        "--dependency-scan",
+        str(built_release.dependency_scan),
+        "--dependency-exceptions",
+        str(built_release.dependency_exceptions),
+        "--json-output",
+        str(report),
+    )
+
+    assert result.returncode == 1
+    document = json.loads(report.read_text(encoding="utf-8"))
+    assert document["status"] == "RC_BLOCKED"
+    assert document["artifact_identity"]["checksums_sha256"] is None
+    assert document["artifact_identity"]["sbom_sha256"] is None
+    assert document["artifact_identity"]["package_file_count"] == 0
+    _assert_receipt_self_hash(document)
+
+
+def test_gate_allows_unconfigured_dependency_exceptions_with_null_identity(
+    built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
+) -> None:
+    report = tmp_path / "no-exceptions.json"
+    result = run_script(
+        repository_root,
+        "release_gate.py",
+        "--artifact",
+        str(built_release.artifact),
+        "--source-registry",
+        str(built_release.registry),
+        "--dependency-scan",
+        str(built_release.dependency_scan),
+        "--json-output",
+        str(report),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    document = json.loads(report.read_text(encoding="utf-8"))
+    assert document["artifact_identity"]["dependency_exceptions_sha256"] is None
+    _assert_receipt_self_hash(document)
 
 
 def test_gate_detects_model_manifest_mismatch(

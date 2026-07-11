@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
+
 import pytest
 
 from pii_zh.data.validators import luhn_check_digit
@@ -134,6 +136,33 @@ def test_replacements_run_from_right_to_left_with_original_offsets() -> None:
     )
 
     assert replaced == "<姓名较长占位>电话<电话>"
+
+
+def test_replacement_mapping_uses_one_get_lookup_without_membership_probe() -> None:
+    class GetOnlyMapping(Mapping[str, str]):
+        def __init__(self) -> None:
+            self.lookup_count = 0
+
+        def __getitem__(self, key: str) -> str:
+            self.lookup_count += 1
+            if key == "PERSON":
+                return "<姓名>"
+            raise KeyError(key)
+
+        def __iter__(self) -> Iterator[str]:
+            return iter(("PERSON",))
+
+        def __len__(self) -> int:
+            return 1
+
+        def __contains__(self, key: object) -> bool:
+            raise AssertionError(f"unexpected membership probe for {key!r}")
+
+    replacements = GetOnlyMapping()
+    replaced = apply_replacements("张三", [_detection("PERSON", 0, 2, 0.9, "qwen")], replacements)
+
+    assert replaced == "<姓名>"
+    assert replacements.lookup_count == 1
 
 
 def test_structured_refinement_suppresses_invalid_values_but_keeps_semantic_spans() -> None:

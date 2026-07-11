@@ -62,7 +62,7 @@ def _integer_offset(name: str, value: object) -> int:
     return int(value)
 
 
-class QwenPiiRecognizer(LocalRecognizer):
+class QwenPiiRecognizer(LocalRecognizer):  # type: ignore[misc]
     """Run a caller-supplied local predictor as an additional Presidio recognizer.
 
     No model class is imported here.  A Full-Attention or other custom Qwen

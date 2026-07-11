@@ -117,9 +117,10 @@ class PredictionRecord:
         }
 
 
-def _validate_doc_id(doc_id: object) -> None:
+def _validate_doc_id(doc_id: object) -> str:
     if not isinstance(doc_id, str) or not doc_id.strip():
         raise EvaluationDataError("doc_id must be a non-empty string")
+    return doc_id
 
 
 def _validate_spans(spans: tuple[Span, ...], *, text_length: int | None) -> None:
@@ -191,8 +192,7 @@ def _parse_span(
 
 
 def _parse_gold(value: Mapping[str, Any], *, line_number: int) -> GoldRecord:
-    doc_id = value.get("doc_id")
-    _validate_doc_id(doc_id)
+    doc_id = _validate_doc_id(value.get("doc_id"))
     if "spans" in value and "entities" in value:
         raise EvaluationDataError(
             f"gold JSONL line {line_number} must not contain both spans and entities"
@@ -257,7 +257,7 @@ def _parse_prediction(value: Mapping[str, Any], *, line_number: int) -> Predicti
         )
         for index, item in enumerate(raw_spans)
     )
-    record = PredictionRecord(doc_id=value["doc_id"], spans=spans)
+    record = PredictionRecord(doc_id=_validate_doc_id(value["doc_id"]), spans=spans)
     try:
         record.validate()
     except EvaluationDataError as exc:

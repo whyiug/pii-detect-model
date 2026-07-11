@@ -74,6 +74,7 @@ BLOCKING_SEVERITIES = frozenset({"critical", "high", "medium", "moderate", "unkn
 BASE_INITIALIZATION_STRATEGY = "base_causal_lm_v1"
 STAGED_INITIALIZATION_STRATEGY = "verified_token_classifier_to_full_v1"
 SAFE_SOURCE_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,127}")
+SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,85 @@ def _sha256_file(path: Path) -> str:
         while chunk := stream.read(1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _canonical_json_hash(value: Any) -> str:
+    encoded = json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode()).hexdigest()
+
+
+def _regular_file_sha256(path: Path | None) -> str | None:
+    """Hash a configured regular file without following a final symlink."""
+
+    if path is None or path.is_symlink() or not path.is_file():
+        return None
+    try:
+        return _sha256_file(path)
+    except OSError:
+        return None
+
+
+def _package_file_count(artifact: Path) -> int:
+    if artifact.is_symlink() or not artifact.is_dir():
+        return 0
+    try:
+        return sum(1 for path in artifact.rglob("*") if not path.is_symlink() and path.is_file())
+    except OSError:
+        return 0
+
+
+def artifact_identity(args: argparse.Namespace) -> dict[str, str | int | None]:
+    """Return the path-free content identity recorded in the gate receipt."""
+
+    artifact = args.artifact
+    return {
+        "checksums_sha256": _regular_file_sha256(artifact / "checksums.txt"),
+        "package_file_count": _package_file_count(artifact),
+        "sbom_sha256": _regular_file_sha256(artifact / "sbom.cdx.json"),
+        "source_registry_sha256": _regular_file_sha256(args.source_registry),
+        "dependency_scan_sha256": _regular_file_sha256(args.dependency_scan),
+        "dependency_exceptions_sha256": _regular_file_sha256(args.dependency_exceptions),
+    }
+
+
+def gate_receipt_identity(
+    identity: dict[str, str | int | None],
+    *,
+    dependency_exceptions_configured: bool,
+) -> GateResult:
+    """Require a complete content address before a receipt may report PASS."""
+
+    required_hashes = [
+        "checksums_sha256",
+        "sbom_sha256",
+        "source_registry_sha256",
+        "dependency_scan_sha256",
+    ]
+    if dependency_exceptions_configured:
+        required_hashes.append("dependency_exceptions_sha256")
+    missing = [
+        field
+        for field in required_hashes
+        if not isinstance(identity.get(field), str)
+        or SHA256_PATTERN.fullmatch(str(identity.get(field))) is None
+    ]
+    issues: list[GateIssue] = []
+    if missing:
+        issues.append(
+            GateIssue(
+                "RC_BLOCKED_RECEIPT_IDENTITY",
+                "release receipt lacks required content hashes: " + ", ".join(missing),
+            )
+        )
+    file_count = identity.get("package_file_count")
+    if isinstance(file_count, bool) or not isinstance(file_count, int) or file_count < 1:
+        issues.append(
+            GateIssue(
+                "RC_BLOCKED_RECEIPT_FILE_COUNT",
+                "release receipt cannot establish a positive package file count",
+            )
+        )
+    return _result("receipt_identity", issues)
 
 
 def gate_file_set(artifact: Path) -> GateResult:
@@ -411,6 +491,9 @@ def _initialization_contract_issues(training: dict[str, Any]) -> list[GateIssue]
         block("staged initialization must start with fresh trainer state")
     if training.get("attention_mode") != "full":
         block("staged initialization is release-eligible only for a Full target")
+    if not isinstance(initialization, dict):
+        block("staged initialization audit must be an object")
+        return issues
 
     required_hashes = (
         "source_manifest_sha256",
@@ -946,15 +1029,16 @@ def gate_quality(artifact: Path) -> GateResult:
                 value = criterion.get("value")
                 threshold = criterion.get("threshold")
                 operator = criterion.get("operator")
-                numeric = (
-                    not isinstance(value, bool)
-                    and isinstance(value, (int, float))
-                    and math.isfinite(value)
-                    and not isinstance(threshold, bool)
-                    and isinstance(threshold, (int, float))
-                    and math.isfinite(threshold)
-                )
-                if not isinstance(name, str) or not name.strip() or not numeric:
+                if (
+                    not isinstance(name, str)
+                    or not name.strip()
+                    or isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not math.isfinite(value)
+                    or isinstance(threshold, bool)
+                    or not isinstance(threshold, (int, float))
+                    or not math.isfinite(threshold)
+                ):
                     issues.append(
                         GateIssue(
                             "RC_BLOCKED_QUALITY_CRITERION_EVIDENCE",
@@ -962,11 +1046,13 @@ def gate_quality(artifact: Path) -> GateResult:
                         )
                     )
                     continue
+                numeric_value = float(value)
+                numeric_threshold = float(threshold)
                 comparisons = {
-                    ">": value > threshold,
-                    ">=": value >= threshold,
-                    "<": value < threshold,
-                    "<=": value <= threshold,
+                    ">": numeric_value > numeric_threshold,
+                    ">=": numeric_value >= numeric_threshold,
+                    "<": numeric_value < numeric_threshold,
+                    "<=": numeric_value <= numeric_threshold,
                 }
                 if operator not in comparisons or not comparisons[operator]:
                     issues.append(
@@ -1141,6 +1227,8 @@ def _load_exceptions(path: Path | None) -> dict[tuple[str, str], dict[str, Any]]
         ):
             raise ValueError(f"dependency exception {index} needs compensating_controls")
         expires = entry.get("expires_on")
+        if not isinstance(expires, str):
+            raise ValueError(f"dependency exception {index} has invalid expires_on")
         try:
             expiration = date.fromisoformat(expires)
         except (TypeError, ValueError) as exc:
@@ -1278,16 +1366,31 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = _parse_args()
+    execution_error = False
     try:
         results = run_gates(args)
     except (OSError, ValueError, json.JSONDecodeError, yaml.YAMLError) as exc:
         print(f"release gate error: {exc}", file=sys.stderr)
-        return 2
+        execution_error = True
+        results = [
+            _result(
+                "gate_execution",
+                [GateIssue("RC_BLOCKED_GATE_EXECUTION", str(exc))],
+            )
+        ]
+    identity = artifact_identity(args)
+    results.append(
+        gate_receipt_identity(
+            identity,
+            dependency_exceptions_configured=args.dependency_exceptions is not None,
+        )
+    )
     blockers = sum(len(result.issues) for result in results)
-    report = {
-        "schema_version": 1,
+    report: dict[str, Any] = {
+        "schema_version": 2,
         "status": "PASS" if blockers == 0 else "RC_BLOCKED",
         "blocker_count": blockers,
+        "artifact_identity": identity,
         "gates": [
             {
                 "name": result.name,
@@ -1299,6 +1402,7 @@ def main() -> int:
         ],
         "notice": "Machine checks do not replace required legal, privacy, and human reviews.",
     }
+    report["manifest_sha256"] = _canonical_json_hash(report)
     if args.json_output:
         args.json_output.parent.mkdir(parents=True, exist_ok=True)
         args.json_output.write_text(
@@ -1309,6 +1413,8 @@ def main() -> int:
         print(f"- {'PASS' if result.passed else 'BLOCKED'} {result.name}")
         for issue in result.issues:
             print(f"  {issue.code}: {issue.message}")
+    if execution_error:
+        return 2
     return 0 if blockers == 0 else 1
 
 

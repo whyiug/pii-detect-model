@@ -110,7 +110,7 @@ def _as_mapping(value: object, location: str) -> Mapping[str, Any]:
 def _as_sequence(value: object, location: str) -> Sequence[Any]:
     if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
         raise TaxonomyValidationError(f"{location} must be a sequence")
-    return cast(Sequence[Any], value)
+    return value
 
 
 def _required_string(document: Mapping[str, Any], key: str, location: str) -> str:

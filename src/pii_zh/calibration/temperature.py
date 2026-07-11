@@ -70,9 +70,18 @@ class TemperatureScaler:
         cls,
         logits: Sequence[Sequence[float]],
         labels: Sequence[int],
-        **kwargs: float | int,
+        *,
+        minimum: float = 0.05,
+        maximum: float = 20.0,
+        iterations: int = 96,
     ) -> TemperatureScaler:
-        return fit_temperature(logits, labels, **kwargs)
+        return fit_temperature(
+            logits,
+            labels,
+            minimum=minimum,
+            maximum=maximum,
+            iterations=iterations,
+        )
 
 
 def fit_temperature(

@@ -173,10 +173,13 @@ class TransformersSpanPredictor:
         }
         source_width = model_inputs["input_ids"].shape[1]
         if self.attention_mode == "jpt":
+            sep_token_id = self.jpt_sep_token_id
+            if sep_token_id is None:  # guarded by __init__; retain a local invariant check
+                raise InferenceSafetyError("JPT predictor is missing its separator token id")
             repeated = build_jpt_inputs(
                 model_inputs["input_ids"],
                 attention_mask=model_inputs.get("attention_mask"),
-                sep_token_id=int(self.jpt_sep_token_id),
+                sep_token_id=sep_token_id,
                 pad_token_id=int(self.tokenizer.pad_token_id),
             )
             repeated.pop("second_copy_mask")
@@ -190,7 +193,11 @@ class TransformersSpanPredictor:
         token_scores, label_ids = probabilities.max(dim=-1)
         results: list[list[dict[str, Any]]] = []
         for row in range(len(texts)):
-            row_offsets = [tuple(map(int, pair)) for pair in offsets[row].tolist()]
+            row_offsets: list[tuple[int, int]] = []
+            for pair in offsets[row].tolist():
+                if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+                    raise InferenceSafetyError("tokenizer returned an invalid offset mapping")
+                row_offsets.append((int(pair[0]), int(pair[1])))
             spans = decode_bio_ids(
                 label_ids[row].tolist(),
                 row_offsets,

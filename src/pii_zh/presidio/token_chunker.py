@@ -105,7 +105,7 @@ class TokenizerAwareChunker:
             count = counter(False)
         if isinstance(count, bool) or not isinstance(count, int) or count < 0:
             raise TypeError("tokenizer.num_special_tokens_to_add must return a non-negative int")
-        return count
+        return int(count)
 
     def _token_offsets(self, text: str) -> tuple[tuple[int, int], ...]:
         try:

@@ -65,17 +65,22 @@ def apply_replacements(
     output = text
     for span in reversed(normalized):
         original = text[span.start : span.end]
+        replacement_value: object
         if callable(replacement):
-            value = replacement(span, original)
+            replacement_value = replacement(span, original)
         elif isinstance(replacement, Mapping):
-            value = replacement.get(span.entity_type, default_replacement)
-            if value is None:
+            # Mapping is covariant in its value type.  Widening it to object
+            # lets the optional default retain the original single ``get``
+            # lookup semantics without weakening the public ReplacementSpec.
+            replacement_values: Mapping[str, object] = replacement
+            replacement_value = replacement_values.get(span.entity_type, default_replacement)
+            if replacement_value is None:
                 raise KeyError(f"no replacement configured for {span.entity_type}")
         else:
-            value = replacement
-        if not isinstance(value, str):
+            replacement_value = replacement
+        if not isinstance(replacement_value, str):
             raise TypeError("replacement values must be strings")
-        output = output[: span.start] + value + output[span.end :]
+        output = output[: span.start] + replacement_value + output[span.end :]
     return output
 
 

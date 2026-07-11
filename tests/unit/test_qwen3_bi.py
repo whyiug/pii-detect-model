@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from fractions import Fraction
+
+import pytest
 import torch
 from transformers import Qwen3Config, Qwen3ForTokenClassification
 
@@ -32,6 +35,17 @@ def make_model(*, backend: str = "eager") -> Qwen3BiForTokenClassification:
     model = Qwen3BiForTokenClassification(tiny_config(backend=backend))
     model.eval()
     return model
+
+
+def test_classifier_dropout_accepts_real_values_but_rejects_bool() -> None:
+    config = tiny_config()
+    config.classifier_dropout = Fraction(1, 4)
+    model = Qwen3BiForTokenClassification(config)
+    assert model.dropout.p == pytest.approx(0.25)
+
+    config.classifier_dropout = True
+    with pytest.raises(TypeError, match="real number"):
+        Qwen3BiForTokenClassification(config)
 
 
 @torch.no_grad()

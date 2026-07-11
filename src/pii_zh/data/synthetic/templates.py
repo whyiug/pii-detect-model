@@ -74,7 +74,7 @@ class SyntheticTemplate:
 
 
 def _asset_bytes(filename: str) -> bytes:
-    return files("pii_zh.data.synthetic").joinpath("assets", filename).read_bytes()
+    return files("pii_zh.data.synthetic").joinpath("assets").joinpath(filename).read_bytes()
 
 
 def _decode_json(filename: str, raw: bytes) -> Mapping[str, Any]:
@@ -218,7 +218,7 @@ def core_label_family_coverage(
     templates: tuple[SyntheticTemplate, ...] | None = None,
 ) -> Mapping[str, frozenset[str]]:
     selected = POSITIVE_TEMPLATES if templates is None else templates
-    result = {label: set() for label in CORE_LABELS}
+    result: dict[str, set[str]] = {label: set() for label in CORE_LABELS}
     for template in selected:
         for spec in template.placeholders:
             if spec.label in result:
