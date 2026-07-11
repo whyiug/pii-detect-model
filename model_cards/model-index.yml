@@ -1,4 +1,54 @@
 model-index:
-  - name: RC_BLOCKED_REPLACE_WITH_RELEASE_NAME
-    results: []
-
+- name: zh-pii-qwen3-0.6b-bi-synthetic-v1.3-rc1
+  results:
+  - task:
+      name: Token Classification
+      type: token-classification
+    dataset:
+      name: Synthetic v1.3 frozen test
+      type: synthetic_test
+      split: test
+    metrics:
+    - name: System Strict Span Micro F1
+      type: strict_span_f1
+      value: 0.9071716858118597
+    - name: System Strict Span Precision
+      type: strict_span_precision
+      value: 0.9203149606299212
+    - name: System Strict Span Recall
+      type: strict_span_recall
+      value: 0.8943985307621671
+  - task:
+      name: Token Classification
+      type: token-classification
+    dataset:
+      name: PII Bench zh formal (frozen)
+      type: pii_bench_formal
+      split: test
+    metrics:
+    - name: System Strict Span Micro F1
+      type: strict_span_f1
+      value: 0.8265343091080356
+    - name: System Strict Span Precision
+      type: strict_span_precision
+      value: 0.9553601340033501
+    - name: System Strict Span Recall
+      type: strict_span_recall
+      value: 0.7283233303537224
+  - task:
+      name: Token Classification
+      type: token-classification
+    dataset:
+      name: PII Bench zh chat (frozen)
+      type: pii_bench_chat
+      split: test
+    metrics:
+    - name: System Strict Span Micro F1
+      type: strict_span_f1
+      value: 0.7406154341872081
+    - name: System Strict Span Precision
+      type: strict_span_precision
+      value: 0.9439425051334702
+    - name: System Strict Span Recall
+      type: strict_span_recall
+      value: 0.6093584305408272

@@ -1,9 +1,13 @@
-pii-zh-qwen
+pii-zh-qwen synthetic-v1.3-rc1
 Copyright 2026 pii-zh-qwen contributors
 
-This product includes software developed by the pii-zh-qwen contributors.
+This research release candidate includes software, synthetic-data tooling, evaluation tooling,
+and a Chinese PII token-classification model developed by the pii-zh-qwen contributors.
 
-Third-party components, datasets, model checkpoints, and generated artifacts are not covered by
-this NOTICE merely because they are referenced by the project. Consult THIRD_PARTY_NOTICES.md and
-the provenance manifest associated with each release.
+The released model is based on Qwen3-0.6B-Base from the Qwen project.
+Qwen and the Qwen model materials are Copyright 2024 Alibaba Cloud and are made available under
+the Apache License, Version 2.0. The Qwen attribution and license apply independently of the
+pii-zh-qwen project notice.
 
+Exact third-party revisions, roles, distribution boundaries, and dependency records for this
+release candidate are documented in THIRD_PARTY_NOTICES.md, `sbom.cdx.json`, and `uv.lock`.

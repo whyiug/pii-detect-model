@@ -1,49 +1,65 @@
-# Third-Party Notices and Provenance Status
+# Third-Party Notices — synthetic-v1.3-rc1
 
-This file describes dependencies and planned sources; it is not a legal conclusion. A release must
-generate a source-specific NOTICE/SBOM and pass the license gate using the exact resolved versions,
-dataset revisions, teacher revisions, and terms snapshots actually used.
+This notice records the sources admitted to, evaluated with, or otherwise relevant to the
+`synthetic-v1.3-rc1` research release candidate.
 
-## Runtime and development packages
+## Qwen3-0.6B-Base
 
-The phase-A package declares PyYAML as an optional core dependency and declares optional training,
-Presidio, and development dependency groups in `pyproject.toml`. Those packages are not vendored.
-Their licenses and transitive dependencies must be collected from the resolved environment before
-release. In particular:
+- Source: `Qwen/Qwen3-0.6B-Base`
+- Revision: `da87bfb608c14b7cf20ba1ce41287e8de496c0cd`
+- License: Apache License 2.0
+- Attribution: Qwen; Copyright 2024 Alibaba Cloud
+- Release role: base checkpoint for the fine-tuned token-classification model
 
-- PyYAML is distributed under the MIT license.
-- Presidio is distributed under the MIT license.
-- Transformers, Accelerate, PEFT, Safetensors, Datasets, and Evaluate are generally distributed
-  under Apache-2.0, but the exact installed artifacts and transitive packages remain authoritative.
-- PyTorch and scientific Python packages have their own license and notice requirements.
+The release checkpoint is derived from this base. The upstream Qwen license and attribution
+remain applicable to the Qwen materials.
 
-## Models and datasets referenced by the plan
+## Qwen3-8B template candidate generator
 
-No model weights or dataset rows are currently redistributed by this repository.
+- Source: `Qwen/Qwen3-8B`
+- Local model-index SHA-256 fingerprint:
+  `f9fdbcb91c23971c13ec5d5f2573d2349e8f61f2f049371ec699281748fdb1bc`
+- License: Apache License 2.0
+- Attribution: Qwen; Copyright 2024 Alibaba Cloud
+- Release role: local, placeholder-only synthetic-template candidate generator
 
-- Qwen base/teacher checkpoints must be pinned to exact revisions and their model-card licenses
-  recorded before use. A base-model license does not by itself determine the license of a trained
-  release.
-- `ai4privacy/pii-masking-openpii-1.5m` is only a proposed warm-up source. Its exact revision,
-  attribution, data provenance, and permission to train publicly distributed derived weights must
-  be reviewed before admission to the public pool.
-- `wan9yu/pii-bench-zh` is proposed strictly as an evaluation-only source. It must not enter
-  training, prompt development, distillation, calibration, or threshold selection.
-- Sources with non-commercial, no-derivatives, research-only, unknown, or incompatible terms must
-  not enter a public/commercial training path.
-- Customer/internal gold data is private by default and is not authorized for public model
-  training merely because it can be accessed internally.
+This model was not a span-label or pseudo-label teacher. Reviewers examined 70 generated
+template candidates and accepted 53. Only the 53 reviewed, accepted template skeletons were
+admitted to the repository template asset. The Qwen3-8B checkpoint, raw model outputs, rejected
+outputs, and model-produced span labels are not included in the training data or redistributed
+with this release candidate.
 
-## Teacher and API output
+## Repository synthetic templates
 
-Self-hosted and API teachers require independent provenance records. Provider output ownership does
-not automatically establish permission to train or publicly distribute derived weights. External
-API output is excluded from the public release pool unless a documented review explicitly approves
-the exact service, contract, use, and distribution path.
+- Source: `src/pii_zh/data/synthetic/assets/curated_templates_v1.json`
+- Revision:
+  `sha256:d65c7b50a21c48ce217a4d44ea6f7333bdb0c385847f8c1d4d067507f4b2563f`
+- License: Apache License 2.0
+- Attribution: Copyright 2026 pii-zh-qwen contributors
+- Release role: reviewed template skeletons used by the deterministic synthetic-data generator
 
-## Required release evidence
+These templates contain abstract field markers rather than customer records. Training examples
+were materialized by the repository's deterministic synthetic-data pipeline.
 
-Every release must include, at minimum, exact source revisions, license/terms snapshots and hashes,
-attribution, sampling evidence, `data_provenance.json`, `teacher_provenance.json`, an SBOM, and
-checksums. Unresolved sources remain quarantined.
+## pii-bench-zh
 
+- Source: `wan9yu/pii-bench-zh`
+- Revision: `c350b94897af668517ff5de237d89f2ce2eaa6f0`
+- License: Apache License 2.0
+- Release role: frozen, evaluation-only formal and chat suites
+
+This dataset was excluded from training, calibration, threshold selection, and template
+development. Dataset rows are not redistributed with this release candidate; only aggregate
+evaluation evidence is reported.
+
+## Runtime and development dependencies
+
+The exact packaged dependency inventory is recorded in `sbom.cdx.json`; the reproducible source
+environment resolution is recorded in `uv.lock`. Those records are authoritative for package
+names and resolved versions. Runtime and development dependencies are not vendored into this
+repository or the model checkpoint.
+
+## Excluded inputs
+
+No external API output and no customer or internal production data were used to train, calibrate,
+or evaluate this release candidate.
