@@ -219,8 +219,8 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
             "decision config must be a pre-holdout amendment with schema version 1"
         )
     decision_id = _safe_id(config.get("decision_id"), field="decision_id")
-    if decision_id != "synthetic_v1_3_community_rc_v3":
-        raise CommunityRCEvidenceError("decision config must be community RC amendment v3")
+    if decision_id != "synthetic_v1_3_community_rc_v4":
+        raise CommunityRCEvidenceError("decision config must be community RC amendment v4")
     if (
         config.get("candidate_scope") != "community_research_release_candidate"
         or config.get("production_ready") is not False
@@ -230,6 +230,8 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
     parent_decision_id = _safe_id(
         parent_decision.get("decision_id"), field="parent_decision.decision_id"
     )
+    if parent_decision_id != "synthetic_v1_3_community_rc_v3":
+        raise CommunityRCEvidenceError("community RC v4 must amend community RC v3")
     parent_config_sha256 = _sha256(
         parent_decision.get("config_sha256"), field="parent_decision.config_sha256"
     )
@@ -238,21 +240,31 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
     unchanged_flags = (
         "holdout_accessed",
         "thresholds_changed",
+        "quality_gate_thresholds_changed",
         "seeds_changed",
         "selected_seed_changed",
+        "model_weights_changed",
     )
     if any(amendment.get(field) is not False for field in unchanged_flags):
         raise CommunityRCEvidenceError("amendment must precede holdout access and preserve gates")
     allowed_changes = _sequence(amendment.get("allowed_changes"), field="amendment.allowed_changes")
-    if tuple(allowed_changes) != ("require_affirmative_qq_context_during_refinement",):
+    if tuple(allowed_changes) != (
+        "upgrade_transformers_runtime_for_security",
+        "preserve_serialized_tokenizer_backend_graph",
+        "regenerate_validation_predictions_and_refit_validation_only_calibration",
+    ):
         raise CommunityRCEvidenceError("amendment contains an unapproved system change")
+    if amendment.get("calibration_bundle_changed") is not True:
+        raise CommunityRCEvidenceError("runtime migration must declare validation recalibration")
     forbidden_changes = set(
         _sequence(amendment.get("forbidden_changes"), field="amendment.forbidden_changes")
     )
     required_forbidden = {
         "lower_quality_thresholds",
         "change_seed_set",
-        "change_model_or_calibration",
+        "change_selected_seed",
+        "change_model_weights",
+        "change_rules_fusion_or_refinement",
         "inspect_or_tune_on_frozen_test",
         "refit_calibration_on_any_test_subset",
     }
@@ -279,22 +291,42 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
     )
     ruleset_id = _safe_id(system.get("ruleset_id"), field="system.ruleset_id")
     if ruleset_id != "cn_common_v5":
-        raise CommunityRCEvidenceError("community RC v3 requires cn_common_v5")
+        raise CommunityRCEvidenceError("community RC v4 requires cn_common_v5")
     rules_implementation_sha256 = _sha256(
         system.get("rules_implementation_sha256"), field="system.rules_implementation_sha256"
     )
     fusion_id = _safe_id(system.get("fusion"), field="system.fusion")
     if fusion_id != "deterministic_fusion_v1":
-        raise CommunityRCEvidenceError("community RC v3 requires deterministic_fusion_v1")
+        raise CommunityRCEvidenceError("community RC v4 requires deterministic_fusion_v1")
     fusion_implementation_sha256 = _sha256(
         system.get("fusion_implementation_sha256"),
         field="system.fusion_implementation_sha256",
+    )
+    runtime = _mapping(system.get("runtime"), field="system.runtime")
+    if (
+        runtime.get("transformers_version") != "5.13.1"
+        or runtime.get("tokenizer_loader") != "serialized_fast_tokenizer_v1"
+        or runtime.get("tokenizer_boundary_mode") != "unicode_codepoint_v1"
+    ):
+        raise CommunityRCEvidenceError("release runtime/tokenizer contract is invalid")
+    tokenizer_backend_sha256 = _sha256(
+        runtime.get("tokenizer_backend_sha256"),
+        field="system.runtime.tokenizer_backend_sha256",
+    )
+    tokenizer_implementation_sha256 = _sha256(
+        runtime.get("tokenizer_implementation_sha256"),
+        field="system.runtime.tokenizer_implementation_sha256",
+    )
+    dependency_lock_sha256 = _sha256(
+        runtime.get("dependency_lock_sha256"),
+        field="system.runtime.dependency_lock_sha256",
     )
     calibration = _mapping(system.get("calibration"), field="system.calibration")
     if (
         calibration.get("fit_per_seed_on_validation") is not True
         or calibration.get("selected_seed_bundle_frozen_before_holdout_access") is not True
         or calibration.get("holdout_policy") != "apply_only_no_refit"
+        or calibration.get("refit_reason") != "release_runtime_compatibility_migration"
     ):
         raise CommunityRCEvidenceError("calibration fit/apply holdout policy is invalid")
     t0_floor = _probability(
@@ -308,7 +340,7 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
         raise CommunityRCEvidenceError("calibration.temperature_scaling must be boolean")
     refinement_contract = _safe_id(system.get("refinement"), field="system.refinement")
     if refinement_contract != "structured_prediction_refinement_v4":
-        raise CommunityRCEvidenceError("community RC v3 requires refinement v4")
+        raise CommunityRCEvidenceError("community RC v4 requires refinement v4")
     refinement_implementation_sha256 = _sha256(
         system.get("refinement_implementation_sha256"),
         field="system.refinement_implementation_sha256",
@@ -368,6 +400,11 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
         "rules_implementation_sha256": rules_implementation_sha256,
         "fusion_id": fusion_id,
         "fusion_implementation_sha256": fusion_implementation_sha256,
+        "transformers_version": "5.13.1",
+        "tokenizer_loader": "serialized_fast_tokenizer_v1",
+        "tokenizer_backend_sha256": tokenizer_backend_sha256,
+        "tokenizer_implementation_sha256": tokenizer_implementation_sha256,
+        "dependency_lock_sha256": dependency_lock_sha256,
         "refinement_contract": refinement_contract,
         "refinement_id": "structured_refinement_v4",
         "refinement_implementation_sha256": refinement_implementation_sha256,
@@ -1187,6 +1224,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "refinement_implementation_sha256": contract[
                         "refinement_implementation_sha256"
                     ],
+                    "runtime": {
+                        "transformers_version": contract["transformers_version"],
+                        "tokenizer_loader": contract["tokenizer_loader"],
+                        "tokenizer_backend_sha256": contract["tokenizer_backend_sha256"],
+                        "tokenizer_implementation_sha256": contract[
+                            "tokenizer_implementation_sha256"
+                        ],
+                        "dependency_lock_sha256": contract["dependency_lock_sha256"],
+                    },
                     "calibration_holdout_policy": "apply_only_no_refit",
                 },
                 "metric_set": list(_METRIC_NAMES),
