@@ -80,6 +80,54 @@ def test_gate_blocks_staged_recipe_without_initialization_audit(
     assert "RC_BLOCKED_INITIALIZATION_AUDIT" in _issue_codes(report)
 
 
+def test_gate_accepts_schema3_jpt_to_full_staged_provenance(
+    staged_jpt_built_release: ReleaseFixture,
+    repository_root: Path,
+    tmp_path: Path,
+) -> None:
+    report = tmp_path / "gate.json"
+    result = _gate(repository_root, staged_jpt_built_release, report)
+    document = json.loads(report.read_text(encoding="utf-8"))
+    binding = next(
+        gate for gate in document["gates"] if gate["name"] == "training_artifact_binding"
+    )
+    manifest = json.loads(
+        (staged_jpt_built_release.artifact / "training_manifest.json").read_text(encoding="utf-8")
+    )
+    initialization = manifest["initialization"]
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "PASS: 0 blocker(s)" in result.stdout
+    assert document["status"] == "PASS"
+    assert document["blocker_count"] == 0
+    assert _issue_codes(report) == set()
+    assert binding["passed"] is True
+    assert binding["issues"] == []
+
+    assert manifest["schema_version"] == 3
+    assert manifest["attention_mode"] == "full"
+    assert manifest["recipe"]["resume"] is False
+    assert (
+        manifest["recipe"]["initialization_strategy"]
+        == initialization["strategy"]
+        == "verified_token_classifier_to_full_v1"
+    )
+    assert initialization["source_attention_mode"] == "jpt"
+    assert initialization["source_manifest_schema_version"] == 3
+    assert initialization["base_source_id"] == manifest["base_source_id"]
+    assert initialization["base_config_sha256"] == manifest["base_checkpoint"]["config_sha256"]
+    assert initialization["base_weights_sha256"] == manifest["base_checkpoint"]["weights_sha256"]
+    assert initialization["taxonomy_version"] == manifest["taxonomy_version"]
+    assert initialization["label_schema_sha256"] == manifest["label_schema_sha256"]
+    assert (
+        initialization["tokenizer_effective_contract_sha256"]
+        == manifest["tokenizer"]["effective_contract_sha256"]
+    )
+    assert initialization["train_sha256"] == manifest["datasets"]["train"]["sha256"]
+    assert initialization["validation_sha256"] == manifest["datasets"]["validation"]["sha256"]
+    assert str(staged_jpt_built_release.checkpoint) not in json.dumps(manifest)
+
+
 def test_gate_blocks_incomplete_three_seed_evidence(
     built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
 ) -> None:

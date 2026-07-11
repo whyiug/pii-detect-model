@@ -306,3 +306,97 @@ def built_release(release_fixture: ReleaseFixture, repository_root: Path) -> Rel
     )
     assert result.returncode == 0, result.stderr
     return release_fixture
+
+
+@pytest.fixture
+def staged_jpt_built_release(
+    release_fixture: ReleaseFixture, repository_root: Path
+) -> ReleaseFixture:
+    """Build a release fixture with a valid schema-v3 JPT-to-Full audit chain."""
+
+    training_path = release_fixture.evidence / "training_manifest.json"
+    training = json.loads(training_path.read_text(encoding="utf-8"))
+    strategy = "verified_token_classifier_to_full_v1"
+
+    def digest(name: str) -> str:
+        return hashlib.sha256(f"staged-jpt-release-fixture:{name}".encode()).hexdigest()
+
+    label2id = {"O": 0, "B-PERSON_NAME": 1}
+    effective = training["tokenizer"]["effective"]
+    tokenizer_contract_sha256 = _canonical_hash(effective)
+    recipe = {
+        "attention_mode": "full",
+        "fine_tuning": "lora",
+        "resume": False,
+        "initialization_strategy": strategy,
+    }
+    training.update(
+        {
+            "schema_version": 3,
+            "fine_tuning": "lora",
+            "taxonomy_version": "tiny-v1",
+            "label2id": label2id,
+            "label_schema_sha256": _canonical_hash(label2id),
+            "base_checkpoint": {
+                "config_sha256": digest("base-config"),
+                "weights_sha256": digest("base-weights"),
+            },
+            "tokenizer": {
+                **training["tokenizer"],
+                "effective_contract_sha256": tokenizer_contract_sha256,
+            },
+            "datasets": {
+                "train": {"sha256": digest("train")},
+                "validation": {"sha256": digest("validation")},
+            },
+            "recipe": recipe,
+            "recipe_sha256": _canonical_hash(recipe),
+            "initialization": {
+                "strategy": strategy,
+                "source_manifest_schema_version": 3,
+                "source_manifest_sha256": digest("source-manifest"),
+                "source_manifest_file_sha256": digest("source-manifest-file"),
+                "source_output_artifact_sha256": digest("source-output-artifact"),
+                "source_attention_mode": "jpt",
+                "source_fine_tuning": "lora",
+                "source_code_revision": "d" * 40,
+                "source_config_sha256": digest("source-config"),
+                "source_weights_sha256": digest("source-weights"),
+                "source_safetensor_files": ["model.safetensors"],
+                "source_architecture_sha256": digest("source-architecture"),
+                "base_source_id": training["base_source_id"],
+                "base_config_sha256": digest("base-config"),
+                "base_weights_sha256": digest("base-weights"),
+                "label_schema_sha256": _canonical_hash(label2id),
+                "taxonomy_version": "tiny-v1",
+                "tokenizer_effective_contract_sha256": tokenizer_contract_sha256,
+                "train_sha256": digest("train"),
+                "validation_sha256": digest("validation"),
+                "tensor_count": 2,
+                "tensor_dtypes": ["F32"],
+                "score_keys": ["score.bias", "score.weight"],
+                "missing_keys": [],
+                "unexpected_keys": [],
+                "mismatched_keys": [],
+            },
+        }
+    )
+    write_json(training_path, training)
+    rewrite_training_manifest_binding(release_fixture.checkpoint, release_fixture.evidence)
+
+    result = run_script(
+        repository_root,
+        "build_release.py",
+        "--checkpoint-dir",
+        str(release_fixture.checkpoint),
+        "--evidence-dir",
+        str(release_fixture.evidence),
+        "--model-card",
+        str(release_fixture.model_card),
+        "--repository-root",
+        str(release_fixture.repository_root),
+        "--output-dir",
+        str(release_fixture.artifact),
+    )
+    assert result.returncode == 0, result.stderr
+    return release_fixture
