@@ -98,6 +98,7 @@ def main() -> int:
         local_files_only=True,
         trust_remote_code=False,
         use_fast=True,
+        fix_mistral_regex=False,
     )
     safe_tokenizer = configure_character_boundary_tokenizer(copy.deepcopy(default_tokenizer))
     report: dict[str, Any] = {

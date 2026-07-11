@@ -300,7 +300,6 @@ def run_training(config: TrainingConfig) -> TrainingRunResult:
         dataloader_num_workers=config.dataloader_num_workers,
         report_to=[],
         remove_unused_columns=True,
-        save_safetensors=True,
         save_total_limit=config.save_total_limit,
         load_best_model_at_end=True,
         metric_for_best_model="risk_weighted_score",

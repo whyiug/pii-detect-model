@@ -148,10 +148,55 @@ def inspect_local_qwen3_checkpoint(
     )
 
 
-def _normalise_loading_keys(value: object) -> tuple[str, ...]:
-    if not isinstance(value, (list, tuple)):
-        return ()
-    return tuple(sorted(str(item) for item in value))
+def _normalise_loading_keys(
+    value: object,
+    *,
+    field: str,
+    structured: bool = False,
+) -> tuple[str, ...]:
+    """Normalize legacy lists and Transformers 5 ``set`` loading reports.
+
+    Transformers 5.13 returns sets from ``LoadStateDictInfo.to_dict``.  Invalid
+    or absent report fields are an audit failure, never an empty result.
+    """
+
+    if not isinstance(value, (list, tuple, set, frozenset)):
+        raise CheckpointSafetyError(f"Transformers loading report {field} is not a collection")
+    normalized: list[str] = []
+    for item in value:
+        if isinstance(item, str):
+            normalized.append(item)
+        elif structured and isinstance(item, (list, tuple)) and item and isinstance(item[0], str):
+            normalized.append(item[0])
+        else:
+            raise CheckpointSafetyError(
+                f"Transformers loading report {field} contains an invalid entry"
+            )
+    if len(normalized) != len(set(normalized)):
+        raise CheckpointSafetyError(f"Transformers loading report {field} contains duplicates")
+    return tuple(sorted(normalized))
+
+
+def _safetensor_schema(safetensor_files: tuple[Path, ...]) -> dict[str, tuple[int, ...]]:
+    """Read the complete checkpoint key/shape schema without loading tensors."""
+
+    schema: dict[str, tuple[int, ...]] = {}
+    for weight_path in safetensor_files:
+        try:
+            with safe_open(weight_path, framework="pt", device="cpu") as handle:
+                for key in handle.keys():
+                    if key in schema:
+                        raise CheckpointSafetyError(
+                            "checkpoint repeats a tensor key across safetensor shards"
+                        )
+                    schema[key] = tuple(int(size) for size in handle.get_slice(key).get_shape())
+        except CheckpointSafetyError:
+            raise
+        except Exception as exc:
+            raise CheckpointSafetyError(
+                f"invalid safetensors header in {weight_path.name!r}"
+            ) from exc
+    return schema
 
 
 def _audit_loading_transition(
@@ -164,14 +209,50 @@ def _audit_loading_transition(
     safetensor_files: tuple[Path, ...],
     lm_head_present: bool,
 ) -> BackboneLoadingAudit:
-    missing = _normalise_loading_keys(info.get("missing_keys"))
-    unexpected = _normalise_loading_keys(info.get("unexpected_keys"))
-    mismatched = _normalise_loading_keys(info.get("mismatched_keys"))
-    errors = _normalise_loading_keys(info.get("error_msgs"))
+    if not isinstance(info, dict):
+        raise CheckpointSafetyError("Transformers did not return a structured loading report")
+    missing = _normalise_loading_keys(info.get("missing_keys"), field="missing_keys")
+    unexpected = _normalise_loading_keys(info.get("unexpected_keys"), field="unexpected_keys")
+    mismatched = _normalise_loading_keys(
+        info.get("mismatched_keys"), field="mismatched_keys", structured=True
+    )
+    errors = _normalise_loading_keys(info.get("error_msgs"), field="error_msgs")
     expected_score = tuple(sorted(key for key in model.state_dict() if key.startswith("score.")))
+    if expected_score != ("score.bias", "score.weight"):
+        raise CheckpointSafetyError(
+            "token-classifier architecture does not expose the approved score head"
+        )
+
+    checkpoint_schema = _safetensor_schema(safetensor_files)
+    model_schema = {
+        key: tuple(int(size) for size in value.shape) for key, value in model.state_dict().items()
+    }
+    schema_missing = tuple(sorted(set(model_schema) - set(checkpoint_schema)))
+    schema_unexpected = tuple(sorted(set(checkpoint_schema) - set(model_schema)))
+    schema_mismatched = tuple(
+        sorted(
+            key
+            for key in set(model_schema) & set(checkpoint_schema)
+            if model_schema[key] != checkpoint_schema[key]
+        )
+    )
+    expected_unexpected = ("lm_head.weight",) if lm_head_present else ()
+    if schema_missing != expected_score or schema_unexpected != expected_unexpected:
+        raise CheckpointSafetyError(
+            "checkpoint/model state-dict schema transition is not approved: "
+            f"missing={list(schema_missing)}, unexpected={list(schema_unexpected)}"
+        )
+    if schema_mismatched:
+        raise CheckpointSafetyError(
+            f"checkpoint/model state-dict shapes differ: mismatched={list(schema_mismatched)}"
+        )
+    if missing != schema_missing or unexpected != schema_unexpected:
+        raise CheckpointSafetyError(
+            "Transformers loading report disagrees with the safetensors schema audit"
+        )
 
     unapproved_missing = sorted(set(missing) - set(expected_score))
-    unapproved_unexpected = sorted(key for key in unexpected if not key.startswith("lm_head."))
+    unapproved_unexpected = sorted(set(unexpected) - set(expected_unexpected))
     if unapproved_missing or unapproved_unexpected or mismatched or errors:
         raise CheckpointSafetyError(
             "CausalLM-to-token-classifier state-dict audit failed: "
@@ -184,7 +265,7 @@ def _audit_loading_transition(
             "classification head was not cleanly initialized; expected missing keys "
             f"{list(expected_score)!r}, got {list(missing)!r}"
         )
-    discarded_lm_head = any(key.startswith("lm_head.") for key in unexpected)
+    discarded_lm_head = "lm_head.weight" in unexpected
     if discarded_lm_head != lm_head_present:
         raise CheckpointSafetyError(
             "lm_head presence in safetensors disagrees with Transformers loading audit"
@@ -247,19 +328,24 @@ def load_token_classifier_from_local_causal_lm(
     if dtype is not None:
         common_kwargs["dtype"] = dtype
 
-    if attention_mode == "full":
-        model_config = Qwen3BiConfig.from_qwen3_config(base_config)
-        model, info = Qwen3BiForTokenClassification.from_pretrained(
-            path,
-            config=model_config,
-            **common_kwargs,
-        )
-    else:
-        model, info = Qwen3ForTokenClassification.from_pretrained(
-            path,
-            config=base_config,
-            **common_kwargs,
-        )
+    try:
+        if attention_mode == "full":
+            model_config = Qwen3BiConfig.from_qwen3_config(base_config)
+            model, info = Qwen3BiForTokenClassification.from_pretrained(
+                path,
+                config=model_config,
+                **common_kwargs,
+            )
+        else:
+            model, info = Qwen3ForTokenClassification.from_pretrained(
+                path,
+                config=base_config,
+                **common_kwargs,
+            )
+    except Exception as exc:
+        raise CheckpointSafetyError(
+            "Transformers rejected the local CausalLM-to-classifier transition"
+        ) from exc
     audit = _audit_loading_transition(
         model=model,
         info=info,

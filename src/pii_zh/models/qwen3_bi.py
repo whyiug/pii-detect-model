@@ -1,6 +1,6 @@
 """Bidirectional Qwen3 token classification.
 
-Transformers 4.57's :class:`~transformers.Qwen3Model` accepts a mapping of
+Transformers 5.13's :class:`~transformers.Qwen3Model` accepts a mapping of
 precomputed attention masks.  Passing such a mapping deliberately bypasses
 the model's internal causal-mask construction.  This module uses that public
 forward behaviour to give every non-padding query access to every
@@ -30,7 +30,7 @@ try:
 except ImportError as exc:  # pragma: no cover - depends on optional environment
     raise ImportError(
         "qwen3_bi requires a Transformers release with Qwen3 support "
-        "(tested with transformers==4.57.6)."
+        "(tested with transformers>=5.13,<6)."
     ) from exc
 
 
@@ -181,10 +181,25 @@ class Qwen3BiForTokenClassification(Qwen3PreTrainedModel):
     _supports_sdpa = True
 
     def __init__(self, config: Qwen3BiConfig) -> None:
-        if not isinstance(config, Qwen3BiConfig):
+        # Transformers 5 may import configuration and modeling remote-code
+        # modules under distinct cache namespaces.  Class identity is then
+        # different even though both classes inherit the same Qwen3Config.
+        # Validate the complete persisted security/correctness contract
+        # instead of accepting a class-name-only duck type.
+        compatible_remote_config = (
+            isinstance(config, Qwen3Config)
+            and getattr(config, "model_type", None) == Qwen3BiConfig.model_type
+            and getattr(config, "architecture_version", None) == ARCHITECTURE_VERSION
+            and getattr(config, "pii_attention_mode", None) == "full"
+            and getattr(config, "pii_release_eligible", None) is True
+            and getattr(config, "use_cache", None) is False
+            and getattr(config, "bi_attention_backend", None) in SUPPORTED_ATTENTION_BACKENDS
+            and set(getattr(config, "layer_types", []) or []) == {"full_attention"}
+        )
+        if not isinstance(config, Qwen3BiConfig) and not compatible_remote_config:
             raise TypeError(
-                "Qwen3BiForTokenClassification requires Qwen3BiConfig; use "
-                "Qwen3BiConfig.from_qwen3_config(...) for an upstream config."
+                "Qwen3BiForTokenClassification requires the complete Qwen3BiConfig contract; "
+                "use Qwen3BiConfig.from_qwen3_config(...) for an upstream config."
             )
         super().__init__(config)
         backend = getattr(config, "_attn_implementation", None)

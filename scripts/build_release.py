@@ -390,6 +390,7 @@ def render_remote_code(source_path: Path) -> tuple[str, str]:
     modeling += "from transformers.models.qwen3.modeling_qwen3 import Qwen3PreTrainedModel\n\n"
     modeling += (
         "from .configuration_qwen3_bi import (\n"
+        "    ARCHITECTURE_VERSION,\n"
         "    Qwen3BiConfig,\n"
         "    SUPPORTED_ATTENTION_BACKENDS,\n"
         ")\n\n"

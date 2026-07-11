@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 from tokenizers import Tokenizer
 from tokenizers.models import BPE
@@ -76,9 +78,17 @@ def test_character_boundary_mode_is_marked_persisted_and_fail_closed(tmp_path) -
     assert tokenizer.init_kwargs[BOUNDARY_MODE_CONFIG_KEY] == BOUNDARY_MODE
     tokenizer.save_pretrained(tmp_path)
     loaded = AutoTokenizer.from_pretrained(
-        tmp_path, local_files_only=True, trust_remote_code=False, use_fast=True
+        tmp_path,
+        local_files_only=True,
+        trust_remote_code=False,
+        use_fast=True,
+        fix_mistral_regex=False,
     )
     assert_character_boundary_tokenizer(loaded)
+    assert (
+        json.loads(loaded.backend_tokenizer.to_str())["pre_tokenizer"]
+        == json.loads(tokenizer.backend_tokenizer.to_str())["pre_tokenizer"]
+    )
 
 
 def test_perfect_bio_oracle_decodes_to_exact_character_boundary() -> None:

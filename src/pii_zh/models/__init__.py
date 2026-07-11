@@ -40,7 +40,7 @@ def __getattr__(name: str):
     except ImportError as exc:  # pragma: no cover - exercised without optional deps
         raise ImportError(
             "Qwen3 bidirectional models require PyTorch and a Transformers "
-            "release that includes Qwen3 support (tested with 4.57.6)."
+            "release that includes Qwen3 support (tested with >=5.13,<6)."
         ) from exc
     return getattr(qwen3_bi, name)
 

@@ -53,7 +53,10 @@ from pii_zh.training.data import (
     compute_document_sampling_weights,
     load_aligned_jsonl,
 )
-from pii_zh.training.loading import load_token_classifier_from_local_causal_lm
+from pii_zh.training.loading import (
+    CheckpointSafetyError,
+    load_token_classifier_from_local_causal_lm,
+)
 from pii_zh.training.manifest import (
     build_training_manifest,
     canonical_json_hash,
@@ -112,6 +115,32 @@ def test_causal_lm_backbone_mapping_is_explicitly_audited(tmp_path, attention_mo
         attention_mask=torch.ones((1, 3), dtype=torch.long),
     )
     assert output.logits.shape == (1, 3, 3)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "unexpected", "mismatched"])
+def test_causal_lm_backbone_mapping_rejects_unapproved_schema_changes(
+    tmp_path, mutation: str
+) -> None:
+    checkpoint = tmp_path / "base"
+    _tiny_causal_checkpoint(checkpoint)
+    weight_path = checkpoint / "model.safetensors"
+    state_dict = load_file(weight_path)
+    backbone_key = next(key for key in state_dict if key.startswith("model.layers."))
+    if mutation == "missing":
+        state_dict.pop(backbone_key)
+    elif mutation == "unexpected":
+        state_dict["unapproved.weight"] = torch.zeros(1)
+    else:
+        state_dict[backbone_key] = state_dict[backbone_key].reshape(-1)[:1].clone()
+    save_file(state_dict, weight_path)
+
+    with pytest.raises(CheckpointSafetyError):
+        load_token_classifier_from_local_causal_lm(
+            checkpoint,
+            attention_mode="causal",
+            label2id={"O": 0, "B-PERSON_NAME": 1, "I-PERSON_NAME": 2},
+            id2label={0: "O", 1: "B-PERSON_NAME", 2: "I-PERSON_NAME"},
+        )
 
 
 def test_class_weights_use_sqrt_frequency_with_cap() -> None:
