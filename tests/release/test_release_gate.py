@@ -60,6 +60,26 @@ def test_gate_detects_model_manifest_mismatch(
     assert "RC_BLOCKED_OUTPUT_ARTIFACT_BINDING" in _issue_codes(report)
 
 
+def test_gate_blocks_staged_recipe_without_initialization_audit(
+    built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
+) -> None:
+    training_path = built_release.artifact / "training_manifest.json"
+    training = json.loads(training_path.read_text(encoding="utf-8"))
+    training["schema_version"] = 3
+    training["recipe"] = {"initialization_strategy": "verified_token_classifier_to_full_v1"}
+    training.pop("initialization", None)
+    training.pop("manifest_sha256", None)
+    encoded = json.dumps(training, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    training["manifest_sha256"] = hashlib.sha256(encoded.encode()).hexdigest()
+    write_json(training_path, training)
+    rewrite_checksums(built_release.artifact)
+
+    report = tmp_path / "gate.json"
+    result = _gate(repository_root, built_release, report)
+    assert result.returncode == 1
+    assert "RC_BLOCKED_INITIALIZATION_AUDIT" in _issue_codes(report)
+
+
 def test_gate_blocks_incomplete_three_seed_evidence(
     built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
 ) -> None:

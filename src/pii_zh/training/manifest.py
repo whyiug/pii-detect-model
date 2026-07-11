@@ -15,9 +15,9 @@ from typing import Any
 from pii_zh.tokenization import BOUNDARY_MODE_CONFIG_KEY
 from pii_zh.training.config import TrainingConfig
 from pii_zh.training.data import TrainingDataSummary
-from pii_zh.training.loading import BackboneLoadingAudit
+from pii_zh.training.loading import BackboneLoadingAudit, InitializationAudit
 
-MANIFEST_SCHEMA_VERSION = 2
+MANIFEST_SCHEMA_VERSION = 3
 OUTPUT_ARTIFACT_SCHEMA_VERSION = 1
 OUTPUT_METADATA_FILES = (
     "config.json",
@@ -114,7 +114,9 @@ def tokenizer_fingerprint(
     return result
 
 
-def _summary_dict(summary: TrainingDataSummary) -> dict[str, Any]:
+def training_data_summary_dict(summary: TrainingDataSummary) -> dict[str, Any]:
+    """Return the deterministic, privacy-safe data summary stored in manifests."""
+
     return {
         "document_count": summary.document_count,
         "entity_count": summary.entity_count,
@@ -235,10 +237,19 @@ def build_training_manifest(
     taxonomy_version: str,
     label2id: dict[str, int],
     tokenizer: Any | None = None,
+    initialization_audit: InitializationAudit | None = None,
     created_at: str | None = None,
     worktree: str | Path = ".",
 ) -> dict[str, Any]:
     """Build a manifest containing hashes/counts but no raw text or entity values."""
+
+    if (config.initial_model is None) != (initialization_audit is None):
+        raise ValueError("training config and initialization audit presence disagree")
+    if (
+        initialization_audit is not None
+        and initialization_audit.strategy != config.initialization_strategy
+    ):
+        raise ValueError("training config and initialization audit strategies disagree")
 
     timestamp = created_at or datetime.now(timezone.utc).isoformat()
     recipe = config.manifest_recipe()
@@ -261,15 +272,20 @@ def build_training_manifest(
             "safetensor_files": list(loading_audit.safetensor_files),
             "loading_audit": loading_audit.to_dict(),
         },
+        "initialization": (
+            initialization_audit.to_dict()
+            if initialization_audit is not None
+            else {"strategy": config.initialization_strategy}
+        ),
         "tokenizer": tokenizer_fingerprint(config.base_model, tokenizer=tokenizer),
         "datasets": {
             "train": {
                 "sha256": sha256_file(config.train_file),
-                "summary": _summary_dict(train_summary),
+                "summary": training_data_summary_dict(train_summary),
             },
             "validation": {
                 "sha256": sha256_file(config.validation_file),
-                "summary": _summary_dict(validation_summary),
+                "summary": training_data_summary_dict(validation_summary),
             },
         },
         "versions": {

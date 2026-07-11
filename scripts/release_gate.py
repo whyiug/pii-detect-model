@@ -71,6 +71,8 @@ UNSAFE_REMOTE_CALLS = frozenset(
     }
 )
 BLOCKING_SEVERITIES = frozenset({"critical", "high", "medium", "moderate", "unknown"})
+BASE_INITIALIZATION_STRATEGY = "base_causal_lm_v1"
+STAGED_INITIALIZATION_STRATEGY = "verified_token_classifier_to_full_v1"
 
 
 @dataclass(frozen=True)
@@ -360,9 +362,137 @@ def gate_training_artifact_binding(artifact: Path) -> GateResult:
                     "packaged model/config/tokenizer files do not match training manifest",
                 )
             )
+        issues.extend(_initialization_contract_issues(training))
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         issues.append(GateIssue("RC_BLOCKED_OUTPUT_ARTIFACT_BINDING", str(exc)))
     return _result("training_artifact_binding", issues)
+
+
+def _initialization_contract_issues(training: dict[str, Any]) -> list[GateIssue]:
+    """Require a self-contained hash chain whenever staged initialization is declared."""
+
+    issues: list[GateIssue] = []
+
+    def block(message: str) -> None:
+        issues.append(GateIssue("RC_BLOCKED_INITIALIZATION_AUDIT", message))
+
+    recipe = training.get("recipe")
+    initialization = training.get("initialization")
+    schema_version = training.get("schema_version")
+    if isinstance(recipe, dict):
+        recipe_strategy = recipe.get("initialization_strategy")
+    else:
+        recipe_strategy = None
+    if isinstance(initialization, dict):
+        audit_strategy = initialization.get("strategy")
+    else:
+        audit_strategy = None
+
+    if schema_version == 3 and (recipe_strategy is None or audit_strategy is None):
+        block("schema 3 training manifests require an explicit initialization contract")
+        return issues
+    if recipe_strategy is None and audit_strategy is None:
+        return issues  # Legacy schema-2 release fixture or completed artifact.
+    if recipe_strategy != audit_strategy:
+        block("training recipe and initialization audit strategies disagree")
+        return issues
+    if audit_strategy == BASE_INITIALIZATION_STRATEGY:
+        return issues
+    if audit_strategy != STAGED_INITIALIZATION_STRATEGY:
+        block("training manifest declares an unknown initialization strategy")
+        return issues
+    if schema_version != 3:
+        block("staged initialization requires training manifest schema 3")
+    if not isinstance(recipe, dict) or recipe.get("resume") is not False:
+        block("staged initialization must start with fresh trainer state")
+    if training.get("attention_mode") != "full":
+        block("staged initialization is release-eligible only for a Full target")
+
+    required_hashes = (
+        "source_manifest_sha256",
+        "source_manifest_file_sha256",
+        "source_output_artifact_sha256",
+        "source_config_sha256",
+        "source_weights_sha256",
+        "source_architecture_sha256",
+        "base_config_sha256",
+        "base_weights_sha256",
+        "label_schema_sha256",
+        "tokenizer_effective_contract_sha256",
+        "train_sha256",
+        "validation_sha256",
+    )
+    for field in required_hashes:
+        value = initialization.get(field)
+        if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+            block(f"staged initialization audit has an invalid {field}")
+
+    if initialization.get("source_manifest_schema_version") not in {2, 3}:
+        block("staged initialization source manifest schema is unsupported")
+    if initialization.get("source_attention_mode") not in {"causal", "jpt"}:
+        block("staged initialization source must be causal or JPT")
+    if initialization.get("source_fine_tuning") not in {"full", "lora"}:
+        block("staged initialization source fine-tuning mode is invalid")
+    source_revision = initialization.get("source_code_revision")
+    if source_revision is not None and (
+        not isinstance(source_revision, str)
+        or re.fullmatch(r"[0-9a-f]{40}", source_revision) is None
+    ):
+        block("staged initialization source code revision is invalid")
+    if initialization.get("source_safetensor_files") != ["model.safetensors"]:
+        block("staged initialization must be bound to exactly model.safetensors")
+    if (
+        isinstance(initialization.get("tensor_count"), bool)
+        or not isinstance(initialization.get("tensor_count"), int)
+        or initialization["tensor_count"] < 1
+    ):
+        block("staged initialization tensor count is invalid")
+    tensor_dtypes = initialization.get("tensor_dtypes")
+    if (
+        not isinstance(tensor_dtypes, list)
+        or not tensor_dtypes
+        or any(not isinstance(value, str) or not value for value in tensor_dtypes)
+    ):
+        block("staged initialization tensor dtype audit is missing")
+    score_keys = initialization.get("score_keys")
+    if (
+        not isinstance(score_keys, list)
+        or not score_keys
+        or any(not isinstance(value, str) or not value.startswith("score.") for value in score_keys)
+    ):
+        block("staged initialization classifier-head audit is missing")
+    for field in ("missing_keys", "unexpected_keys", "mismatched_keys"):
+        if initialization.get(field) != []:
+            block(f"staged initialization {field} must be empty")
+
+    base = training.get("base_checkpoint")
+    tokenizer = training.get("tokenizer")
+    datasets = training.get("datasets")
+    if not isinstance(base, dict) or (
+        initialization.get("base_config_sha256") != base.get("config_sha256")
+        or initialization.get("base_weights_sha256") != base.get("weights_sha256")
+    ):
+        block("staged initialization base hashes disagree with the target manifest")
+    if initialization.get("base_source_id") != training.get("base_source_id"):
+        block("staged initialization base source ID disagrees with the target")
+    if initialization.get("taxonomy_version") != training.get("taxonomy_version"):
+        block("staged initialization taxonomy version disagrees with the target")
+    if initialization.get("label_schema_sha256") != training.get("label_schema_sha256"):
+        block("staged initialization label schema disagrees with the target")
+    effective_hash = (
+        tokenizer.get("effective_contract_sha256") if isinstance(tokenizer, dict) else None
+    )
+    if initialization.get("tokenizer_effective_contract_sha256") != effective_hash:
+        block("staged initialization tokenizer contract disagrees with the target")
+    train = datasets.get("train") if isinstance(datasets, dict) else None
+    validation = datasets.get("validation") if isinstance(datasets, dict) else None
+    if not isinstance(train, dict) or initialization.get("train_sha256") != train.get("sha256"):
+        block("staged initialization train data hash disagrees with the target")
+    if not isinstance(validation, dict) or (
+        initialization.get("validation_sha256") != validation.get("sha256")
+    ):
+        block("staged initialization validation data hash disagrees with the target")
+    return issues
 
 
 def _call_name(node: ast.expr) -> str:

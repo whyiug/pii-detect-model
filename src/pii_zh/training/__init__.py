@@ -24,6 +24,7 @@ from pii_zh.training.data import (
 from pii_zh.training.loading import (
     BackboneLoadingAudit,
     CheckpointSafetyError,
+    InitializationAudit,
     inspect_local_qwen3_checkpoint,
     load_token_classifier_from_local_causal_lm,
 )
@@ -44,6 +45,7 @@ __all__ = [
     "DynamicTokenCollator",
     "EncodedDocument",
     "GoldSpan",
+    "InitializationAudit",
     "JPTTokenCollator",
     "LoraSettings",
     "TrainingConfig",

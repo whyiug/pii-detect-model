@@ -35,6 +35,7 @@ from pii_zh.training.data import (
     compute_document_sampling_weights,
     load_aligned_jsonl,
 )
+from pii_zh.training.initialization import initialize_full_attention_from_verified_model
 from pii_zh.training.loading import load_token_classifier_from_local_causal_lm
 from pii_zh.training.manifest import (
     build_training_manifest,
@@ -156,7 +157,7 @@ def _safe_tokenizer(checkpoint: str) -> Any:
 
 
 def run_training(config: TrainingConfig) -> TrainingRunResult:
-    """Train and save a causal/full/JPT token classifier from a local Base checkpoint."""
+    """Train and save a token classifier from local, content-bound inputs."""
 
     config.validate()
     set_seed(config.seed)
@@ -203,6 +204,19 @@ def run_training(config: TrainingConfig) -> TrainingRunResult:
     )
     model.config.pad_token_id = tokenizer.pad_token_id
     model.config.use_cache = False
+    initialization_audit = None
+    if config.initial_model is not None:
+        initialization_audit = initialize_full_attention_from_verified_model(
+            model,
+            config=config,
+            base_loading_audit=loading_audit,
+            taxonomy_version=taxonomy.taxonomy_version,
+            label2id=label2id,
+            id2label=id2label,
+            tokenizer=tokenizer,
+            train_summary=train_summary,
+            validation_summary=validation_summary,
+        )
     model = prepare_parameter_efficient_model(
         model, fine_tuning=config.fine_tuning, lora=config.lora
     )
@@ -316,6 +330,7 @@ def run_training(config: TrainingConfig) -> TrainingRunResult:
         taxonomy_version=taxonomy.taxonomy_version,
         label2id=label2id,
         tokenizer=tokenizer,
+        initialization_audit=initialization_audit,
         worktree=repository_root,
     )
     manifest_path = write_training_manifest(manifest, output_dir)

@@ -29,6 +29,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--train-file", help="Canonical training JSONL")
     parser.add_argument("--validation-file", help="Canonical validation JSONL")
     parser.add_argument("--output-dir")
+    parser.add_argument(
+        "--initial-model",
+        help="Completed, bound causal/JPT standalone checkpoint used only to initialize Full",
+    )
     parser.add_argument("--taxonomy-path")
     parser.add_argument("--attention-mode", choices=("causal", "full", "jpt"))
     parser.add_argument("--fine-tuning", choices=("full", "lora"))
@@ -66,6 +70,7 @@ def _overrides(arguments: argparse.Namespace) -> dict[str, Any]:
             "train_file": arguments.train_file,
             "validation_file": arguments.validation_file,
             "output_dir": arguments.output_dir,
+            "initial_model": arguments.initial_model,
             "taxonomy_path": arguments.taxonomy_path,
             "attention_mode": arguments.attention_mode,
             "fine_tuning": arguments.fine_tuning,

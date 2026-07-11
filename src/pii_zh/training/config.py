@@ -19,6 +19,8 @@ class TrainingConfigError(ValueError):
 
 
 DOCUMENT_SAMPLING_STRATEGY = "rare_positive_v1_preserve_negative_mass"
+BASE_INITIALIZATION_STRATEGY = "base_causal_lm_v1"
+STAGED_INITIALIZATION_STRATEGY = "verified_token_classifier_to_full_v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +98,7 @@ class TrainingConfig:
     gradient_checkpointing: bool = True
     seed: int = 42
     resume: bool | str = False
+    initial_model: str | None = None
     class_weighting: bool = True
     class_weight_cap: float = 5.0
     document_sampling: bool = True
@@ -211,6 +214,27 @@ class TrainingConfig:
             raise TrainingConfigError("resume must be false, true, or a local checkpoint path")
         if isinstance(self.resume, str) and not self.resume.strip():
             raise TrainingConfigError("resume path cannot be empty")
+        if self.initial_model is not None and (
+            not isinstance(self.initial_model, str) or not self.initial_model.strip()
+        ):
+            raise TrainingConfigError("initial_model must be a non-empty local path or null")
+        if self.initial_model is not None:
+            if self.attention_mode != "full":
+                raise TrainingConfigError(
+                    "initial_model is supported only for a full-attention target"
+                )
+            if self.resume is not False:
+                raise TrainingConfigError("initial_model and resume are mutually exclusive")
+            initial = Path(self.initial_model).expanduser().resolve(strict=False)
+            output = Path(self.output_dir).expanduser().resolve(strict=False)
+            if (
+                initial == output
+                or initial.is_relative_to(output)
+                or output.is_relative_to(initial)
+            ):
+                raise TrainingConfigError(
+                    "initial_model and output_dir must be distinct, non-nested directories"
+                )
 
     @classmethod
     def from_mapping(cls, value: object) -> TrainingConfig:
@@ -234,7 +258,14 @@ class TrainingConfig:
         """Return hyperparameters without local/private filesystem paths."""
 
         result = asdict(self)
-        for key in ("base_model", "train_file", "validation_file", "output_dir", "taxonomy_path"):
+        for key in (
+            "base_model",
+            "train_file",
+            "validation_file",
+            "output_dir",
+            "taxonomy_path",
+            "initial_model",
+        ):
             result.pop(key, None)
         if isinstance(result["resume"], str):
             result["resume"] = True
@@ -242,14 +273,25 @@ class TrainingConfig:
         result["document_sampling_strategy"] = (
             DOCUMENT_SAMPLING_STRATEGY if self.document_sampling else "disabled"
         )
+        result["initialization_strategy"] = self.initialization_strategy
         return result
 
     @property
+    def initialization_strategy(self) -> str:
+        return (
+            STAGED_INITIALIZATION_STRATEGY
+            if self.initial_model is not None
+            else BASE_INITIALIZATION_STRATEGY
+        )
+
+    @property
     def effective_classifier_learning_rate(self) -> float:
-        """Use a materially higher LR for the newly initialized BIO head."""
+        """Use a higher LR only when the BIO head is newly initialized."""
 
         if self.classifier_learning_rate is not None:
             return float(self.classifier_learning_rate)
+        if self.initial_model is not None:
+            return float(self.learning_rate)
         if self.fine_tuning == "lora":
             return 5e-4
         return float(self.learning_rate) * 10.0

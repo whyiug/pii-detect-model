@@ -42,6 +42,41 @@ class BackboneLoadingAudit:
         return asdict(self)
 
 
+@dataclass(frozen=True, slots=True)
+class InitializationAudit:
+    """Path-free evidence for a verified token-classifier weight transition."""
+
+    strategy: str
+    source_manifest_schema_version: int
+    source_manifest_sha256: str
+    source_manifest_file_sha256: str
+    source_output_artifact_sha256: str
+    source_attention_mode: str
+    source_fine_tuning: str
+    source_code_revision: str | None
+    source_config_sha256: str
+    source_weights_sha256: str
+    source_safetensor_files: tuple[str, ...]
+    source_architecture_sha256: str
+    base_source_id: str
+    base_config_sha256: str
+    base_weights_sha256: str
+    label_schema_sha256: str
+    taxonomy_version: str
+    tokenizer_effective_contract_sha256: str
+    train_sha256: str
+    validation_sha256: str
+    tensor_count: int
+    tensor_dtypes: tuple[str, ...]
+    score_keys: tuple[str, ...]
+    missing_keys: tuple[str, ...]
+    unexpected_keys: tuple[str, ...]
+    mismatched_keys: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
 def _sha256_file(path: Path, *, chunk_size: int = 8 * 1024 * 1024) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:

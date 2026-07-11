@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import replace
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
 import torch
+from safetensors.torch import load_file, save_file
 from tokenizers import Tokenizer
 from tokenizers.models import BPE
 from tokenizers.pre_tokenizers import ByteLevel
@@ -31,7 +33,13 @@ from pii_zh.data.schema import (
 from pii_zh.inference import InferenceSafetyError, load_local_predictor
 from pii_zh.models.qwen3_bi import Qwen3BiConfig, Qwen3BiForTokenClassification
 from pii_zh.tokenization import configure_character_boundary_tokenizer
-from pii_zh.training.config import LoraSettings, TrainingConfig, load_training_config
+from pii_zh.training.config import (
+    STAGED_INITIALIZATION_STRATEGY,
+    LoraSettings,
+    TrainingConfig,
+    TrainingConfigError,
+    load_training_config,
+)
 from pii_zh.training.data import (
     DocumentTokenDataset,
     DynamicTokenCollator,
@@ -50,6 +58,7 @@ from pii_zh.training.manifest import (
     build_training_manifest,
     canonical_json_hash,
     finalize_training_manifest,
+    output_artifact_fingerprint,
     verify_output_artifact_binding,
     verify_training_manifest,
     write_training_manifest,
@@ -372,6 +381,18 @@ def test_training_manifest_is_hashed_and_contains_no_paths_or_text(tmp_path) -> 
     assert loaded["versions"]["torch"] == torch.__version__.split("+")[0]
     assert verify_training_manifest(loaded)
 
+    with pytest.raises(ValueError, match="audit presence disagree"):
+        build_training_manifest(
+            config=replace(config, initial_model=str(tmp_path / "initializer")),
+            loading_audit=audit,
+            train_summary=summary,
+            validation_summary=summary,
+            taxonomy_version="1.0.0",
+            label2id=label2id,
+            created_at="2026-07-11T00:00:00+00:00",
+            worktree=tmp_path,
+        )
+
 
 def test_classifier_learning_rate_defaults_and_manifest_recipe(tmp_path) -> None:
     common = {
@@ -391,6 +412,34 @@ def test_classifier_learning_rate_defaults_and_manifest_recipe(tmp_path) -> None
     assert full.effective_classifier_learning_rate == pytest.approx(2e-4)
     assert lora.effective_classifier_learning_rate == pytest.approx(5e-4)
     assert explicit.manifest_recipe()["effective_classifier_learning_rate"] == pytest.approx(3e-4)
+
+
+def test_staged_initialization_config_is_full_only_fresh_and_path_free(tmp_path) -> None:
+    common = {
+        "base_model": str(tmp_path / "base"),
+        "train_file": str(tmp_path / "train"),
+        "validation_file": str(tmp_path / "validation"),
+        "output_dir": str(tmp_path / "output"),
+        "initial_model": str(tmp_path / "source"),
+        "learning_rate": 7e-6,
+    }
+    staged = TrainingConfig(**common, attention_mode="full", resume=False)
+    staged.validate()
+    recipe = staged.manifest_recipe()
+    assert staged.effective_classifier_learning_rate == pytest.approx(7e-6)
+    assert recipe["initialization_strategy"] == STAGED_INITIALIZATION_STRATEGY
+    assert "initial_model" not in recipe
+    assert str(tmp_path) not in json.dumps(recipe)
+
+    with pytest.raises(TrainingConfigError, match="only for a full-attention target"):
+        TrainingConfig(**common, attention_mode="causal").validate()
+    with pytest.raises(TrainingConfigError, match="mutually exclusive"):
+        TrainingConfig(**common, attention_mode="full", resume=True).validate()
+    with pytest.raises(TrainingConfigError, match="non-nested"):
+        TrainingConfig(
+            **(common | {"output_dir": str(tmp_path / "source" / "child")}),
+            attention_mode="full",
+        ).validate()
 
 
 def test_public_runtime_recipe_is_strict_full_attention() -> None:
@@ -491,6 +540,7 @@ def _boundary_tokenizer() -> PreTrainedTokenizerFast:
     backend.pre_tokenizer = ByteLevel(add_prefix_space=False, trim_offsets=False, use_regex=False)
     tokenizer = PreTrainedTokenizerFast(tokenizer_object=backend, unk_token="<unk>")
     tokenizer.pad_token = tokenizer.unk_token
+    tokenizer.eos_token = tokenizer.unk_token
     return configure_character_boundary_tokenizer(tokenizer)
 
 
@@ -643,3 +693,205 @@ def test_tiny_cpu_training_pipeline_saves_loadable_complete_model(
     assert str(tmp_path) not in (output_dir / "tokenizer_config.json").read_text(encoding="utf-8")
     loaded = load_local_predictor(output_dir, device="cpu", micro_batch_size=1)
     assert loaded.attention_mode == "full"
+
+
+def _tiny_staged_config(
+    fixture: dict[str, object],
+    *,
+    output_dir,
+    attention_mode: str,
+    initial_model=None,
+) -> TrainingConfig:
+    return TrainingConfig(
+        base_model=str(fixture["base"]),
+        train_file=str(fixture["train"]),
+        validation_file=str(fixture["validation"]),
+        output_dir=str(output_dir),
+        initial_model=None if initial_model is None else str(initial_model),
+        attention_mode=attention_mode,
+        fine_tuning="full",
+        max_length=31,
+        per_device_train_batch_size=1,
+        per_device_eval_batch_size=1,
+        gradient_accumulation_steps=1,
+        learning_rate=2e-4,
+        epochs=1.0,
+        bf16=False,
+        use_cpu=True,
+        gradient_checkpointing=False,
+        class_weighting=False,
+        document_sampling=False,
+        early_stopping_patience=1,
+        save_total_limit=1,
+    )
+
+
+@pytest.fixture(scope="module")
+def staged_sources(tmp_path_factory) -> dict[str, object]:
+    root = tmp_path_factory.mktemp("staged-sources")
+    base = root / "base"
+    _tiny_causal_checkpoint(base)
+    _boundary_tokenizer().save_pretrained(base)
+    train_record = next(iter_jsonl(_write_training_record(root, split="train")))
+    validation_record = replace(train_record, doc_id="validation-doc", split="validation")
+    train = root / "train.jsonl"
+    validation = root / "validation.jsonl"
+    write_jsonl([train_record], train)
+    write_jsonl([validation_record], validation)
+    fixture: dict[str, object] = {"base": base, "train": train, "validation": validation}
+    for attention_mode in ("causal", "jpt"):
+        output = root / f"source-{attention_mode}"
+        run_training(
+            _tiny_staged_config(
+                fixture,
+                output_dir=output,
+                attention_mode=attention_mode,
+            )
+        )
+        fixture[attention_mode] = output
+    return fixture
+
+
+def _rewrite_source_manifest(source, update) -> None:
+    path = source / "training_manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    update(manifest)
+    manifest.pop("manifest_sha256", None)
+    manifest["manifest_sha256"] = canonical_json_hash(manifest)
+    path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+@pytest.mark.parametrize("source_mode", ["causal", "jpt"])
+def test_tiny_cpu_staged_initialization_is_bound_and_fresh(
+    tmp_path, staged_sources: dict[str, object], source_mode: str
+) -> None:
+    source = staged_sources[source_mode]
+    output = tmp_path / f"full-from-{source_mode}"
+    result = run_training(
+        _tiny_staged_config(
+            staged_sources,
+            output_dir=output,
+            attention_mode="full",
+            initial_model=source,
+        )
+    )
+
+    manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
+    audit = manifest["initialization"]
+    serialized = json.dumps(manifest)
+    assert manifest["schema_version"] == 3
+    assert manifest["recipe"]["resume"] is False
+    assert manifest["recipe"]["initialization_strategy"] == STAGED_INITIALIZATION_STRATEGY
+    assert audit["strategy"] == STAGED_INITIALIZATION_STRATEGY
+    assert audit["source_attention_mode"] == source_mode
+    assert audit["source_safetensor_files"] == ["model.safetensors"]
+    assert audit["tensor_count"] > 0
+    assert audit["score_keys"] == ["score.bias", "score.weight"]
+    assert audit["missing_keys"] == audit["unexpected_keys"] == audit["mismatched_keys"] == []
+    assert str(source) not in serialized
+    assert verify_training_manifest(manifest)
+    assert verify_output_artifact_binding(manifest, output, require_single_weight=True)
+    trainer_state = json.loads(
+        (output.parent / f"{output.name}.trainer-state" / "trainer_state.json").read_text()
+    )
+    assert trainer_state["global_step"] == 1
+    assert str(source) not in json.dumps(trainer_state)
+
+
+@pytest.mark.parametrize(
+    "contract",
+    ["base", "label", "taxonomy", "tokenizer", "train", "validation"],
+)
+def test_staged_initialization_rejects_rebound_contract_tampering(
+    tmp_path,
+    staged_sources: dict[str, object],
+    contract: str,
+) -> None:
+    source = tmp_path / "source"
+    shutil.copytree(staged_sources["causal"], source)
+
+    def update(manifest: dict) -> None:
+        if contract == "base":
+            manifest["base_checkpoint"]["weights_sha256"] = "0" * 64
+            manifest["base_checkpoint"]["loading_audit"]["weights_sha256"] = "0" * 64
+        elif contract == "label":
+            manifest["label2id"]["O"] = 1
+            manifest["label_schema_sha256"] = canonical_json_hash(manifest["label2id"])
+        elif contract == "taxonomy":
+            manifest["taxonomy_version"] = "different-taxonomy"
+        elif contract == "tokenizer":
+            manifest["tokenizer"]["effective"]["backend_sha256"] = "0" * 64
+            manifest["tokenizer"]["effective_contract_sha256"] = canonical_json_hash(
+                manifest["tokenizer"]["effective"]
+            )
+        elif contract == "train":
+            manifest["datasets"]["train"]["sha256"] = "0" * 64
+        else:
+            manifest["datasets"]["validation"]["summary"]["document_count"] += 1
+
+    _rewrite_source_manifest(source, update)
+    output = tmp_path / "target"
+    with pytest.raises(RuntimeError):
+        run_training(
+            _tiny_staged_config(
+                staged_sources,
+                output_dir=output,
+                attention_mode="full",
+                initial_model=source,
+            )
+        )
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("corruption", ["key", "shape", "dtype"])
+def test_staged_initialization_rejects_bound_state_dict_mismatch(
+    tmp_path,
+    staged_sources: dict[str, object],
+    corruption: str,
+) -> None:
+    source = tmp_path / "source"
+    shutil.copytree(staged_sources["jpt"], source)
+    weights_path = source / "model.safetensors"
+    state = load_file(weights_path, device="cpu")
+    if corruption == "key":
+        state["renamed.score.bias"] = state.pop("score.bias")
+    elif corruption == "shape":
+        state["score.bias"] = state["score.bias"][:-1]
+    else:
+        first = next(iter(state))
+        state[first] = state[first].to(dtype=torch.float64)
+    save_file(state, weights_path)
+
+    def rebind(manifest: dict) -> None:
+        manifest["output_artifact"] = output_artifact_fingerprint(source)
+
+    _rewrite_source_manifest(source, rebind)
+    output = tmp_path / "target"
+    with pytest.raises(RuntimeError, match="state dict"):
+        run_training(
+            _tiny_staged_config(
+                staged_sources,
+                output_dir=output,
+                attention_mode="full",
+                initial_model=source,
+            )
+        )
+    assert not output.exists()
+
+
+def test_staged_initialization_rejects_incomplete_or_unbound_source(
+    tmp_path, staged_sources: dict[str, object]
+) -> None:
+    source = tmp_path / "source"
+    shutil.copytree(staged_sources["causal"], source)
+    with (source / "model.safetensors").open("ab") as stream:
+        stream.write(b"tamper")
+    with pytest.raises(RuntimeError, match="manifest/artifact binding"):
+        run_training(
+            _tiny_staged_config(
+                staged_sources,
+                output_dir=tmp_path / "target",
+                attention_mode="full",
+                initial_model=source,
+            )
+        )
