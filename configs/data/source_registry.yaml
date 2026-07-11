@@ -1,5 +1,5 @@
 schema_version: 1
-registry_version: "0.1.0"
+registry_version: "0.2.0"
 default_admission: quarantined
 
 # Immutable revisions and content hashes below were frozen on 2026-07-11. Admission still
@@ -47,6 +47,15 @@ sources:
     curation_audit_sha256: 5fe18c3499065e3e3419a2c1666f2747e8a02456836988ccbd34ec62c4b0937b
     generator_name: pii_zh_deterministic_synthetic
     generator_version: 2.3.0
+    dataset_version: 1.2.0
+    materializer_version: 1.2.0
+    split_algorithm_version: stable-pinned-v2
+    family_allocation_asset:
+      locator: src/pii_zh/data/synthetic/assets/stable_family_allocation_v2.json
+      revision: sha256:755e4d77e18003afd82bbb30a91942022fe68a19acb9e5e310592fc39552984f
+      legacy_template_families_pinned: 87
+      train_only_addition_families: 9
+      unregistered_template_policy: reject
     declared_license: Apache-2.0
     input_class: programmatic_without_real_personal_data
     review_status: human_curated_templates_and_deterministic_validators_passed

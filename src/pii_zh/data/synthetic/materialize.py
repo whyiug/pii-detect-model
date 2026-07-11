@@ -14,7 +14,16 @@ from pathlib import Path
 from typing import Any
 
 from ..schema import DataPool, DocumentRecord, iter_jsonl, write_jsonl
-from ..splitting import assert_no_group_leakage, group_split
+from ..splitting import assert_no_group_leakage
+from .allocation import (
+    FAMILY_ALLOCATION_ALGORITHM_VERSION,
+    FAMILY_ALLOCATION_ASSET_ID,
+    FAMILY_ALLOCATION_ASSET_SHA256,
+    FAMILY_ALLOCATION_ASSET_VERSION,
+    LEGACY_FAMILY_ALLOCATIONS,
+    TEMPLATE_SPLITS,
+    TRAIN_ONLY_FAMILY_ADDITIONS,
+)
 from .generator import GENERATOR_NAME, GENERATOR_VERSION, SyntheticGenerator
 from .templates import (
     CORE_LABELS,
@@ -28,9 +37,9 @@ from .templates import (
 )
 
 DATASET_ID = "pii_zh_synthetic_v1"
-DATASET_VERSION = "1.1.0"
-MATERIALIZER_VERSION = "1.1.0"
-SPLIT_ALGORITHM_VERSION = "template-family-pilot-v1"
+DATASET_VERSION = "1.2.0"
+MATERIALIZER_VERSION = "1.2.0"
+SPLIT_ALGORITHM_VERSION = FAMILY_ALLOCATION_ALGORITHM_VERSION
 DEFAULT_COUNT = 20_000
 DEFAULT_SEED = 20_260_711
 DEFAULT_HARD_NEGATIVE_RATIO = 0.30
@@ -72,11 +81,6 @@ def sha256_file(path: Path, *, chunk_size: int = 1024 * 1024) -> str:
     return digest.hexdigest()
 
 
-def _derived_seed(seed: int, purpose: str) -> int:
-    material = f"{seed}:{purpose}".encode()
-    return int(hashlib.sha256(material).hexdigest()[:16], 16)
-
-
 def _integer_allocation(total: int, ratios: Mapping[str, float]) -> dict[str, int]:
     exact = {name: total * ratio for name, ratio in ratios.items()}
     result = {name: math.floor(value) for name, value in exact.items()}
@@ -108,50 +112,22 @@ def _validate_ratios(ratios: Mapping[str, float]) -> dict[str, float]:
 
 def _allocate_template_families(
     *,
-    seed: int,
     ratios: Mapping[str, float],
 ) -> tuple[
     dict[str, tuple[SyntheticTemplate, ...]],
     dict[str, tuple[SyntheticTemplate, ...]],
 ]:
-    """Assign each positive/negative template family to exactly one split.
-
-    Positive families use the generic group splitter with three-way core-label
-    coverage.  Negative families use a 50/25/25 family holdout so validation
-    and test retain several unseen negative families; record counts are still
-    generated at the requested 80/10/10 and hard-negative ratios.
-    """
+    """Apply the audited, fail-closed template-family allocation asset."""
 
     split_names = tuple(ratios)
-    positive_pilot = SyntheticGenerator(_derived_seed(seed, "positive-template-allocation"))
-    positive_records = [
-        positive_pilot.generate_document(template) for template in POSITIVE_TEMPLATES
-    ]
-    positive_split = group_split(
-        positive_records,
-        ratios=ratios,
-        seed=_derived_seed(seed, "positive-template-split"),
-        required_label_splits=split_names,
-        required_labels=CORE_LABELS,
-    )
-    positive_assignment = {record.provenance.template_id: record.split for record in positive_split}
-
-    negative_pilot = SyntheticGenerator(_derived_seed(seed, "negative-template-allocation"))
-    negative_records = [
-        negative_pilot.generate_document(template) for template in HARD_NEGATIVE_TEMPLATES
-    ]
-    negative_split = group_split(
-        negative_records,
-        ratios={"train": 0.50, "validation": 0.25, "test": 0.25},
-        seed=_derived_seed(seed, "negative-template-split"),
-    )
-    negative_assignment = {record.provenance.template_id: record.split for record in negative_split}
+    if split_names != ("train", "validation", "test"):
+        raise MaterializationError("stable family allocation requires train/validation/test")
 
     positive = {
         split: tuple(
             template
             for template in POSITIVE_TEMPLATES
-            if positive_assignment[template.template_id] == split
+            if TEMPLATE_SPLITS[template.template_id] == split
         )
         for split in split_names
     }
@@ -159,7 +135,7 @@ def _allocate_template_families(
         split: tuple(
             template
             for template in HARD_NEGATIVE_TEMPLATES
-            if negative_assignment[template.template_id] == split
+            if TEMPLATE_SPLITS[template.template_id] == split
         )
         for split in split_names
     }
@@ -217,7 +193,6 @@ def build_synthetic_corpus(
     negative_total = math.ceil(count * float(hard_negative_ratio))
     negative_counts = _integer_allocation(negative_total, ratios)
     positive_templates, negative_templates = _allocate_template_families(
-        seed=seed,
         ratios=ratios,
     )
 
@@ -401,6 +376,9 @@ def materialize_synthetic_corpus(
                 "template_asset_version": CURATED_ASSET_VERSION,
                 "template_asset_sha256": CURATED_ASSET_SHA256,
                 "curation_audit_sha256": CURATION_AUDIT_SHA256,
+                "family_allocation_asset_id": FAMILY_ALLOCATION_ASSET_ID,
+                "family_allocation_asset_version": FAMILY_ALLOCATION_ASSET_VERSION,
+                "family_allocation_asset_sha256": FAMILY_ALLOCATION_ASSET_SHA256,
             },
             "provenance": provenance_snapshot,
             "provenance_snapshot_sha256": _canonical_json_hash(provenance_snapshot),
@@ -409,6 +387,27 @@ def materialize_synthetic_corpus(
                 "seed": seed,
                 "ratios": dict(DEFAULT_SPLIT_RATIOS),
                 "group_keys": ["template_group", "entity_value_groups"],
+                "family_assignment_uses_seed": False,
+                "allocation_policy": "legacy-pinned-plus-explicit-train-only",
+                "legacy_template_families_pinned": len(LEGACY_FAMILY_ALLOCATIONS),
+                "train_only_addition_families": len(TRAIN_ONLY_FAMILY_ADDITIONS),
+                "legacy_template_assignment_sha256": _canonical_json_hash(
+                    [
+                        (entry.template_id, entry.template_group, entry.split)
+                        for entry in LEGACY_FAMILY_ALLOCATIONS
+                    ]
+                ),
+                "train_only_addition_assignment_sha256": _canonical_json_hash(
+                    [
+                        (
+                            entry.template_id,
+                            entry.template_group,
+                            entry.split,
+                            entry.coverage_role,
+                        )
+                        for entry in TRAIN_ONLY_FAMILY_ADDITIONS
+                    ]
+                ),
                 "template_family_allocation_sha256": _template_allocation_hash(records),
                 "template_families_by_split": template_families_by_split,
                 "cross_split_group_collisions": 0,

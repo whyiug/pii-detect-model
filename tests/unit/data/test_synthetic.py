@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import math
 from collections import Counter
+from dataclasses import replace
 from pathlib import Path
+
+import pytest
+import yaml
 
 from pii_zh.data.schema import DataPool, dumps_document
 from pii_zh.data.splitting import detect_group_leakage, group_split
@@ -14,6 +18,10 @@ from pii_zh.data.synthetic import (
     CURATED_ASSET_VERSION,
     CURATION_AUDIT_SHA256,
     DATASET_VERSION,
+    FAMILY_ALLOCATION_ALGORITHM_VERSION,
+    FAMILY_ALLOCATION_ASSET_ID,
+    FAMILY_ALLOCATION_ASSET_SHA256,
+    FAMILY_ALLOCATION_ASSET_VERSION,
     GENERATOR_VERSION,
     HARD_NEGATIVE_TEMPLATES,
     MATERIALIZER_VERSION,
@@ -21,11 +29,21 @@ from pii_zh.data.synthetic import (
     SURFACE_SHORTCUTS,
     SYNTHETIC_CARD_IIN,
     SYNTHETIC_ID_REGION_PREFIX,
+    TEMPLATE_SPLITS,
+    TRAIN_ONLY_ADDITION_TEMPLATE_IDS,
+    TRAIN_ONLY_FAMILY_ADDITIONS,
+    FamilyAllocationAssetError,
     SyntheticGenerator,
     assert_surface_contract,
     build_synthetic_corpus,
     core_label_family_coverage,
     materialize_synthetic_corpus,
+    validate_template_family_catalog,
+)
+from pii_zh.data.synthetic.allocation import (
+    ALL_FAMILY_ALLOCATIONS,
+    FAMILY_ALLOCATION_METADATA,
+    LEGACY_TEMPLATE_SPLITS,
 )
 from pii_zh.data.synthetic.templates import CURATED_ASSET_METADATA, CURATION_AUDIT_METADATA
 from pii_zh.data.validators import validate_cn_resident_id, validate_luhn
@@ -83,8 +101,8 @@ def test_checksum_values_use_nonproduction_sentinels_and_explicit_provenance() -
 def test_curated_asset_provenance_and_candidate_audit_are_complete() -> None:
     assert CURATED_ASSET_VERSION == "1.1.0"
     assert GENERATOR_VERSION == "2.3.0"
-    assert DATASET_VERSION == "1.1.0"
-    assert MATERIALIZER_VERSION == "1.1.0"
+    assert DATASET_VERSION == "1.2.0"
+    assert MATERIALIZER_VERSION == "1.2.0"
     assert len(CURATED_ASSET_SHA256) == 64
     assert len(CURATION_AUDIT_SHA256) == 64
     assert CURATED_ASSET_METADATA["license"] == "Apache-2.0"
@@ -102,6 +120,129 @@ def test_curated_asset_provenance_and_candidate_audit_are_complete() -> None:
     assert CURATION_AUDIT_METADATA["reviewed_candidate_count"] == 70
     assert len(CURATION_AUDIT_METADATA["accepted_candidate_ids"]) == 53
     assert len(CURATION_AUDIT_METADATA["rejected_candidates"]) == 17
+
+
+def test_stable_family_allocation_exactly_preserves_the_legacy_snapshot() -> None:
+    assert FAMILY_ALLOCATION_ASSET_ID == "pii-zh-synthetic-stable-family-allocation"
+    assert FAMILY_ALLOCATION_ASSET_VERSION == "2.0.0"
+    assert FAMILY_ALLOCATION_ALGORITHM_VERSION == "stable-pinned-v2"
+    assert (
+        FAMILY_ALLOCATION_ASSET_SHA256
+        == "755e4d77e18003afd82bbb30a91942022fe68a19acb9e5e310592fc39552984f"
+    )
+    source_snapshot = FAMILY_ALLOCATION_METADATA["source_snapshot"]
+    assert source_snapshot["fields_read"] == [
+        "provenance.template_id",
+        "template_group",
+        "split",
+    ]
+    assert source_snapshot["raw_text_or_entity_values_read"] is False
+
+    expected_validation_ids = {
+        "authored_birth_hospital_registration",
+        "authored_mac_asset_inventory",
+        "authored_secret_mobile_session",
+        "authored_wechat_class_group",
+        "contact_and_identity_002",
+        "digital_accounts_004",
+        "financial_002",
+        "government_documents_001",
+        "hard_negative_generic_date",
+        "hard_negative_invalid_card",
+        "hard_negative_invalid_resident_id",
+        "hard_negative_organization",
+        "html_bank_account_driver_license",
+        "security_location_vehicle_001",
+        "table_passport_number_qq_number",
+    }
+    expected_test_ids = {
+        "asr_address_email",
+        "asr_ip_address_mac_address",
+        "authored_birth_student_profile",
+        "authored_employee_payroll_account",
+        "authored_qq_recruiting_contact",
+        "authored_secret_ci_deployment",
+        "financial_005",
+        "financial_008",
+        "government_documents_002",
+        "government_documents_009",
+        "hard_negative_invoice_code",
+        "hard_negative_metrics",
+        "hard_negative_region_code",
+        "hard_negative_trace_version",
+        "security_location_vehicle_007",
+        "table_medical_record_wechat_id",
+    }
+    all_template_ids = {template.template_id for template in ALL_TEMPLATES}
+    expected_legacy_ids = all_template_ids - TRAIN_ONLY_ADDITION_TEMPLATE_IDS
+    assert len(expected_legacy_ids) == len(LEGACY_TEMPLATE_SPLITS) == 87
+    assert set(LEGACY_TEMPLATE_SPLITS) == expected_legacy_ids
+    assert {
+        template_id
+        for template_id, split in LEGACY_TEMPLATE_SPLITS.items()
+        if split == "validation"
+    } == expected_validation_ids
+    assert {
+        template_id for template_id, split in LEGACY_TEMPLATE_SPLITS.items() if split == "test"
+    } == expected_test_ids
+    assert {
+        template_id for template_id, split in LEGACY_TEMPLATE_SPLITS.items() if split == "train"
+    } == expected_legacy_ids - expected_validation_ids - expected_test_ids
+
+    templates_by_id = {template.template_id: template for template in ALL_TEMPLATES}
+    assert {entry.template_id: entry.template_group for entry in ALL_FAMILY_ALLOCATIONS} == {
+        template_id: f"synthetic-family:{template.family}"
+        for template_id, template in templates_by_id.items()
+    }
+
+
+def test_new_family_additions_are_explicitly_train_only_and_fail_closed() -> None:
+    expected = {
+        "authored_secret_database_password",
+        "authored_secret_bearer_header",
+        "authored_secret_private_key_fragment",
+        "authored_medical_laboratory_result",
+        "authored_medical_discharge_summary",
+        "hard_negative_build_id",
+        "hard_negative_config_key_name",
+        "hard_negative_release_date",
+        "hard_negative_device_model",
+    }
+    assert TRAIN_ONLY_ADDITION_TEMPLATE_IDS == expected
+    assert Counter(entry.coverage_role for entry in TRAIN_ONLY_FAMILY_ADDITIONS) == Counter(
+        {"SECRET": 3, "MEDICAL_RECORD_NUMBER": 2, "hard_negative": 4}
+    )
+    assert all(TEMPLATE_SPLITS[template_id] == "train" for template_id in expected)
+
+    unregistered = replace(ALL_TEMPLATES[0], template_id="unregistered_future_template")
+    with pytest.raises(FamilyAllocationAssetError, match="explicit family allocation"):
+        validate_template_family_catalog((*ALL_TEMPLATES, unregistered))
+
+    drifted = list(ALL_TEMPLATES)
+    drifted[0] = replace(drifted[0], family="changed_family")
+    with pytest.raises(FamilyAllocationAssetError, match="template family changed"):
+        validate_template_family_catalog(drifted)
+
+
+def test_source_registry_binds_the_stable_family_allocation_asset() -> None:
+    repository_root = Path(__file__).parents[3]
+    registry = yaml.safe_load(
+        (repository_root / "configs/data/source_registry.yaml").read_text(encoding="utf-8")
+    )
+    source = next(
+        item for item in registry["sources"] if item["id"] == "repo_curated_synthetic_templates"
+    )
+    allocation = source["family_allocation_asset"]
+    assert source["dataset_version"] == "1.2.0"
+    assert source["materializer_version"] == "1.2.0"
+    assert source["split_algorithm_version"] == FAMILY_ALLOCATION_ALGORITHM_VERSION
+    assert allocation == {
+        "locator": "src/pii_zh/data/synthetic/assets/stable_family_allocation_v2.json",
+        "revision": f"sha256:{FAMILY_ALLOCATION_ASSET_SHA256}",
+        "legacy_template_families_pinned": 87,
+        "train_only_addition_families": 9,
+        "unregistered_template_policy": "reject",
+    }
 
 
 def test_every_core_label_has_three_distinct_semantic_families() -> None:
@@ -312,12 +453,11 @@ def test_materialization_build_is_exact_balanced_and_group_safe() -> None:
     }
     assert newly_authored_template_ids <= {record.provenance.template_id for record in records}
     for template_id in newly_authored_template_ids:
-        assert (
-            len(
-                {record.split for record in records if record.provenance.template_id == template_id}
-            )
-            == 1
-        )
+        assert {
+            record.split for record in records if record.provenance.template_id == template_id
+        } == {"train"}
+    observed_template_splits = {record.provenance.template_id: record.split for record in records}
+    assert observed_template_splits == TEMPLATE_SPLITS
     for split, expected_count in (("train", 1_600), ("validation", 200), ("test", 200)):
         selected = [record for record in records if record.split == split]
         assert len(selected) == expected_count
@@ -327,6 +467,27 @@ def test_materialization_build_is_exact_balanced_and_group_safe() -> None:
         assert set(CORE_LABELS) == {
             entity.label for record in selected for entity in record.entities
         }
+
+
+def test_materialized_corpus_is_deterministic_without_seeded_family_reallocation() -> None:
+    left = build_synthetic_corpus(600, seed=20260711, hard_negative_ratio=0.30)
+    right = build_synthetic_corpus(600, seed=20260711, hard_negative_ratio=0.30)
+    other_seed = build_synthetic_corpus(600, seed=20260712, hard_negative_ratio=0.30)
+    assert [dumps_document(record) for record in left] == [
+        dumps_document(record) for record in right
+    ]
+    for records in (left, other_seed):
+        assert {
+            record.provenance.template_id: record.split for record in records
+        } == TEMPLATE_SPLITS
+        assert not detect_group_leakage(records).has_leakage
+        for split in ("train", "validation", "test"):
+            assert set(CORE_LABELS) == {
+                entity.label
+                for record in records
+                if record.split == split
+                for entity in record.entities
+            }
 
 
 def test_materializer_writes_read_only_files_and_raw_text_free_manifest(
@@ -348,6 +509,32 @@ def test_materializer_writes_read_only_files_and_raw_text_free_manifest(
             "validation": 60,
         }
         assert manifest["counts"]["hard_negative"] == 180
+        assert manifest["dataset_version"] == "1.2.0"
+        assert manifest["generation"]["materializer_version"] == "1.2.0"
+        assert manifest["splitting"]["algorithm_version"] == "stable-pinned-v2"
+        assert manifest["splitting"]["family_assignment_uses_seed"] is False
+        assert manifest["splitting"]["legacy_template_families_pinned"] == 87
+        assert manifest["splitting"]["train_only_addition_families"] == 9
+        assert manifest["splitting"]["template_families_by_split"] == {
+            "train": 65,
+            "validation": 15,
+            "test": 16,
+        }
+        assert (
+            manifest["splitting"]["legacy_template_assignment_sha256"]
+            == "59590a935ef5f55c02d0a87369dc48b06495286462832c25c121292adb060880"
+        )
+        assert (
+            manifest["splitting"]["train_only_addition_assignment_sha256"]
+            == "2a12a8ec992b49d58e6e5d73dca1b94a6c9cc4340cc7de0cf9b87f3da019d26a"
+        )
+        assert (
+            manifest["splitting"]["template_family_allocation_sha256"]
+            == "4a526cc46af2e2bf0fa0ddd35d92d540950d37afc6a6dbd269596a36f90882ca"
+        )
+        assert (
+            manifest["assets"]["family_allocation_asset_sha256"] == FAMILY_ALLOCATION_ASSET_SHA256
+        )
         assert manifest["splitting"]["cross_split_group_collisions"] == 0
         assert set(manifest["coverage"]["labels_by_split"]) == {
             "train",
