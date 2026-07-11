@@ -1,0 +1,14 @@
+schema_version: 1
+template: hr
+rule_packs: [cn_common, hr]
+custom_rules_required: true
+
+entities:
+  EMPLOYEE_ID:
+    enabled: true
+    required_context: [工号, 员工编号]
+    tenant_format_required: true
+  CANDIDATE_NUMBER:
+    enabled: false
+    required_context: [候选人编号, 应聘编号]
+    tenant_format_required: true

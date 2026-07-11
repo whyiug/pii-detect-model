@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "findings": {
+      "items": {
+        "additionalProperties": true,
+        "properties": {
+          "component": {"minLength": 1, "type": "string"},
+          "id": {"minLength": 1, "type": "string"},
+          "severity": {
+            "enum": ["critical", "high", "medium", "moderate", "low", "unknown"],
+            "type": "string"
+          },
+          "status": {
+            "enum": ["open", "fixed", "not_affected", "false_positive"],
+            "type": "string"
+          }
+        },
+        "required": ["id", "component"],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "generated_at": {"minLength": 1, "type": "string"},
+    "scan_complete": {"const": true},
+    "scanner": {"minLength": 1, "type": "string"},
+    "schema_version": {"const": 1},
+    "sbom_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+  },
+  "required": [
+    "scanner",
+    "generated_at",
+    "scan_complete",
+    "sbom_sha256"
+  ],
+  "title": "pii-zh-qwen normalized dependency vulnerability scan",
+  "type": "object"
+}

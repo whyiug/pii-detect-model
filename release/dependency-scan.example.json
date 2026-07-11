@@ -1,0 +1,8 @@
+{
+  "findings": [],
+  "generated_at": "replace-with-UTC-timestamp",
+  "scan_complete": false,
+  "scanner": "replace-with-scanner-and-version",
+  "sbom_sha256": "replace-with-lowercase-SHA-256-of-packaged-sbom.cdx.json",
+  "schema_version": 1
+}

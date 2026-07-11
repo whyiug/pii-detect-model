@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "exceptions": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_by": {"minLength": 1, "type": "string"},
+          "compensating_controls": {
+            "items": {"minLength": 1, "type": "string"},
+            "minItems": 1,
+            "type": "array"
+          },
+          "component": {"minLength": 1, "type": "string"},
+          "expires_on": {"format": "date", "type": "string"},
+          "id": {"minLength": 1, "type": "string"},
+          "justification": {"minLength": 20, "type": "string"},
+          "vulnerability_id": {"minLength": 1, "type": "string"}
+        },
+        "required": [
+          "id",
+          "vulnerability_id",
+          "component",
+          "justification",
+          "approved_by",
+          "expires_on",
+          "compensating_controls"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "schema_version": {"const": 1}
+  },
+  "required": ["schema_version", "exceptions"],
+  "title": "pii-zh-qwen dependency security exceptions",
+  "type": "object"
+}

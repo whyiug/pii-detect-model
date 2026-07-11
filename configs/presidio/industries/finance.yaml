@@ -1,0 +1,22 @@
+schema_version: 1
+template: finance
+rule_packs: [cn_common, finance]
+custom_rules_required: true
+
+entities:
+  BANK_CARD_NUMBER:
+    enabled: true
+    validator_required: luhn
+  BANK_ACCOUNT_NUMBER:
+    enabled: true
+    tenant_format_required: true
+  CUSTOMER_NUMBER:
+    enabled: false
+    tenant_format_required: true
+  LOAN_NUMBER:
+    enabled: false
+    tenant_format_required: true
+
+notes:
+  - Thresholds and anonymizer actions must be fitted and approved per deployment.
+  - This template contains no customer regex or production identifier.

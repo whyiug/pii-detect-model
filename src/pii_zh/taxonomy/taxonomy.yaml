@@ -1,0 +1,343 @@
+schema_version: 1
+taxonomy_version: "1.0.0"
+language: zh-Hans-CN
+task: token-classification
+tagging_scheme: BIO
+outside_label: O
+
+principles:
+  - detection_risk_and_policy_are_separate
+  - canonical_truth_is_character_span
+  - structured_identifiers_prefer_specific_labels
+  - raw_annotations_may_be_nested
+  - training_view_is_deterministically_flattened
+
+risk_tiers:
+  T0:
+    name: critical
+    description: 高风险结构化标识、金融/医疗账号或安全秘密；优先保证召回并使用校验器。
+  T1:
+    name: high
+    description: 可直接识别或联系自然人的信息；需要高召回和场景化误报控制。
+  T2:
+    name: contextual
+    description: 风险依赖租户、场景、组合关系或策略；不得仅凭检测结果自动遮盖。
+
+label_sets:
+  core:
+    - name: PERSON_NAME
+      description: 自然人姓名、别名；不包含默认不需处理的组织名或产品名。
+      risk_tiers: [T1]
+      detector_roles: [qwen, ernie]
+      enabled_by_default: true
+      output: true
+    - name: PHONE_NUMBER
+      description: 手机、座机和分机，包括非标准分隔形式。
+      risk_tiers: [T1]
+      detector_roles: [rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: EMAIL_ADDRESS
+      description: 个人或上下文指向自然人的电子邮箱地址。
+      risk_tiers: [T1]
+      detector_roles: [rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: ADDRESS
+      description: 可定位个人的详细地址；城市、景点、公司地址默认不单独标注。
+      risk_tiers: [T1]
+      detector_roles: [qwen, address_rule]
+      enabled_by_default: true
+      output: true
+    - name: DATE_OF_BIRTH
+      description: 有出生、生日等明确语义的日期；普通日期不属于此标签。
+      risk_tiers: [T1]
+      detector_roles: [qwen, context_rule]
+      enabled_by_default: true
+      output: true
+    - name: CN_RESIDENT_ID
+      description: 中国大陆居民身份证号码。
+      risk_tiers: [T0]
+      detector_roles: [checksum_rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: PASSPORT_NUMBER
+      description: 护照号码；需结合格式和上下文降低误报。
+      risk_tiers: [T0]
+      detector_roles: [rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: DRIVER_LICENSE_NUMBER
+      description: 驾驶证号码。
+      risk_tiers: [T0]
+      detector_roles: [rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: SOCIAL_SECURITY_NUMBER
+      description: 社保或医保个人编号。
+      risk_tiers: [T0]
+      detector_roles: [rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: BANK_CARD_NUMBER
+      description: 银行卡号；优先使用长度和 Luhn 等校验。
+      risk_tiers: [T0]
+      detector_roles: [checksum_rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: BANK_ACCOUNT_NUMBER
+      description: 银行账户号；格式通常依赖机构或客户规则。
+      risk_tiers: [T0]
+      detector_roles: [tenant_rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: VEHICLE_LICENSE_PLATE
+      description: 可关联个人或车辆的机动车号牌。
+      risk_tiers: [T1]
+      detector_roles: [rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: EMPLOYEE_ID
+      description: 员工编号；风险和格式依赖组织及场景。
+      risk_tiers: [T1, T2]
+      detector_roles: [tenant_rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: STUDENT_ID
+      description: 学号或学生个人编号；风险和格式依赖学校及场景。
+      risk_tiers: [T1, T2]
+      detector_roles: [tenant_rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: MEDICAL_RECORD_NUMBER
+      description: 病历、就诊或住院个人编号。
+      risk_tiers: [T0]
+      detector_roles: [industry_rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: WECHAT_ID
+      description: 微信个人账号标识。
+      risk_tiers: [T1]
+      detector_roles: [qwen, rule]
+      enabled_by_default: true
+      output: true
+    - name: QQ_NUMBER
+      description: QQ 个人账号标识。
+      risk_tiers: [T1]
+      detector_roles: [qwen, rule]
+      enabled_by_default: true
+      output: true
+    - name: ALIPAY_ACCOUNT
+      description: 支付宝个人账号标识。
+      risk_tiers: [T0, T1]
+      detector_roles: [qwen, rule]
+      enabled_by_default: true
+      output: true
+    - name: USERNAME
+      description: 可关联个人的用户名或登录名。
+      risk_tiers: [T1]
+      detector_roles: [qwen]
+      enabled_by_default: true
+      output: true
+    - name: IP_ADDRESS
+      description: IPv4 或 IPv6 地址；具体风险由使用场景决定。
+      risk_tiers: [T1, T2]
+      detector_roles: [rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: MAC_ADDRESS
+      description: 网络接口 MAC 地址。
+      risk_tiers: [T1, T2]
+      detector_roles: [rule]
+      enabled_by_default: true
+      output: true
+    - name: DEVICE_ID
+      description: IMEI、设备序列号等稳定设备标识。
+      risk_tiers: [T1]
+      detector_roles: [rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: GEO_COORDINATE
+      description: 可精确定位自然人的经纬度坐标。
+      risk_tiers: [T0, T1]
+      detector_roles: [rule, qwen]
+      enabled_by_default: true
+      output: true
+    - name: SECRET
+      description: 密码、API key、token 或私钥片段；属于安全敏感信息而非纯 PII。
+      risk_tiers: [T0]
+      detector_roles: [rule, qwen]
+      enabled_by_default: true
+      output: true
+
+  extended:
+    - name: HEALTH_INFORMATION
+      description: 需明确边界与业务需求后启用的健康信息。
+      risk_tiers: [T0]
+      detector_roles: [qwen]
+      enabled_by_default: false
+      output: true
+    - name: FINANCIAL_INFORMATION
+      description: 不属于具体账号标签的金融信息。
+      risk_tiers: [T0]
+      detector_roles: [qwen]
+      enabled_by_default: false
+      output: true
+    - name: BIOMETRIC_INFORMATION
+      description: 生物识别相关信息。
+      risk_tiers: [T0]
+      detector_roles: [qwen]
+      enabled_by_default: false
+      output: true
+    - name: RELIGIOUS_BELIEF
+      description: 宗教信仰属性。
+      risk_tiers: [T0]
+      detector_roles: [qwen]
+      enabled_by_default: false
+      output: true
+    - name: PRECISE_MOVEMENT
+      description: 精确行踪轨迹信息。
+      risk_tiers: [T0]
+      detector_roles: [qwen]
+      enabled_by_default: false
+      output: true
+    - name: MINOR_INFORMATION
+      description: 不满十四周岁未成年人的相关信息。
+      risk_tiers: [T0]
+      detector_roles: [qwen]
+      enabled_by_default: false
+      output: true
+    - name: AGE
+      description: 年龄属性；仅在明确业务需求和标注边界后启用。
+      risk_tiers: [T1, T2]
+      detector_roles: [qwen]
+      enabled_by_default: false
+      output: true
+    - name: GENDER
+      description: 性别属性；仅在明确业务需求和标注边界后启用。
+      risk_tiers: [T1, T2]
+      detector_roles: [qwen]
+      enabled_by_default: false
+      output: true
+    - name: OCCUPATION
+      description: 职业属性；仅在明确业务需求和标注边界后启用。
+      risk_tiers: [T1, T2]
+      detector_roles: [qwen]
+      enabled_by_default: false
+      output: true
+
+  auxiliary:
+    - name: ORDER_ID
+      description: 订单号困难负样本标签；推理输出时忽略。
+      risk_tiers: []
+      detector_roles: [training_only]
+      enabled_by_default: false
+      output: false
+    - name: TRANSACTION_ID
+      description: 交易流水号困难负样本标签；推理输出时忽略。
+      risk_tiers: []
+      detector_roles: [training_only]
+      enabled_by_default: false
+      output: false
+    - name: INVOICE_CODE
+      description: 发票代码困难负样本标签；推理输出时忽略。
+      risk_tiers: []
+      detector_roles: [training_only]
+      enabled_by_default: false
+      output: false
+    - name: PRODUCT_CODE
+      description: 商品或产品编码困难负样本标签；推理输出时忽略。
+      risk_tiers: []
+      detector_roles: [training_only]
+      enabled_by_default: false
+      output: false
+    - name: ORGANIZATION
+      description: 组织名称混淆标签；默认不作为个人 PII 输出。
+      risk_tiers: []
+      detector_roles: [training_only]
+      enabled_by_default: false
+      output: false
+    - name: JOB_TITLE
+      description: 职位名称混淆标签；推理输出时忽略。
+      risk_tiers: []
+      detector_roles: [training_only]
+      enabled_by_default: false
+      output: false
+    - name: GENERIC_DATE
+      description: 无出生语义的普通日期；推理输出时忽略。
+      risk_tiers: []
+      detector_roles: [training_only]
+      enabled_by_default: false
+      output: false
+    - name: PUBLIC_HOTLINE
+      description: 公共客服电话混淆标签；推理输出时忽略。
+      risk_tiers: []
+      detector_roles: [training_only]
+      enabled_by_default: false
+      output: false
+    - name: ORG_ADDRESS
+      description: 公司或组织地址混淆标签；推理输出时忽略。
+      risk_tiers: []
+      detector_roles: [training_only]
+      enabled_by_default: false
+      output: false
+
+flattening:
+  priority:
+    - name: concrete_high_risk_identifiers
+      labels:
+        - CN_RESIDENT_ID
+        - PASSPORT_NUMBER
+        - DRIVER_LICENSE_NUMBER
+        - SOCIAL_SECURITY_NUMBER
+        - BANK_CARD_NUMBER
+        - MEDICAL_RECORD_NUMBER
+        - GEO_COORDINATE
+        - SECRET
+    - name: specific_accounts_and_identifiers
+      labels:
+        - BANK_ACCOUNT_NUMBER
+        - ALIPAY_ACCOUNT
+        - EMPLOYEE_ID
+        - STUDENT_ID
+        - DEVICE_ID
+    - name: names_addresses_and_contacts
+      labels:
+        - PERSON_NAME
+        - PHONE_NUMBER
+        - EMAIL_ADDRESS
+        - ADDRESS
+        - DATE_OF_BIRTH
+        - VEHICLE_LICENSE_PLATE
+        - WECHAT_ID
+        - QQ_NUMBER
+        - USERNAME
+        - IP_ADDRESS
+        - MAC_ADDRESS
+    - name: extended_sensitive_attributes
+      labels:
+        - HEALTH_INFORMATION
+        - FINANCIAL_INFORMATION
+        - BIOMETRIC_INFORMATION
+        - RELIGIOUS_BELIEF
+        - PRECISE_MOVEMENT
+        - MINOR_INFORMATION
+        - AGE
+        - GENDER
+        - OCCUPATION
+    - name: auxiliary_confusion_labels
+      labels:
+        - ORDER_ID
+        - TRANSACTION_ID
+        - INVOICE_CODE
+        - PRODUCT_CODE
+        - ORGANIZATION
+        - JOB_TITLE
+        - GENERIC_DATE
+        - PUBLIC_HOTLINE
+        - ORG_ADDRESS
+  equal_span: prefer_more_specific_label
+  containment: keep_higher_priority_in_training_view
+  canonical_storage: preserve_all_raw_spans
+  reporting: count_every_conflict_and_flattening_decision
+

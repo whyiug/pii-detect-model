@@ -1,0 +1,22 @@
+schema_version: 1
+status: implementation_ready_for_training
+task: token-classification
+base_model: Qwen/Qwen3-0.6B-Base
+base_revision: da87bfb608c14b7cf20ba1ce41287e8de496c0cd
+base_weights_sha256: cd2a512003e2f9f3cd3c32a9c3573f820bb28c940f73c57b1ddaa983d9223eba
+tokenizer_sha256: c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539
+architecture: Qwen3BiForTokenClassification
+attention_mode: full_bidirectional
+tagging_scheme: BIO
+taxonomy_path: src/pii_zh/taxonomy/taxonomy.yaml
+trust_remote_code_for_base: false
+release_remote_code_required: true
+weights_format: safetensors
+
+release_requirements:
+  require_exact_base_revision: true
+  require_tokenizer_hash: true
+  require_save_load_parity: true
+  require_future_token_sensitivity_test: true
+  require_padding_isolation_test: true
+  require_fixed_revision_for_remote_code: true

@@ -1,0 +1,17 @@
+schema_version: 1
+template: medical
+rule_packs: [cn_common, medical]
+custom_rules_required: true
+
+entities:
+  MEDICAL_RECORD_NUMBER:
+    enabled: true
+    required_context: [病历号, 就诊号, 住院号]
+    tenant_format_required: true
+  CN_SOCIAL_SECURITY_NUMBER:
+    enabled: false
+    required_context: [医保编号, 社保编号]
+    tenant_format_required: true
+  HEALTH_INFORMATION:
+    enabled: false
+    model_and_policy_review_required: true

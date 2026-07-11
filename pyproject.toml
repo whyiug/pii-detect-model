@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pii-zh-qwen"
+version = "0.1.0"
+description = "Reproducible Simplified Chinese PII taxonomy, data, training, evaluation, and Presidio integration"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "pii-zh-qwen contributors" }]
+keywords = ["pii", "privacy", "ner", "token-classification", "chinese"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.optional-dependencies]
+core = [
+  "PyYAML>=6.0.1,<7",
+]
+training = [
+  "PyYAML>=6.0.1,<7",
+  "accelerate>=1.2,<2",
+  "datasets>=3.2,<5",
+  "evaluate>=0.4.3,<0.5",
+  "numpy>=1.26,<3",
+  "peft>=0.14,<1",
+  "safetensors>=0.4.5,<1",
+  "scikit-learn>=1.5,<2",
+  "scipy>=1.13,<2",
+  "torch>=2.4,<3",
+  "transformers>=4.51,<5",
+]
+presidio = [
+  "PyYAML>=6.0.1,<7",
+  "presidio-analyzer>=2.2.362,<2.3",
+]
+dev = [
+  "PyYAML>=6.0.1,<7",
+  "mypy>=1.13,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.9,<1",
+  "types-PyYAML>=6.0.12.20241230",
+]
+
+[project.urls]
+Documentation = "https://github.com/whyiug/pii-detect-model"
+Issues = "https://github.com/whyiug/pii-detect-model/issues"
+Source = "https://github.com/whyiug/pii-detect-model"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"pii_zh.taxonomy" = ["*.yaml"]
+"pii_zh.data.synthetic" = ["assets/*.json"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pii_zh"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unused_configs = true
+packages = ["pii_zh"]
+mypy_path = "src"

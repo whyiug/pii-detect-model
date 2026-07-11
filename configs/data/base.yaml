@@ -1,0 +1,39 @@
+schema_version: 1
+contract_version: "1.0.0"
+taxonomy_path: src/pii_zh/taxonomy/taxonomy.yaml
+encoding: utf-8
+format: jsonl
+canonical_annotation: character_span
+span_interval: left_closed_right_open
+tagging_view: BIO
+bio_is_canonical_truth: false
+language: zh-Hans-CN
+
+quality_levels:
+  G0: 1.0
+  S0: [0.9, 1.0]
+  S1: [0.7, 0.9]
+  S2: [0.0, 0.6]
+  U: 0.0
+  N: [0.5, 1.0]
+
+split:
+  method: grouped
+  group_keys:
+    - tenant_group
+    - conversation_group
+    - document_group
+    - template_group
+    - generator_seed_group
+    - entity_value_groups
+    - near_duplicate_group
+    - source_id
+    - created_at_bucket
+  random_sentence_split_allowed: false
+
+logging:
+  raw_text: false
+  entity_values: false
+  api_prompts_or_responses: false
+  allowed_fields: [manifest_id, hashes, counts, ratios, error_codes]
+

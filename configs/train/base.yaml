@@ -1,0 +1,25 @@
+schema_version: 1
+kind: governance_defaults
+runtime_recipe: false
+enabled: false
+disabled_reason: governance_document_only_use_a_runtime_recipe_in_this_directory
+model_config: configs/model/base.yaml
+data_config: configs/data/base.yaml
+pool_config: configs/data/pools.yaml
+allowed_training_pools: [public_release_pool, private_enterprise_pool]
+forbidden_training_pools: [evaluation_only, quarantined]
+seeds: [13, 42, 97]
+
+reproducibility:
+  record_environment_lock: true
+  record_config_hash: true
+  record_code_revision: true
+  record_data_manifest_hashes: true
+  record_base_and_teacher_revisions: true
+  record_tokenizer_hash: true
+
+logging:
+  raw_text: false
+  entity_values: false
+  gradients: false
+  api_payloads: false

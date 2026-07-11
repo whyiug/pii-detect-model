@@ -1,0 +1,13 @@
+{
+  "model_version": "replace-with-frozen-model-version",
+  "calibration_version": "replace-with-validation-fit-version",
+  "global_temperature": 1.0,
+  "entity_temperatures": {},
+  "default_threshold": 0.5,
+  "entity_thresholds": {
+    "CN_ID_CARD": 0.5,
+    "BANK_CARD_NUMBER": 0.5,
+    "PERSON": 0.5,
+    "CN_ADDRESS": 0.5
+  }
+}

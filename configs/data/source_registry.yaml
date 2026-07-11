@@ -1,0 +1,70 @@
+schema_version: 1
+registry_version: "0.1.0"
+default_admission: quarantined
+
+# Immutable revisions and content hashes below were frozen on 2026-07-11. Admission still
+# requires the independent quality and public-weight gates recorded per source.
+sources:
+  - id: qwen3_0_6b_base
+    kind: base_model
+    locator: Qwen/Qwen3-0.6B-Base
+    revision: da87bfb608c14b7cf20ba1ce41287e8de496c0cd
+    declared_license: Apache-2.0
+    weights_sha256: cd2a512003e2f9f3cd3c32a9c3573f820bb28c940f73c57b1ddaa983d9223eba
+    tokenizer_sha256: c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539
+    review_status: revision_and_license_verified
+    public_weight_training_allowed: true
+  - id: openpii_zh_cn
+    kind: public_dataset
+    locator: ai4privacy/pii-masking-openpii-1.5m
+    revision: a785eb528e28be2693c3718a27e066970de5dadb
+    declared_license: CC-BY-4.0
+    attribution: Ai4Privacy / Ai Suisse SA
+    review_status: pending_2000_sample_manual_quality_audit
+    public_weight_training_allowed: false
+    forced_pool: quarantined
+  - id: pii_bench_zh
+    kind: evaluation_dataset
+    locator: wan9yu/pii-bench-zh
+    revision: c350b94897af668517ff5de237d89f2ce2eaa6f0
+    declared_license: Apache-2.0
+    review_status: frozen_evaluation_only
+    public_weight_training_allowed: false
+    forced_pool: evaluation_only
+  - id: qwen3_8b_placeholder_template_generator
+    kind: self_hosted_teacher
+    locator: Qwen/Qwen3-8B
+    revision: local-fingerprint-f9fdbcb91c23971c13ec5d5f2573d2349e8f61f2f049371ec699281748fdb1bc
+    declared_license: Apache-2.0
+    input_class: placeholder_only
+    output_role: synthetic_template_candidates
+    review_status: output_requires_local_schema_and_semantic_review
+    public_weight_training_allowed: true
+  - id: repo_curated_synthetic_templates
+    kind: deterministic_synthetic_dataset
+    locator: src/pii_zh/data/synthetic/assets/curated_templates_v1.json
+    revision: sha256:5b30b11f0238e5bc42da3841fdb0aaa6880a73014a8211f15ab5b672b8aca4a7
+    curation_audit_sha256: 75b5dea606a319af198cfadf1cdeb0e32f885714ad5336c7c01d2d2a74558456
+    generator_name: pii_zh_deterministic_synthetic
+    generator_version: 2.2.0
+    declared_license: Apache-2.0
+    input_class: programmatic_without_real_personal_data
+    review_status: human_curated_templates_and_deterministic_validators_passed
+    public_weight_training_allowed: true
+    forced_pool: public_release_pool
+  - id: internal_gold
+    kind: private_dataset
+    locator: null
+    revision: null
+    declared_license: proprietary
+    review_status: not_available
+    public_weight_training_allowed: false
+    forced_pool: private_enterprise_pool
+  - id: external_api_teacher
+    kind: api_teacher
+    locator: null
+    revision: null
+    declared_license: contract_specific
+    review_status: no_public_training_authorization
+    public_weight_training_allowed: false
+    forced_pool: quarantined

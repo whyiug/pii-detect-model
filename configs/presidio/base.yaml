@@ -1,0 +1,40 @@
+schema_version: 1
+language: zh
+integration_mode: parallel_recognizer
+mapping_path: src/pii_zh/taxonomy/presidio_mapping.yaml
+presidio_analyzer_version: ">=2.2.362,<2.3"
+
+qwen:
+  status: untrained
+  enabled: false
+  recognizer: QwenPiiRecognizer
+  tokenizer_aware_chunking: true
+  max_tokens: 512
+  stride_fraction: 0.25
+  model_path: null
+  category_thresholds_path: null
+  calibration_path: null
+
+ernie:
+  status: external_existing_system_not_provided
+  enabled: false
+  replace_existing_nlp_engine: false
+  baseline_report: null
+
+rules:
+  status: available
+  enabled: true
+  packs: [cn_common]
+
+fusion:
+  strategy: deterministic_specific_type_first
+  reject_validator_failures: true
+  keep_nested_different_types: false
+
+context:
+  config_path: configs/presidio/context.yaml
+
+policy:
+  detection_implies_anonymization: false
+  tenant_rules_in_public_weights: false
+  record_decision_process: true

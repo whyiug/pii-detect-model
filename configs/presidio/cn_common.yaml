@@ -1,0 +1,18 @@
+schema_version: 1
+pack: cn_common
+implementation: pii_zh.rules.CnCommonRulePack
+enabled: true
+
+# Regex only proposes candidates. These structured types are accepted only
+# after the shared validator in pii_zh.data.validators succeeds.
+validator_backed_entities:
+  CN_ID_CARD: CN_RESIDENT_ID
+  BANK_CARD_NUMBER: BANK_CARD_NUMBER
+  PHONE_NUMBER: PHONE_NUMBER
+  EMAIL_ADDRESS: EMAIL_ADDRESS
+  IP_ADDRESS: IP_ADDRESS
+  MAC_ADDRESS: MAC_ADDRESS
+  GEO_COORDINATE: GEO_COORDINATE
+
+invalid_candidate_policy: suppress
+already_masked_policy: detect_without_replacement

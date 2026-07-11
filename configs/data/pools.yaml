@@ -1,0 +1,44 @@
+schema_version: 1
+root: data/processed
+default_pool: quarantined
+
+pools:
+  public_release_pool:
+    path: data/processed/public_release_pool
+    train_allowed: true
+    public_weight_training_allowed: true
+    required_gates:
+      - quality_gate
+      - public_weight_training_allowed
+      - immutable_source_revision
+      - license_review
+      - privacy_scan
+      - grouped_deduplication
+  private_enterprise_pool:
+    path: data/processed/private_enterprise_pool
+    train_allowed: true
+    requires_explicit_internal_authorization: true
+    public_weight_training_allowed: false
+    export_allowed: false
+  evaluation_only:
+    path: data/processed/evaluation_only
+    train_allowed: false
+    prompt_development_allowed: false
+    distillation_allowed: false
+    calibration_allowed: false
+    threshold_selection_allowed: false
+    writable_during_evaluation: false
+  quarantined:
+    path: data/processed/quarantined
+    train_allowed: false
+    public_weight_training_allowed: false
+    admission_reasons:
+      - unresolved_source
+      - unresolved_license
+      - failed_or_pending_quality_gate
+      - privacy_review_pending
+
+transitions:
+  require_audit_record: true
+  copying_to_bypass_provenance_forbidden: true
+  unknown_values_fail_closed: true

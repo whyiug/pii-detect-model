@@ -1,0 +1,17 @@
+schema_version: 1
+template: education
+rule_packs: [cn_common, education]
+custom_rules_required: true
+
+entities:
+  STUDENT_ID:
+    enabled: true
+    required_context: [学号, 学生编号]
+    tenant_format_required: true
+  EXAM_ADMISSION_NUMBER:
+    enabled: false
+    required_context: [准考证号]
+    tenant_format_required: true
+  MINOR_INFORMATION:
+    enabled: false
+    model_and_policy_review_required: true

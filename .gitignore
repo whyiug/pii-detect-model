@@ -1,0 +1,47 @@
+# Python and tooling
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+build/
+dist/
+.venv/
+venv/
+
+# Editors and local environment
+.idea/
+.vscode/
+.env
+.env.*
+!.env.example
+
+# Data is admitted through manifests; raw/private/evaluation rows never belong in Git.
+data/raw/**
+data/interim/**
+data/processed/**
+data/cache/**
+
+# Model/training artifacts and potentially sensitive telemetry
+/models/
+/checkpoints/
+/runs/
+/logs/
+/wandb/
+/mlruns/
+*.safetensors
+*.bin
+*.ckpt
+*.onnx
+*.pt
+*.pth
+
+# Local API or credential material
+*.pem
+*.key
+*.p12
+credentials.json

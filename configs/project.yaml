@@ -1,0 +1,21 @@
+schema_version: 1
+project: pii-zh-qwen
+phase: A
+status: specification_only
+taxonomy_path: src/pii_zh/taxonomy/taxonomy.yaml
+presidio_mapping_path: src/pii_zh/taxonomy/presidio_mapping.yaml
+language: zh-Hans-CN
+
+claims:
+  trained_model_available: false
+  ernie_baseline_available: false
+  internal_gold_available: false
+  production_validated: false
+
+privacy:
+  log_raw_text: false
+  log_entity_values: false
+  allow_real_pii_in_repository: false
+  allow_real_secrets_in_repository: false
+  third_party_api_accepts_real_pii: false
+

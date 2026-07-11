@@ -1,0 +1,18 @@
+schema_version: 1
+template: log_security
+rule_packs: [cn_common, log_security]
+custom_rules_required: true
+
+entities:
+  SECRET:
+    enabled: true
+    formats: [api_key_assignment, jwt, private_key_header, cookie, session]
+  IP_ADDRESS:
+    enabled: true
+  DEVICE_ID:
+    enabled: false
+    tenant_format_required: true
+
+policy:
+  never_log_matched_value: true
+  require_synthetic_regression_fixtures: true

@@ -1,0 +1,16 @@
+schema_version: 1
+context_window: 20
+positive_delta: 0.15
+negative_delta: 0.20
+
+positive_context:
+  CN_ID_CARD: [身份证, 身份证号, 证件号码, 公民身份号码]
+  BANK_CARD_NUMBER: [银行卡, 银行卡号, 卡号, 收款卡]
+  CN_ADDRESS: [收货地址, 家庭住址, 常住地址, 居住地]
+  MEDICAL_RECORD_NUMBER: [病历号, 就诊号, 住院号]
+  PERSON: [姓名, 联系人, 收件人]
+
+negative_context:
+  CN_ID_CARD: [订单号, 合同号, 流水号, 商品编号]
+  BANK_CARD_NUMBER: [快递单号, 发票号码]
+  PERSON: [公司名称, 产品名称, 游戏角色]

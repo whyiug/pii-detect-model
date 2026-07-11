@@ -1,0 +1,49 @@
+schema_version: 1
+status: no_evaluation_data_or_model_available
+evaluation_pool: data/processed/evaluation_only
+read_only: true
+network_access: false
+write_predictions_with_raw_text: false
+confidence_interval: 0.95
+release_requires:
+  - dataset_manifest_sha256
+  - prediction_manifest_sha256
+  - model_training_manifest_sha256
+calibration:
+  scope: emitted_prediction_spans
+  target: strict_start_end_label_match
+  metrics: [ece, brier]
+  ece_bins: 10
+frozen_datasets:
+  pii_bench_zh:
+    source_revision: c350b94897af668517ff5de237d89f2ce2eaa6f0
+    dataset_manifest_sha256: 545c990c96f23118ddc097ec0bed1d7f180785ac72e9f2a6ed56eb1ba3ee5e9b
+    dataset_manifest_file_sha256: 62c03dc8c5ba343a883498cf92d272ab9f240252e92ea06a665022f5ce7df6f1
+    evaluation_only: true
+
+freeze_before_test:
+  - checkpoint_revision
+  - training_manifest_hash
+  - taxonomy_version
+  - tokenizer_hash
+  - calibration_revision
+  - thresholds_revision
+  - rules_revision
+  - fusion_revision
+
+suites:
+  - internal_iid_test
+  - tenant_holdout_test
+  - domain_holdout_test
+  - time_holdout_test
+  - hard_negative_test
+  - noise_stress_test
+  - long_document_test
+  - pii_bench_zh_formal
+  - pii_bench_zh_chat
+
+baselines:
+  rules: not_available
+  ernie: not_available
+  qwen: not_available
+  combined: not_available
