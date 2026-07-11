@@ -28,6 +28,7 @@ CHECKPOINT_FILES = (
     "tokenizer_config.json",
     "special_tokens_map.json",
 )
+OPTIONAL_CHECKPOINT_FILES = ("added_tokens.json",)
 EVIDENCE_FILES = (
     "taxonomy.yaml",
     "id2label.json",
@@ -57,6 +58,7 @@ REQUIRED_RELEASE_FILES = frozenset(
         "checksums.txt",
     }
 )
+ALLOWED_RELEASE_FILES = REQUIRED_RELEASE_FILES | frozenset(OPTIONAL_CHECKPOINT_FILES)
 FORBIDDEN_SUFFIXES = frozenset(
     {".bin", ".ckpt", ".joblib", ".npy", ".npz", ".pickle", ".pkl", ".pt", ".pth"}
 )
@@ -467,6 +469,11 @@ def build_release(
         name: _require_regular_file(checkpoint_dir / name, f"checkpoint file {name}")
         for name in CHECKPOINT_FILES
     }
+    optional_checkpoint_paths = {
+        name: _require_regular_file(checkpoint_dir / name, f"checkpoint file {name}")
+        for name in OPTIONAL_CHECKPOINT_FILES
+        if (checkpoint_dir / name).exists()
+    }
     evidence_paths = {
         name: _require_regular_file(evidence_dir / name, f"release evidence {name}")
         for name in EVIDENCE_FILES
@@ -490,6 +497,8 @@ def build_release(
         _copy_file(model_card, staging / "README.md", "model card")
         for name, source in checkpoint_paths.items():
             _copy_file(source, staging / name, f"checkpoint file {name}")
+        for name, source in optional_checkpoint_paths.items():
+            _copy_file(source, staging / name, f"checkpoint file {name}")
         for name, source in evidence_paths.items():
             _copy_file(source, staging / name, f"release evidence {name}")
         overrides = project_file_overrides or {}
@@ -504,11 +513,12 @@ def build_release(
         (staging / "modeling_qwen3_bi.py").write_text(modeling_code, encoding="utf-8")
         write_checksums(staging)
         actual = {path.name for path in staging.iterdir() if path.is_file()}
-        if actual != REQUIRED_RELEASE_FILES:
+        expected = REQUIRED_RELEASE_FILES | optional_checkpoint_paths.keys()
+        if actual != expected:
             raise ReleaseBuildError(
                 "internal error: release file set differs from the required allowlist: "
-                f"missing={sorted(REQUIRED_RELEASE_FILES - actual)}, "
-                f"extra={sorted(actual - REQUIRED_RELEASE_FILES)}"
+                f"missing={sorted(expected - actual)}, "
+                f"extra={sorted(actual - expected)}"
             )
         if output_dir.exists():
             if not output_dir.is_dir() or output_dir.is_symlink():

@@ -26,6 +26,7 @@ except ImportError as exc:  # pragma: no cover - CLI dependency error
     raise SystemExit("release_gate.py requires PyYAML; install the project's core extra") from exc
 
 from build_release import (
+    ALLOWED_RELEASE_FILES,
     AUTO_MAP,
     BOUNDARY_MODE,
     BOUNDARY_MODE_CONFIG_KEY,
@@ -146,7 +147,7 @@ def gate_file_set(artifact: Path) -> GateResult:
             )
 
     missing = sorted(REQUIRED_RELEASE_FILES - files)
-    extras = sorted(files - REQUIRED_RELEASE_FILES)
+    extras = sorted(files - ALLOWED_RELEASE_FILES)
     if missing:
         issues.append(
             GateIssue("RC_BLOCKED_MISSING_FILES", f"missing required files: {', '.join(missing)}")

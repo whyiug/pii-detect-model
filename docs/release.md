@@ -15,12 +15,17 @@ Use a checkpoint directory containing exactly the release checkpoint inputs:
 
 ```text
 checkpoint/
+├── added_tokens.json        # optional; copied when emitted by the tokenizer
 ├── config.json
 ├── model.safetensors
 ├── tokenizer.json
 ├── tokenizer_config.json
 └── special_tokens_map.json
 ```
+
+When `added_tokens.json` is present, the builder copies it and the release gate requires its hash
+to match `training_manifest.json.output_artifact.files`. It remains optional for tokenizers that do
+not emit it; no unbound tokenizer metadata is admitted to the release file set.
 
 Only safetensors are accepted. If the checkpoint tree also contains a pickle weight, optimizer or
 scheduler state, gradient/cache artifact, raw data table, API prompt/response, or customer data,

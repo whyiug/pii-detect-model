@@ -4,7 +4,12 @@ import json
 from pathlib import Path
 
 import torch
-from conftest import ReleaseFixture, rewrite_training_manifest_binding, run_script
+from conftest import (
+    ReleaseFixture,
+    rewrite_checksums,
+    rewrite_training_manifest_binding,
+    run_script,
+)
 from transformers import AutoConfig, AutoModelForTokenClassification
 
 from pii_zh.models.qwen3_bi import Qwen3BiConfig, Qwen3BiForTokenClassification
@@ -65,6 +70,73 @@ def test_builder_creates_exact_hf_package_and_auto_map(
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "PASS: 0 blocker(s)" in result.stdout
+
+
+def test_builder_copies_manifest_bound_optional_added_tokens(
+    release_fixture: ReleaseFixture, repository_root: Path
+) -> None:
+    added_tokens = {"<synthetic-test-token>": 8}
+    (release_fixture.checkpoint / "added_tokens.json").write_text(
+        json.dumps(added_tokens, sort_keys=True), encoding="utf-8"
+    )
+    rewrite_training_manifest_binding(release_fixture.checkpoint, release_fixture.evidence)
+
+    result = run_script(
+        repository_root,
+        "build_release.py",
+        "--checkpoint-dir",
+        str(release_fixture.checkpoint),
+        "--evidence-dir",
+        str(release_fixture.evidence),
+        "--model-card",
+        str(release_fixture.model_card),
+        "--repository-root",
+        str(release_fixture.repository_root),
+        "--output-dir",
+        str(release_fixture.artifact),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (
+        json.loads((release_fixture.artifact / "added_tokens.json").read_text(encoding="utf-8"))
+        == added_tokens
+    )
+    assert "  added_tokens.json\n" in (release_fixture.artifact / "checksums.txt").read_text(
+        encoding="utf-8"
+    )
+
+    gate = run_script(
+        repository_root,
+        "release_gate.py",
+        "--artifact",
+        str(release_fixture.artifact),
+        "--source-registry",
+        str(release_fixture.registry),
+        "--dependency-scan",
+        str(release_fixture.dependency_scan),
+        "--dependency-exceptions",
+        str(release_fixture.dependency_exceptions),
+    )
+    assert gate.returncode == 0, gate.stdout + gate.stderr
+
+    (release_fixture.artifact / "added_tokens.json").write_text(
+        json.dumps({"<synthetic-test-token>": 9}, sort_keys=True), encoding="utf-8"
+    )
+    rewrite_checksums(release_fixture.artifact)
+    gate = run_script(
+        repository_root,
+        "release_gate.py",
+        "--artifact",
+        str(release_fixture.artifact),
+        "--source-registry",
+        str(release_fixture.registry),
+        "--dependency-scan",
+        str(release_fixture.dependency_scan),
+        "--dependency-exceptions",
+        str(release_fixture.dependency_exceptions),
+    )
+    assert gate.returncode == 1
+    assert "RC_BLOCKED_OUTPUT_ARTIFACT_BINDING" in gate.stdout
 
 
 def test_builder_rejects_pickle_optimizer_and_raw_data(

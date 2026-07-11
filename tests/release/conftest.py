@@ -58,6 +58,7 @@ def rewrite_training_manifest_binding(checkpoint: Path, evidence: Path) -> None:
         "tokenizer.json",
         "tokenizer_config.json",
         "special_tokens_map.json",
+        "added_tokens.json",
     )
     files = {
         name: hashlib.sha256((checkpoint / name).read_bytes()).hexdigest()
