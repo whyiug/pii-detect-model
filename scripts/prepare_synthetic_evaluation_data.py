@@ -18,7 +18,7 @@ from typing import Any
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPOSITORY_ROOT / "src"))
 
-from pii_zh.evaluation import add_manifest_hash, canonical_json_hash  # noqa: E402
+from pii_zh.evaluation import add_manifest_hash  # noqa: E402
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,127}$")
@@ -28,6 +28,18 @@ _MAXIMUM_MANIFEST_BYTES = 64 * 1024 * 1024
 
 class SyntheticEvaluationDataError(ValueError):
     """Raised when the synthetic evaluation attestation cannot be trusted."""
+
+
+def _synthetic_manifest_hash(value: Mapping[str, Any]) -> str:
+    """Use the schema-2 materializer's UTF-8 canonical JSON contract."""
+
+    encoded = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _sha256(value: object, *, field: str) -> str:
@@ -115,7 +127,7 @@ def _read_manifest(path: Path) -> tuple[dict[str, Any], str]:
     claimed = _sha256(value.get("manifest_sha256"), field="source manifest manifest_sha256")
     unsigned = dict(value)
     unsigned.pop("manifest_sha256", None)
-    if canonical_json_hash(unsigned) != claimed:
+    if _synthetic_manifest_hash(unsigned) != claimed:
         raise SyntheticEvaluationDataError("synthetic source manifest self-hash does not verify")
     return value, digest.hexdigest()
 

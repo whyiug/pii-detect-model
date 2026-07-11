@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from pii_zh.evaluation import add_manifest_hash, canonical_json_hash
+from pii_zh.evaluation import canonical_json_hash
 
 
 @pytest.fixture
@@ -57,53 +57,60 @@ def _source_manifest(
             "split": name,
         }
 
-    value = add_manifest_hash(
-        {
-            "manifest_schema_version": 2,
-            "dataset_id": "pii_zh_synthetic_fixture",
-            "dataset_version": "1.3.0",
-            "files": [
-                {
-                    "bytes": 1,
-                    "mode": "0444",
-                    "name": "train.jsonl",
-                    "records": 1,
-                    "sha256": "0" * 64,
-                    "split": "train",
-                },
-                file_entry("validation", validation),
-                file_entry("test", test),
-            ],
-            "coverage": {
-                "labels_by_split": {
-                    "validation": {"PERSON_NAME": validation[1]},
-                    "test": {"PERSON_NAME": test[1]},
+    value = {
+        "manifest_schema_version": 2,
+        "dataset_id": "pii_zh_synthetic_fixture",
+        "dataset_version": "1.3.0",
+        "review_note": "合成评测夹具",
+        "files": [
+            {
+                "bytes": 1,
+                "mode": "0444",
+                "name": "train.jsonl",
+                "records": 1,
+                "sha256": "0" * 64,
+                "split": "train",
+            },
+            file_entry("validation", validation),
+            file_entry("test", test),
+        ],
+        "coverage": {
+            "labels_by_split": {
+                "validation": {"PERSON_NAME": validation[1]},
+                "test": {"PERSON_NAME": test[1]},
+            }
+        },
+        "frozen_splits": {
+            "policy_version": "byte-exact-parent-holdout-v1",
+            "copy_mode": "byte_for_byte",
+            "raw_jsonl_records_parsed": False,
+            "files": {
+                subset: {
+                    "bytes": identity[2],
+                    "name": f"{subset}.jsonl",
+                    "output_sha256": identity[0],
+                    "records": identity[1],
+                    "source_sha256": identity[0],
                 }
+                for subset, identity in (("validation", validation), ("test", test))
             },
-            "frozen_splits": {
-                "policy_version": "byte-exact-parent-holdout-v1",
-                "copy_mode": "byte_for_byte",
-                "raw_jsonl_records_parsed": False,
-                "files": {
-                    subset: {
-                        "bytes": identity[2],
-                        "name": f"{subset}.jsonl",
-                        "output_sha256": identity[0],
-                        "records": identity[1],
-                        "source_sha256": identity[0],
-                    }
-                    for subset, identity in (("validation", validation), ("test", test))
-                },
-            },
-            "provenance": {
-                "validation_test": {
-                    "lineage": "byte_exact_parent_dataset_copy",
-                    "parent_dataset_version": "1.2.0",
-                    "parent_provenance_snapshot_sha256": "1" * 64,
-                }
-            },
-        }
-    )
+        },
+        "provenance": {
+            "validation_test": {
+                "lineage": "byte_exact_parent_dataset_copy",
+                "parent_dataset_version": "1.2.0",
+                "parent_provenance_snapshot_sha256": "1" * 64,
+            }
+        },
+    }
+    value["manifest_sha256"] = hashlib.sha256(
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
     path.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True), encoding="utf-8")
     return path
 
@@ -249,7 +256,15 @@ def test_fails_closed_on_identity_mismatch(
         source_value = json.loads(source.read_text(encoding="utf-8"))
         source_value.pop("manifest_sha256")
         next(item for item in source_value["files"] if item["split"] == "validation")["records"] = 3
-        source.write_text(json.dumps(add_manifest_hash(source_value)), encoding="utf-8")
+        source_value["manifest_sha256"] = hashlib.sha256(
+            json.dumps(
+                source_value,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        source.write_text(json.dumps(source_value), encoding="utf-8")
     else:
         source_value = json.loads(source.read_text(encoding="utf-8"))
         source_value["dataset_version"] = "tampered"
