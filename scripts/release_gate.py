@@ -73,6 +73,7 @@ UNSAFE_REMOTE_CALLS = frozenset(
 BLOCKING_SEVERITIES = frozenset({"critical", "high", "medium", "moderate", "unknown"})
 BASE_INITIALIZATION_STRATEGY = "base_causal_lm_v1"
 STAGED_INITIALIZATION_STRATEGY = "verified_token_classifier_to_full_v1"
+SAFE_SOURCE_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,127}")
 
 
 @dataclass(frozen=True)
@@ -388,8 +389,11 @@ def _initialization_contract_issues(training: dict[str, Any]) -> list[GateIssue]
     else:
         audit_strategy = None
 
-    if schema_version == 3 and (recipe_strategy is None or audit_strategy is None):
-        block("schema 3 training manifests require an explicit initialization contract")
+    if schema_version in {3, 4} and (recipe_strategy is None or audit_strategy is None):
+        block(
+            f"schema {schema_version} training manifests require an explicit "
+            "initialization contract"
+        )
         return issues
     if recipe_strategy is None and audit_strategy is None:
         return issues  # Legacy schema-2 release fixture or completed artifact.
@@ -401,8 +405,8 @@ def _initialization_contract_issues(training: dict[str, Any]) -> list[GateIssue]
     if audit_strategy != STAGED_INITIALIZATION_STRATEGY:
         block("training manifest declares an unknown initialization strategy")
         return issues
-    if schema_version != 3:
-        block("staged initialization requires training manifest schema 3")
+    if schema_version not in {3, 4}:
+        block("staged initialization requires training manifest schema 3 or 4")
     if not isinstance(recipe, dict) or recipe.get("resume") is not False:
         block("staged initialization must start with fresh trainer state")
     if training.get("attention_mode") != "full":
@@ -427,7 +431,7 @@ def _initialization_contract_issues(training: dict[str, Any]) -> list[GateIssue]
         if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
             block(f"staged initialization audit has an invalid {field}")
 
-    if initialization.get("source_manifest_schema_version") not in {2, 3}:
+    if initialization.get("source_manifest_schema_version") not in {2, 3, 4}:
         block("staged initialization source manifest schema is unsupported")
     if initialization.get("source_attention_mode") not in {"causal", "jpt"}:
         block("staged initialization source must be causal or JPT")
@@ -540,6 +544,81 @@ def _source_ids_from_manifest(manifest: dict[str, Any]) -> set[str]:
     return result
 
 
+def _schema4_training_source_lineage_issues(
+    manifest: dict[str, Any],
+) -> tuple[set[str], list[GateIssue]]:
+    """Validate the canonical, top-level lineage required by training schema 4."""
+
+    issues: list[GateIssue] = []
+
+    def block(message: str) -> None:
+        issues.append(GateIssue("RC_BLOCKED_TRAINING_SOURCE_LINEAGE", message))
+
+    raw_source_ids = manifest.get("training_source_ids")
+    if not isinstance(raw_source_ids, list) or not raw_source_ids:
+        block("schema 4 training manifest requires a non-empty training_source_ids list")
+        return set(), issues
+    all_strings = all(isinstance(source_id, str) for source_id in raw_source_ids)
+    if len(raw_source_ids) > 256:
+        block("schema 4 training_source_ids exceeds the 256-entry safety limit")
+    if any(
+        not isinstance(source_id, str) or SAFE_SOURCE_ID_PATTERN.fullmatch(source_id) is None
+        for source_id in raw_source_ids
+    ):
+        block("schema 4 training source IDs must be path-free identifiers")
+    valid_source_ids = {
+        source_id
+        for source_id in raw_source_ids
+        if isinstance(source_id, str) and SAFE_SOURCE_ID_PATTERN.fullmatch(source_id) is not None
+    }
+    valid_source_list = [
+        source_id
+        for source_id in raw_source_ids
+        if isinstance(source_id, str) and SAFE_SOURCE_ID_PATTERN.fullmatch(source_id) is not None
+    ]
+    if len(set(valid_source_list)) != len(valid_source_list):
+        block("schema 4 training source IDs must be unique")
+    if not all_strings or raw_source_ids != sorted(raw_source_ids):
+        block("schema 4 training source IDs must be sorted canonically")
+
+    base_source_id = manifest.get("base_source_id")
+    if not isinstance(base_source_id, str) or base_source_id not in valid_source_ids:
+        block("schema 4 training lineage does not include its base_source_id")
+
+    direct_source_ids: set[str] = set()
+    datasets = manifest.get("datasets")
+    if not isinstance(datasets, dict):
+        block("schema 4 training manifest has no dataset summaries")
+    else:
+        for split_name, split in datasets.items():
+            if not isinstance(split, dict):
+                block(f"schema 4 dataset {split_name!r} is not an object")
+                continue
+            summary = split.get("summary")
+            sources = summary.get("sources") if isinstance(summary, dict) else None
+            if not isinstance(sources, list):
+                block(f"schema 4 dataset {split_name!r} has no direct source summary")
+                continue
+            for index, source in enumerate(sources):
+                source_id = source.get("source_id") if isinstance(source, dict) else None
+                if (
+                    not isinstance(source_id, str)
+                    or SAFE_SOURCE_ID_PATTERN.fullmatch(source_id) is None
+                ):
+                    block(
+                        f"schema 4 dataset {split_name!r} source {index} has an invalid source_id"
+                    )
+                else:
+                    direct_source_ids.add(source_id)
+    missing_direct = direct_source_ids - valid_source_ids
+    if missing_direct:
+        block(
+            "schema 4 training lineage omits direct dataset sources: "
+            + ", ".join(sorted(missing_direct))
+        )
+    return valid_source_ids, issues
+
+
 def _evaluation_only_references(document: dict[str, Any]) -> list[str]:
     failures: list[str] = []
 
@@ -595,7 +674,11 @@ def gate_provenance(artifact: Path, registry_path: Path) -> GateResult:
                 )
             )
 
-    training_source_ids = _source_ids_from_manifest(training)
+    if training.get("schema_version") == 4:
+        training_source_ids, lineage_issues = _schema4_training_source_lineage_issues(training)
+        issues.extend(lineage_issues)
+    else:
+        training_source_ids = _source_ids_from_manifest(training)
     actual_provenance_ids: set[str] = set()
     data_sources = data.get("sources")
     if not isinstance(data_sources, list) or not data_sources:

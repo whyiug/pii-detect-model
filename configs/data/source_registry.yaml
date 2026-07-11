@@ -38,7 +38,18 @@ sources:
     declared_license: Apache-2.0
     input_class: placeholder_only
     output_role: synthetic_template_candidates
-    review_status: output_requires_local_schema_and_semantic_review
+    review_status: template_outputs_local_schema_semantic_and_near_duplicate_review_completed
+    admission_scope: accepted_placeholder_templates_only
+    raw_output_training_allowed: false
+    review_evidence:
+      template_asset_revision: sha256:d65c7b50a21c48ce217a4d44ea6f7333bdb0c385847f8c1d4d067507f4b2563f
+      curation_audit_sha256: cfc550ace46627131005860e97982504bcab6525ee2cbf838d37331e3697594a
+      candidate_payload_sha256: d4e96aa69f0aba0bb5d03e2b7876769be1bf327898196729dc92531a77abadce
+      review_method: manual_semantic_and_near_duplicate_review
+      reviewed_candidate_count: 70
+      accepted_candidate_count: 53
+      rejected_candidate_count: 17
+      raw_rejected_outputs_included: false
     public_weight_training_allowed: true
   - id: repo_curated_synthetic_templates
     kind: deterministic_synthetic_dataset

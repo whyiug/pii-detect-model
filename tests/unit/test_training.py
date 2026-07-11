@@ -339,6 +339,7 @@ def test_training_manifest_is_hashed_and_contains_no_paths_or_text(tmp_path) -> 
         train_file=str(data_path),
         validation_file=str(data_path),
         output_dir=str(tmp_path / "output"),
+        training_source_ids=("upstream-teacher",),
         attention_mode="causal",
         fine_tuning="full",
         bf16=False,
@@ -386,6 +387,13 @@ def test_training_manifest_is_hashed_and_contains_no_paths_or_text(tmp_path) -> 
     )
 
     assert verify_training_manifest(manifest)
+    assert manifest["schema_version"] == 4
+    assert manifest["training_source_ids"] == [
+        "qwen3_0_6b_base",
+        "synthetic-source",
+        "upstream-teacher",
+    ]
+    assert manifest["recipe"]["training_source_ids"] == ["upstream-teacher"]
     serialized = json.dumps(manifest, ensure_ascii=False)
     assert str(tmp_path) not in serialized
     assert "synthetic-training" not in serialized
@@ -443,6 +451,42 @@ def test_classifier_learning_rate_defaults_and_manifest_recipe(tmp_path) -> None
     assert explicit.manifest_recipe()["effective_classifier_learning_rate"] == pytest.approx(3e-4)
 
 
+def test_training_source_ids_are_canonical_immutable_and_path_free(tmp_path) -> None:
+    required = {
+        "base_model": str(tmp_path / "base"),
+        "train_file": str(tmp_path / "train"),
+        "validation_file": str(tmp_path / "validation"),
+        "output_dir": str(tmp_path / "output"),
+    }
+    config = TrainingConfig.from_mapping(
+        required
+        | {
+            "training_source_ids": [
+                "repo_curated_synthetic_templates",
+                "qwen3_0_6b_base",
+            ]
+        }
+    )
+    assert config.training_source_ids == (
+        "qwen3_0_6b_base",
+        "repo_curated_synthetic_templates",
+    )
+    assert config.manifest_recipe()["training_source_ids"] == [
+        "qwen3_0_6b_base",
+        "repo_curated_synthetic_templates",
+    ]
+
+    for invalid in (
+        "qwen3_0_6b_base",
+        ["qwen3_0_6b_base", "qwen3_0_6b_base"],
+        ["../../private/model"],
+        ["source id with whitespace"],
+        ["x" * 129],
+    ):
+        with pytest.raises(TrainingConfigError, match="training_source_ids"):
+            TrainingConfig.from_mapping(required | {"training_source_ids": invalid})
+
+
 def test_staged_initialization_config_is_full_only_fresh_and_path_free(tmp_path) -> None:
     common = {
         "base_model": str(tmp_path / "base"),
@@ -477,6 +521,19 @@ def test_public_runtime_recipe_is_strict_full_attention() -> None:
     assert config.fine_tuning == "full"
     assert config.learning_rate == pytest.approx(2e-5)
     assert config.effective_classifier_learning_rate == pytest.approx(2e-4)
+
+
+def test_synthetic_v1_3_runtime_recipes_declare_complete_source_lineage() -> None:
+    expected = (
+        "qwen3_0_6b_base",
+        "qwen3_8b_placeholder_template_generator",
+        "repo_curated_synthetic_templates",
+    )
+    for path in (
+        "configs/train/synthetic_v1_3_jpt_lora.yaml",
+        "configs/train/synthetic_v1_3_full_from_jpt_lora.yaml",
+    ):
+        assert load_training_config(path).training_source_ids == expected
 
 
 class _OptimizerGroupingModel(torch.nn.Module):
@@ -907,11 +964,12 @@ def test_tiny_cpu_staged_initialization_is_bound_and_fresh(
     manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
     audit = manifest["initialization"]
     serialized = json.dumps(manifest)
-    assert manifest["schema_version"] == 3
+    assert manifest["schema_version"] == 4
     assert manifest["recipe"]["resume"] is False
     assert manifest["recipe"]["initialization_strategy"] == STAGED_INITIALIZATION_STRATEGY
     assert audit["strategy"] == STAGED_INITIALIZATION_STRATEGY
     assert audit["source_attention_mode"] == source_mode
+    assert audit["source_manifest_schema_version"] == 4
     assert audit["source_safetensor_files"] == ["model.safetensors"]
     assert audit["tensor_count"] > 0
     assert audit["score_keys"] == ["score.bias", "score.weight"]
@@ -924,6 +982,31 @@ def test_tiny_cpu_staged_initialization_is_bound_and_fresh(
     )
     assert trainer_state["global_step"] == 1
     assert str(source) not in json.dumps(trainer_state)
+
+
+def test_staged_initialization_remains_compatible_with_schema3_source(
+    tmp_path, staged_sources: dict[str, object]
+) -> None:
+    source = tmp_path / "schema3-source"
+    shutil.copytree(staged_sources["jpt"], source)
+
+    def downgrade(manifest: dict) -> None:
+        manifest["schema_version"] = 3
+        manifest.pop("training_source_ids", None)
+
+    _rewrite_source_manifest(source, downgrade)
+    output = tmp_path / "full-from-schema3"
+    result = run_training(
+        _tiny_staged_config(
+            staged_sources,
+            output_dir=output,
+            attention_mode="full",
+            initial_model=source,
+        )
+    )
+    manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
+    assert manifest["schema_version"] == 4
+    assert manifest["initialization"]["source_manifest_schema_version"] == 3
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,9 @@
 base_model: /data1/models/Qwen/Qwen3-0.6B-Base
 base_source_id: qwen3_0_6b_base
+training_source_ids:
+  - qwen3_0_6b_base
+  - qwen3_8b_placeholder_template_generator
+  - repo_curated_synthetic_templates
 train_file: /data1/datasets/pii-detect-model/processed/public_release_pool/synthetic_v1_3/train.jsonl
 validation_file: /data1/datasets/pii-detect-model/processed/public_release_pool/synthetic_v1_3/validation.jsonl
 output_dir: /data1/runs/pii-detect-model/candidates/synthetic_v1_3/jpt_lora_seed42_gated_v1

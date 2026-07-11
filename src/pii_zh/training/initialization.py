@@ -28,13 +28,14 @@ from pii_zh.training.loading import (
 )
 from pii_zh.training.manifest import (
     canonical_json_hash,
+    resolve_training_source_ids,
     sha256_file,
     tokenizer_fingerprint,
     training_data_summary_dict,
     verify_output_artifact_binding,
 )
 
-_SUPPORTED_SOURCE_MANIFEST_SCHEMAS = frozenset({2, 3})
+_SUPPORTED_SOURCE_MANIFEST_SCHEMAS = frozenset({2, 3, 4})
 _SOURCE_ATTENTION_MODES = frozenset({"causal", "jpt"})
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _ARCHITECTURE_FIELDS = (
@@ -355,7 +356,7 @@ def initialize_full_attention_from_verified_model(
         or source_recipe.get("fine_tuning") != source_fine_tuning
     ):
         raise CheckpointSafetyError("initial model recipe disagrees with its manifest")
-    if schema_version == 3:
+    if schema_version in {3, 4}:
         source_initialization = _object(
             manifest.get("initialization"), "initial model initialization audit"
         )
@@ -364,6 +365,14 @@ def initialize_full_attention_from_verified_model(
             or source_initialization.get("strategy") != "base_causal_lm_v1"
         ):
             raise CheckpointSafetyError("causal/JPT initializer must originate from the Base model")
+    if schema_version == 4:
+        expected_source_ids = list(
+            resolve_training_source_ids(config, train_summary, validation_summary)
+        )
+        if manifest.get("training_source_ids") != expected_source_ids:
+            raise CheckpointSafetyError(
+                "initial model training source lineage disagrees with the target"
+            )
     source_manifest_sha256 = _sha256(manifest.get("manifest_sha256"), "initial model manifest hash")
     source_code_revision = manifest.get("code_revision")
     if source_code_revision is not None and (

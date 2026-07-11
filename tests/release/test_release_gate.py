@@ -35,6 +35,49 @@ def _issue_codes(report: Path) -> set[str]:
     return {issue["code"] for gate in document["gates"] for issue in gate["issues"]}
 
 
+def _upgrade_artifact_to_schema4_lineage(
+    fixture: ReleaseFixture, training_source_ids: list[str]
+) -> None:
+    training_path = fixture.artifact / "training_manifest.json"
+    training = json.loads(training_path.read_text(encoding="utf-8"))
+    strategy = "base_causal_lm_v1"
+    recipe = {"initialization_strategy": strategy}
+    training.update(
+        {
+            "schema_version": 4,
+            "training_source_ids": training_source_ids,
+            "recipe": recipe,
+            "recipe_sha256": hashlib.sha256(
+                json.dumps(
+                    recipe,
+                    ensure_ascii=True,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode()
+            ).hexdigest(),
+            "initialization": {"strategy": strategy},
+            "datasets": {
+                "train": {
+                    "summary": {
+                        "sources": [{"source_id": "synthetic-data"}],
+                    }
+                },
+                "validation": {
+                    "summary": {
+                        "sources": [{"source_id": "synthetic-data"}],
+                    }
+                },
+            },
+        }
+    )
+    training.pop("source_ids", None)
+    training.pop("manifest_sha256", None)
+    encoded = json.dumps(training, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    training["manifest_sha256"] = hashlib.sha256(encoded.encode()).hexdigest()
+    write_json(training_path, training)
+    rewrite_checksums(fixture.artifact)
+
+
 def test_gate_detects_checksum_tampering(
     built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
 ) -> None:
@@ -126,6 +169,31 @@ def test_gate_accepts_schema3_jpt_to_full_staged_provenance(
     assert initialization["train_sha256"] == manifest["datasets"]["train"]["sha256"]
     assert initialization["validation_sha256"] == manifest["datasets"]["validation"]["sha256"]
     assert str(staged_jpt_built_release.checkpoint) not in json.dumps(manifest)
+
+
+def test_gate_accepts_schema4_canonical_training_source_lineage(
+    built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
+) -> None:
+    _upgrade_artifact_to_schema4_lineage(
+        built_release,
+        ["base", "synthetic-data", "teacher"],
+    )
+    report = tmp_path / "gate.json"
+    result = _gate(repository_root, built_release, report)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert _issue_codes(report) == set()
+
+
+def test_gate_blocks_schema4_lineage_missing_direct_dataset_source(
+    built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
+) -> None:
+    _upgrade_artifact_to_schema4_lineage(built_release, ["base", "teacher"])
+    report = tmp_path / "gate.json"
+    result = _gate(repository_root, built_release, report)
+
+    assert result.returncode == 1
+    assert "RC_BLOCKED_TRAINING_SOURCE_LINEAGE" in _issue_codes(report)
 
 
 def test_gate_blocks_incomplete_three_seed_evidence(

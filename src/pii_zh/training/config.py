@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,30 @@ class TrainingConfigError(ValueError):
 DOCUMENT_SAMPLING_STRATEGY = "rare_positive_v1_preserve_negative_mass"
 BASE_INITIALIZATION_STRATEGY = "base_causal_lm_v1"
 STAGED_INITIALIZATION_STRATEGY = "verified_token_classifier_to_full_v1"
+TRAINING_SOURCE_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,127}")
+MAX_TRAINING_SOURCE_IDS = 256
+
+
+def normalize_training_source_ids(value: object) -> tuple[str, ...]:
+    """Return a canonical, path-free set of registered source identifiers."""
+
+    if not isinstance(value, (list, tuple)):
+        raise TrainingConfigError("training_source_ids must be a list of source identifiers")
+    if len(value) > MAX_TRAINING_SOURCE_IDS:
+        raise TrainingConfigError(
+            f"training_source_ids must contain at most {MAX_TRAINING_SOURCE_IDS} entries"
+        )
+    if any(
+        not isinstance(source_id, str) or TRAINING_SOURCE_ID_PATTERN.fullmatch(source_id) is None
+        for source_id in value
+    ):
+        raise TrainingConfigError(
+            "training_source_ids must contain only non-empty path-free identifiers"
+        )
+    normalized = tuple(sorted(value))
+    if len(set(normalized)) != len(normalized):
+        raise TrainingConfigError("training_source_ids must not contain duplicates")
+    return normalized
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +106,7 @@ class TrainingConfig:
     validation_file: str
     output_dir: str
     base_source_id: str = "qwen3_0_6b_base"
+    training_source_ids: tuple[str, ...] = ()
     attention_mode: str = "full"
     fine_tuning: str = "lora"
     taxonomy_path: str | None = None
@@ -111,6 +137,13 @@ class TrainingConfig:
     save_total_limit: int = 2
     dataloader_num_workers: int = 0
     lora: LoraSettings = field(default_factory=LoraSettings)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "training_source_ids",
+            normalize_training_source_ids(self.training_source_ids),
+        )
 
     def validate(self) -> None:
         for name in (
@@ -250,6 +283,9 @@ class TrainingConfig:
             raise TrainingConfigError(f"missing training fields: {sorted(missing)}")
         values = dict(value)
         values["lora"] = LoraSettings.from_mapping(values.get("lora"))
+        values["training_source_ids"] = normalize_training_source_ids(
+            values.get("training_source_ids", ())
+        )
         result = cls(**values)
         result.validate()
         return result
@@ -269,6 +305,7 @@ class TrainingConfig:
             result.pop(key, None)
         if isinstance(result["resume"], str):
             result["resume"] = True
+        result["training_source_ids"] = list(self.training_source_ids)
         result["effective_classifier_learning_rate"] = self.effective_classifier_learning_rate
         result["document_sampling_strategy"] = (
             DOCUMENT_SAMPLING_STRATEGY if self.document_sampling else "disabled"

@@ -13,11 +13,15 @@ from pathlib import Path
 from typing import Any
 
 from pii_zh.tokenization import BOUNDARY_MODE_CONFIG_KEY
-from pii_zh.training.config import TrainingConfig
+from pii_zh.training.config import (
+    TrainingConfig,
+    TrainingConfigError,
+    normalize_training_source_ids,
+)
 from pii_zh.training.data import TrainingDataSummary
 from pii_zh.training.loading import BackboneLoadingAudit, InitializationAudit
 
-MANIFEST_SCHEMA_VERSION = 3
+MANIFEST_SCHEMA_VERSION = 4
 OUTPUT_ARTIFACT_SCHEMA_VERSION = 1
 OUTPUT_METADATA_FILES = (
     "config.json",
@@ -154,6 +158,29 @@ def training_data_summary_dict(summary: TrainingDataSummary) -> dict[str, Any]:
     }
 
 
+def resolve_training_source_ids(
+    config: TrainingConfig,
+    train_summary: TrainingDataSummary,
+    validation_summary: TrainingDataSummary,
+) -> tuple[str, ...]:
+    """Resolve the complete direct/upstream training lineage for schema 4."""
+
+    dataset_source_ids = {
+        source.source_id
+        for summary in (train_summary, validation_summary)
+        for source in summary.sources
+    }
+    combined = {
+        config.base_source_id,
+        *config.training_source_ids,
+        *dataset_source_ids,
+    }
+    try:
+        return normalize_training_source_ids(tuple(combined))
+    except TrainingConfigError as exc:
+        raise ValueError("training source lineage contains an unsafe source ID") from exc
+
+
 def output_artifact_fingerprint(output_dir: str | Path) -> dict[str, Any]:
     """Hash standalone model/config/tokenizer files without recording a path."""
 
@@ -261,6 +288,9 @@ def build_training_manifest(
         "attention_mode": config.attention_mode,
         "fine_tuning": config.fine_tuning,
         "base_source_id": config.base_source_id,
+        "training_source_ids": list(
+            resolve_training_source_ids(config, train_summary, validation_summary)
+        ),
         "recipe": recipe,
         "recipe_sha256": canonical_json_hash(recipe),
         "taxonomy_version": taxonomy_version,
