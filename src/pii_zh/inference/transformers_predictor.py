@@ -293,6 +293,9 @@ def load_local_predictor(
         local_files_only=True,
         trust_remote_code=False,
         use_fast=True,
+        # The packaged tokenizer intentionally uses our code-point splitter,
+        # not the Mistral legacy regex targeted by Transformers' migration.
+        fix_mistral_regex=False,
     )
     assert_character_boundary_tokenizer(tokenizer)
     return TransformersSpanPredictor(

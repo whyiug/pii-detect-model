@@ -140,6 +140,9 @@ def _safe_tokenizer(checkpoint: str) -> Any:
         local_files_only=True,
         trust_remote_code=False,
         use_fast=True,
+        # Transformers' Mistral-regex migration must never rewrite the
+        # versioned character-boundary pre-tokenizer contract.
+        fix_mistral_regex=False,
     )
     if not tokenizer.is_fast:
         raise RuntimeError("Qwen3 training requires a fast tokenizer with offset mappings")
