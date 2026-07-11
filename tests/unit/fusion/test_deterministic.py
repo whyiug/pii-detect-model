@@ -158,3 +158,30 @@ def test_identity_context_suppresses_card_surface_but_nearest_card_context_wins(
 
     assert len(card_refined.spans) == 1
     assert card_suppressed == {}
+
+
+def test_identity_context_suppresses_student_id_fragments_inside_identity_numbers() -> None:
+    identity_number = "123456789012345678"
+    identity_text = f"无效证件串：{identity_number}，需要人工复核。"
+    run_start = identity_text.index(identity_number)
+    fragment = PredictionRecord(
+        doc_id="identity-fragment",
+        spans=(Span(run_start + 8, run_start + 10, "STUDENT_ID", 0.9),),
+    )
+
+    refined, suppressed = suppress_invalid_structured_spans(fragment, identity_text)
+
+    assert refined.spans == ()
+    assert suppressed == {"STUDENT_ID": 1}
+
+    student_text = f"学生学号：{identity_number}，已完成学籍登记。"
+    student_start = student_text.index(identity_number)
+    student = PredictionRecord(
+        doc_id="student",
+        spans=(Span(student_start, student_start + len(identity_number), "STUDENT_ID", 0.9),),
+    )
+
+    retained, retained_suppressed = suppress_invalid_structured_spans(student, student_text)
+
+    assert len(retained.spans) == 1
+    assert retained_suppressed == {}

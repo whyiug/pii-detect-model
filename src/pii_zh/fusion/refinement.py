@@ -9,6 +9,7 @@ from pii_zh.evaluation.io import PredictionRecord
 
 _IDENTITY_CONTEXT = ("身份证", "证件号", "公民身份", "无效证件", "证件串")
 _BANK_CARD_CONTEXT = ("银行卡", "卡号", "信用卡")
+_STUDENT_CONTEXT = ("学号", "学生", "学籍", "校园卡", "在校")
 
 
 def _nearest_context_distance(
@@ -37,11 +38,52 @@ def _nearest_context_distance(
     return min(distances) if distances else None
 
 
+def _is_in_a_stronger_context(
+    text: str,
+    start: int,
+    end: int,
+    *,
+    stronger: tuple[str, ...],
+    weaker: tuple[str, ...],
+) -> bool:
+    stronger_distance = _nearest_context_distance(text, start, end, stronger)
+    weaker_distance = _nearest_context_distance(text, start, end, weaker)
+    return stronger_distance is not None and (
+        weaker_distance is None or stronger_distance < weaker_distance
+    )
+
+
 def _bank_card_is_in_a_stronger_identity_context(text: str, start: int, end: int) -> bool:
-    identity_distance = _nearest_context_distance(text, start, end, _IDENTITY_CONTEXT)
-    card_distance = _nearest_context_distance(text, start, end, _BANK_CARD_CONTEXT)
-    return identity_distance is not None and (
-        card_distance is None or identity_distance < card_distance
+    return _is_in_a_stronger_context(
+        text,
+        start,
+        end,
+        stronger=_IDENTITY_CONTEXT,
+        weaker=_BANK_CARD_CONTEXT,
+    )
+
+
+def _enclosing_digit_run(text: str, start: int, end: int) -> tuple[int, int] | None:
+    if not text[start:end].isdigit():
+        return None
+    run_start = start
+    run_end = end
+    while run_start > 0 and text[run_start - 1].isdigit():
+        run_start -= 1
+    while run_end < len(text) and text[run_end].isdigit():
+        run_end += 1
+    return run_start, run_end
+
+
+def _student_id_is_an_identity_number_fragment(text: str, start: int, end: int) -> bool:
+    digit_run = _enclosing_digit_run(text, start, end)
+    if digit_run is None or digit_run[1] - digit_run[0] not in {15, 18}:
+        return False
+    return _is_in_a_stronger_context(
+        text,
+        *digit_run,
+        stronger=_IDENTITY_CONTEXT,
+        weaker=_STUDENT_CONTEXT,
     )
 
 
@@ -58,6 +100,11 @@ def suppress_invalid_structured_spans(
     suppressed: Counter[str] = Counter()
     for span in record.spans:
         if span.label == "BANK_CARD_NUMBER" and _bank_card_is_in_a_stronger_identity_context(
+            text, span.start, span.end
+        ):
+            suppressed[span.label] += 1
+            continue
+        if span.label == "STUDENT_ID" and _student_id_is_an_identity_number_fragment(
             text, span.start, span.end
         ):
             suppressed[span.label] += 1
