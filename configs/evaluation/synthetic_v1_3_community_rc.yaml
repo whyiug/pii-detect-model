@@ -1,0 +1,58 @@
+schema_version: 1
+decision_id: synthetic_v1_3_community_rc_v1
+status: preregistered
+candidate_scope: community_research_release_candidate
+production_ready: false
+
+dataset:
+  dataset_id: pii_zh_synthetic_v1
+  dataset_version: 1.3.0
+  validation_sha256: 9affd99f5dd6a2aaac37b7975f3c3f051e7edb2d44be471a7238d27498c0b40d
+  frozen_test_sha256: 26e49949d0bd876b51c693b7b31135b5ce503ca6a5ab7cfca37177e0ccbd4384
+  frozen_test_access_before_validation_gate: forbidden
+
+system:
+  attention_mode: full
+  initializer_attention_mode: jpt
+  seeds: [13, 42, 97]
+  ruleset_id: cn_common_v3
+  fusion: deterministic_fusion_v1
+  calibration:
+    fit_per_seed: true
+    t0_recall_floor: 0.90
+    t1_recall_floor: 0.85
+    temperature_scaling: true
+  refinement: structured_prediction_refinement_v1
+
+per_seed_criteria:
+  strict_micro_f1:
+    operator: ">="
+    threshold: 0.94
+  strict_macro_f1:
+    operator: ">="
+    threshold: 0.94
+  pii_free_false_positive_rate:
+    operator: "<="
+    threshold: 0.02
+  tier0_min_label_recall:
+    operator: ">="
+    threshold: 0.90
+  tier1_min_label_recall:
+    operator: ">="
+    threshold: 0.85
+  calibration_completed:
+    operator: "=="
+    threshold: true
+
+aggregate_criteria:
+  unique_seed_count:
+    operator: ">="
+    threshold: 3
+  every_seed_passes:
+    operator: "=="
+    threshold: true
+
+notes:
+  - These gates qualify a community research release candidate, not production deployment.
+  - The stricter production targets in pii-detect-plan.md remain unmet until separately proven.
+  - Frozen evaluation-only data may be opened once, only after every validation criterion passes.
