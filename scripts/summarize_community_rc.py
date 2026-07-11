@@ -219,8 +219,8 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
             "decision config must be a pre-holdout amendment with schema version 1"
         )
     decision_id = _safe_id(config.get("decision_id"), field="decision_id")
-    if decision_id != "synthetic_v1_3_community_rc_v4":
-        raise CommunityRCEvidenceError("decision config must be community RC amendment v4")
+    if decision_id != "synthetic_v1_3_community_rc_v5":
+        raise CommunityRCEvidenceError("decision config must be community RC amendment v5")
     if (
         config.get("candidate_scope") != "community_research_release_candidate"
         or config.get("production_ready") is not False
@@ -230,8 +230,8 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
     parent_decision_id = _safe_id(
         parent_decision.get("decision_id"), field="parent_decision.decision_id"
     )
-    if parent_decision_id != "synthetic_v1_3_community_rc_v3":
-        raise CommunityRCEvidenceError("community RC v4 must amend community RC v3")
+    if parent_decision_id != "synthetic_v1_3_community_rc_v4":
+        raise CommunityRCEvidenceError("community RC v5 must amend community RC v4")
     parent_config_sha256 = _sha256(
         parent_decision.get("config_sha256"), field="parent_decision.config_sha256"
     )
@@ -244,18 +244,17 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
         "seeds_changed",
         "selected_seed_changed",
         "model_weights_changed",
+        "calibration_bundle_changed",
     )
     if any(amendment.get(field) is not False for field in unchanged_flags):
         raise CommunityRCEvidenceError("amendment must precede holdout access and preserve gates")
     allowed_changes = _sequence(amendment.get("allowed_changes"), field="amendment.allowed_changes")
     if tuple(allowed_changes) != (
-        "upgrade_transformers_runtime_for_security",
-        "preserve_serialized_tokenizer_backend_graph",
-        "regenerate_validation_predictions_and_refit_validation_only_calibration",
+        "bind_composite_fusion_implementation_identity",
+        "bind_refinement_core_implementation_identity",
+        "regenerate_validation_system_manifests_and_evaluations",
     ):
         raise CommunityRCEvidenceError("amendment contains an unapproved system change")
-    if amendment.get("calibration_bundle_changed") is not True:
-        raise CommunityRCEvidenceError("runtime migration must declare validation recalibration")
     forbidden_changes = set(
         _sequence(amendment.get("forbidden_changes"), field="amendment.forbidden_changes")
     )
@@ -264,7 +263,8 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
         "change_seed_set",
         "change_selected_seed",
         "change_model_weights",
-        "change_rules_fusion_or_refinement",
+        "change_rules_fusion_or_refinement_behavior",
+        "change_calibration_bundle",
         "inspect_or_tune_on_frozen_test",
         "refit_calibration_on_any_test_subset",
     }
@@ -291,13 +291,13 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
     )
     ruleset_id = _safe_id(system.get("ruleset_id"), field="system.ruleset_id")
     if ruleset_id != "cn_common_v5":
-        raise CommunityRCEvidenceError("community RC v4 requires cn_common_v5")
+        raise CommunityRCEvidenceError("community RC v5 requires cn_common_v5")
     rules_implementation_sha256 = _sha256(
         system.get("rules_implementation_sha256"), field="system.rules_implementation_sha256"
     )
     fusion_id = _safe_id(system.get("fusion"), field="system.fusion")
     if fusion_id != "deterministic_fusion_v1":
-        raise CommunityRCEvidenceError("community RC v4 requires deterministic_fusion_v1")
+        raise CommunityRCEvidenceError("community RC v5 requires deterministic_fusion_v1")
     fusion_implementation_sha256 = _sha256(
         system.get("fusion_implementation_sha256"),
         field="system.fusion_implementation_sha256",
@@ -340,7 +340,7 @@ def _verify_decision_config(config: Mapping[str, Any]) -> dict[str, Any]:
         raise CommunityRCEvidenceError("calibration.temperature_scaling must be boolean")
     refinement_contract = _safe_id(system.get("refinement"), field="system.refinement")
     if refinement_contract != "structured_prediction_refinement_v4":
-        raise CommunityRCEvidenceError("community RC v4 requires refinement v4")
+        raise CommunityRCEvidenceError("community RC v5 requires refinement v4")
     refinement_implementation_sha256 = _sha256(
         system.get("refinement_implementation_sha256"),
         field="system.refinement_implementation_sha256",
