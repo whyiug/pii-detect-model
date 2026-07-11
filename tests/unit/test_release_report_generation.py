@@ -619,7 +619,7 @@ def test_cli_reads_and_binds_the_current_package(
 
     assert main() == 0
     generated = json.loads(output.read_text(encoding="utf-8"))
-    assert generated["snapshot"]["status"] == "complete"
+    assert generated["snapshot"]["status"] == "ready"
     assert (
         next(source for source in generated["sources"] if source["id"] == "checksums")["sha256"]
         == hashlib.sha256((artifact_dir / "checksums.txt").read_bytes()).hexdigest()

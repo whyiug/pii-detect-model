@@ -1363,7 +1363,7 @@ def build_artifact(
         "snapshot": {
             "version": 1,
             "generatedAt": dependency_info["generated_at"],
-            "status": "complete",
+            "status": "ready",
             "datasets": {
                 "pooled_metrics": [pooled_row],
                 "synthetic_risk": [{"fpr": synthetic_fpr}],
