@@ -1,0 +1,39 @@
+base_model: /data1/models/Qwen/Qwen3-0.6B-Base
+base_source_id: qwen3_0_6b_base
+train_file: /data1/datasets/pii-detect-model/processed/public_release_pool/synthetic_v1_3/train.jsonl
+validation_file: /data1/datasets/pii-detect-model/processed/public_release_pool/synthetic_v1_3/validation.jsonl
+output_dir: /data1/runs/pii-detect-model/candidates/synthetic_v1_3/full_from_jpt_seed42_gated_v1
+initial_model: /data1/runs/pii-detect-model/candidates/synthetic_v1_3/jpt_lora_seed42_gated_v1
+taxonomy_path: src/pii_zh/taxonomy/taxonomy.yaml
+attention_mode: full
+fine_tuning: lora
+max_length: 128
+per_device_train_batch_size: 64
+per_device_eval_batch_size: 128
+gradient_accumulation_steps: 1
+learning_rate: 0.0001
+classifier_learning_rate: 0.00001
+weight_decay: 0.01
+warmup_ratio: 0.05
+epochs: 2
+bf16: true
+use_cpu: false
+gradient_checkpointing: false
+seed: 42
+resume: false
+class_weighting: true
+class_weight_cap: 5.0
+document_sampling: true
+document_sampling_cap: 5.0
+early_stopping_patience: 2
+classifier_dropout: 0.1
+include_extended_labels: false
+include_auxiliary_labels: false
+jpt_sep_token_id: null
+save_total_limit: 2
+dataloader_num_workers: 2
+lora:
+  rank: 32
+  alpha: 64
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
