@@ -1,8 +1,8 @@
 # GitHub / Hugging Face 发布手册（community v2 RC1）
 
-> 本文件是操作模板，不是执行日志。2026-07-19 本地快照中没有执行任何远端创建、push、tag
-> 上传、GitHub Release 或 Hugging Face 写入。每条远端写命令都必须在对应 checkbox 完成、
-> 维护者再次确认目标和可见性后逐条执行。
+> 本文件同时记录 private 暂存阶段状态和后续操作模板。2026-07-19 已按维护者授权创建两个 private
+> 仓库，并把当前 release-prep 分支推送到 GitHub；尚未创建或推送 tag，未上传模型，未创建
+> GitHub Release，也未切换为 public。后续远端写命令仍须在对应 checkbox 完成后逐条执行。
 
 ## 1. 当前快照与硬停止条件
 
@@ -12,11 +12,15 @@
   `087b1c0e1b918e2c927c0653f312d8d0dc2954b6631b46fa22f9d7e194a84880`，回执文件
   SHA-256 为 `5248a9746ce0676856cb29ecdd183f232a6078cd4b94e7138c539fa5bc1675e7`。
 - [x] GitHub CLI 已登录。
-- [ ] GitHub 目标 `whyiug/pii-detect-model` 尚不存在；当前本地仓库也没有 remote。
+- [x] GitHub 目标 `whyiug/pii-detect-model` 已创建为 private；`origin` 使用不含凭据的 SSH URL，
+  `agent/community-v2-release-prep` 已推送并跟踪同名远端分支。
 - [x] Hugging Face CLI 已在官方 Hub 验证登录，当前用户为 `Forrest20231206`，可见组织为
   `SparkShieldLab`；本文件没有记录或输出 token。
-- [ ] 发布 namespace 尚未在 `Forrest20231206` 与 `SparkShieldLab` 之间确定；对两个候选 repo id 的
-  只读查询均返回不存在或不可访问，未创建任何仓库。
+- [x] 发布 namespace 已确定为 `Forrest20231206`；private model repo
+  `Forrest20231206/pii-zh-qwen3-0.6b-24class` 已创建，当前只有平台初始化的 `.gitattributes`，未上传
+  模型包。
+- [ ] GitHub hosted CI 尚未运行：远端目前只有 release-prep 分支，而 workflow 的 push 条件只包含
+  `main`；在建立可审阅的 `main`/PR 流程或明确调整触发条件前，本地验证不能替代 hosted CI。
 - [ ] human/legal 许可证审批未完成；license inventory 状态仍为
   `COMPLETE_HUMAN_APPROVAL_PENDING`。
 - [ ] `$RELEASE_RUN/model-package-v2r2` 不是可上传包：其中 `SECURITY.md` 是旧版且明确说没有
@@ -40,7 +44,7 @@ export DIST_DIR="$RELEASE_RUN/dist-publication-successor-v1"
 export GH_REPO="whyiug/pii-detect-model"
 export RELEASE_BRANCH="agent/community-v2-release-prep"
 export RELEASE_TAG="v0.2.0rc1"
-export HF_NAMESPACE="<namespace>"
+export HF_NAMESPACE="Forrest20231206"
 export HF_REPO_ID="$HF_NAMESPACE/pii-zh-qwen3-0.6b-24class"
 export PUBLICATION_RECEIPT="$RELEASE_RUN/publication-receipt.v1.json"
 export PUBLICATION_MODEL_CARD="$RELEASE_RUN/README.publication.final.md"
@@ -48,9 +52,9 @@ export LICENSE_APPROVAL_RECEIPT="$RELEASE_RUN/human-license-approval-receipt.jso
 export SECURITY_CHANNEL_RECEIPT="$RELEASE_RUN/tested-private-security-channel-receipt.json"
 ```
 
-推荐的 Hugging Face repo id 是
-`<namespace>/pii-zh-qwen3-0.6b-24class`。`<namespace>` 必须以重新登录后的
-`hf auth whoami` 结果为准，不得猜测或代填。
+已确认的 Hugging Face repo id 是
+`Forrest20231206/pii-zh-qwen3-0.6b-24class`。执行上传前仍须用 `hf auth whoami` 复核当前身份，
+不得因为本文件已经记录 namespace 就跳过只读确认。
 
 ## 3. 总体验收清单
 
@@ -100,10 +104,10 @@ export SECURITY_CHANNEL_RECEIPT="$RELEASE_RUN/tested-private-security-channel-re
 
 ### 3.4 远端身份与双向绑定
 
-- [ ] GitHub target 是精确的 `whyiug/pii-detect-model`，remote URL 经人工复核且不含凭据。
+- [x] GitHub target 是精确的 `whyiug/pii-detect-model`，remote URL 经复核且不含凭据。
 - [ ] GitHub source commit 与签名 tag 已推送；tag 验证通过且指向 hosted CI 通过的最终 commit。
-- [ ] Hugging Face target 是精确的
-  `<namespace>/pii-zh-qwen3-0.6b-24class`，且 token 只授予所需最小权限。
+- [x] Hugging Face target 是精确的
+  `Forrest20231206/pii-zh-qwen3-0.6b-24class`，并已创建为 private model repo。
 - [ ] Hugging Face 上传完成后记录不可变的完整 commit SHA；不以 `main` 这种可移动引用代替。
 - [ ] HF current model card 在上传前已写入 GitHub repo、完整 source commit、签名 tag 和确定的
   GitHub Release URL，形成 HF → GitHub 绑定。
@@ -138,23 +142,28 @@ hf auth login
 hf auth whoami
 ```
 
-登录后确认 `HF_NAMESPACE`，再重新设置并打印 repo id；不要打印 token。
+登录后复核固定的 `HF_NAMESPACE`，再打印 repo id；不要打印 token。
 
 ```bash
-export HF_NAMESPACE="<namespace-from-whoami>"
+export HF_NAMESPACE="Forrest20231206"
 export HF_REPO_ID="$HF_NAMESPACE/pii-zh-qwen3-0.6b-24class"
 printf '%s\n' "$HF_REPO_ID"
 ```
 
-### 4.2 建立私有 GitHub 暂存仓库和安全渠道
+### 4.2 已建立 private GitHub 暂存仓库；安全渠道待办
 
-先以 private 创建，建立并实测私密安全渠道；本轮不执行：
+private 仓库创建、`origin` 添加和 release-prep 分支首推已经完成，不要重复执行创建命令。先用
+以下只读命令复核：
 
 ```bash
-gh repo create "$GH_REPO" --private --description "Simplified-Chinese PII model and cascade research preview"
-git remote add origin "https://github.com/${GH_REPO}.git"
+gh repo view "$GH_REPO" --json nameWithOwner,isPrivate,url
 git remote -v
-git push --set-upstream origin "$RELEASE_BRANCH"
+git ls-remote --heads origin "$RELEASE_BRANCH"
+```
+
+私密安全渠道的启用和合成报告实测暂缓，后续执行者必须单独完成：
+
+```bash
 gh api --method PUT "repos/${GH_REPO}/private-vulnerability-reporting"
 gh api "repos/${GH_REPO}/private-vulnerability-reporting"
 ```
@@ -198,8 +207,8 @@ test "$(find "$DIST_DIR" -maxdepth 1 -type f -name '*.whl' | wc -l)" -eq 1
 
 ### 4.4 publication-successor 预检
 
-publication-successor 必须由受审 builder 生成；不能用 `cp` 后手改几行冒充重新验收。先把已审
-模型卡模板中的唯一 HF namespace 占位符渲染为登录后确认的精确 repo id。渲染文件使用 no-clobber，
+publication-successor 必须由受审 builder 生成；不能用 `cp` 后手改几行冒充重新验收。已审模型卡
+模板现在直接绑定确定的 HF repo id。复制到运行目录时仍使用 no-clobber，并验证两个目标字段，
 且不写 token：
 
 ```bash
@@ -209,12 +218,12 @@ from pathlib import Path
 
 source = Path("model_cards/PII_ZH_QWEN3_0_6B_24CLASS_PUBLICATION.md")
 target = Path(os.environ["PUBLICATION_MODEL_CARD"])
-placeholder = "HF_NAMESPACE/pii-zh-qwen3-0.6b-24class"
 text = source.read_text(encoding="utf-8")
-if text.count(placeholder) != 1:
-    raise SystemExit("publication Model Card must contain exactly one HF target placeholder")
-text = text.replace(placeholder, os.environ["HF_REPO_ID"])
-if os.environ["GH_REPO"] not in text or os.environ["HF_REPO_ID"] not in text:
+if "HF_NAMESPACE" in text or "<namespace>" in text:
+    raise SystemExit("publication Model Card retains an HF target placeholder")
+if text.count(f"github_repository: {os.environ['GH_REPO']}") != 1:
+    raise SystemExit("publication Model Card GitHub target binding failed")
+if text.count(f"hugging_face_repository: {os.environ['HF_REPO_ID']}") != 1:
     raise SystemExit("publication Model Card target binding failed")
 target.parent.mkdir(parents=True, exist_ok=True)
 with target.open("x", encoding="utf-8", newline="\n") as handle:
@@ -265,13 +274,14 @@ test -z "$(find "$PUBLICATION_DIR" -maxdepth 1 -type f -name '*.whl' -print -qui
 还必须运行项目正式的 successor schema、离线模型加载、有限前向、安全扫描与 public artifact scan；
 不能用上面几条文本检查替代正式 gate。
 
-### 4.5 上传到私有 Hugging Face repo 并冻结 commit
+### 4.5 private Hugging Face repo 已创建；模型上传待办
 
-只上传 `$PUBLICATION_DIR`。不要上传 `$RELEASE_RUN/wheelhouse/`、整个 `$RELEASE_RUN`、本地缓存或
-GitHub 源码工作树；本轮不执行：
+private repo 已创建，初始 revision 只含 `.gitattributes`；不要重复创建或把该初始化 revision 当作
+模型发布 revision。门禁完成后只上传 `$PUBLICATION_DIR`，不要上传 `$RELEASE_RUN/wheelhouse/`、
+整个 `$RELEASE_RUN`、本地缓存或 GitHub 源码工作树：
 
 ```bash
-hf repo create "$HF_REPO_ID" --repo-type model --private --exist-ok
+hf models info "$HF_REPO_ID"
 hf upload "$HF_REPO_ID" "$PUBLICATION_DIR" . \
   --repo-type model \
   --commit-message "Release pii-zh-qwen3-0.6b-24class v0.2.0rc1"
@@ -360,11 +370,14 @@ gh api --method PATCH \
 - [ ] 建立回滚/撤回说明：发现许可证、安全、身份或 checksum 问题时先停止分发、保留证据，再发布
   更正或撤回通知；不得无记录覆盖 tag 或 immutable commit。
 
-## 6. 本轮明确未执行
+## 6. 本轮 private 暂存记录与明确未执行项
 
-- 未创建 `whyiug/pii-detect-model`；
-- 未添加 Git remote，未 push，未创建或推送 tag，未创建 GitHub Release；
-- 仅只读验证了现有 Hugging Face 登录和两个候选 repo id；未修改认证配置、未创建 HF repo、未上传模型；
+- 已创建 private GitHub repo `whyiug/pii-detect-model`，添加 `origin`，并推送
+  `agent/community-v2-release-prep`；未创建或推送 tag，未创建 GitHub Release；
+- 已创建 private HF model repo `Forrest20231206/pii-zh-qwen3-0.6b-24class`；仅有平台初始化文件，
+  未上传模型或 publication-successor；
+- 未建立 `main`/PR 流程，GitHub hosted CI 尚未运行；
+- 未启用并实测私密漏洞报告渠道，未完成人工许可证审批；
 - 未上传 wheel、wheelhouse、SBOM 或任何发布回执；
 - 未修改冻结的 `model-package-v2r2`，也未把它包装成已发布工件。
 

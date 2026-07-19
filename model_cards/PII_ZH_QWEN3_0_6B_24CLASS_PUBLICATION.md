@@ -25,13 +25,14 @@ publication_state: staged_not_uploaded
 
 - Python 包版本：`pii-zh-qwen==0.2.0rc1`
 - GitHub 目标：`whyiug/pii-detect-model`
-- Hugging Face 目标：发布前把下方唯一占位符渲染为登录后确认的 namespace
+- Hugging Face 目标：`Forrest20231206/pii-zh-qwen3-0.6b-24class`
 - `github_repository: whyiug/pii-detect-model`
-- `hugging_face_repository: HF_NAMESPACE/pii-zh-qwen3-0.6b-24class`
+- `hugging_face_repository: Forrest20231206/pii-zh-qwen3-0.6b-24class`
 
-以上仅是发布目标标识，不表示远端仓库、tag 或不可变 revision 已经存在。最终上传必须由外部、
-经过校验的 `publication_manifest.json` 及其绑定回执授权；模型卡本身不承担发布授权，也不预写
-Hugging Face revision。
+两个 private 暂存仓库已经创建；Hugging Face 仓库目前只有平台初始化的 `.gitattributes`，尚未
+上传模型文件，也没有可供发布绑定的模型 revision。最终上传必须由外部、经过校验的
+`publication_manifest.json` 及其绑定回执授权；模型卡本身不承担发布授权，也不预写 Hugging Face
+revision。
 
 ## 使用方式
 
