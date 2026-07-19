@@ -357,7 +357,9 @@ def test_release_api_has_no_regenerated_holdout_bypass_and_cli_is_frozen() -> No
     import pii_zh.data.synthetic as synthetic_package
 
     assert not hasattr(synthetic_package, "build_synthetic_corpus")
-    args = parse_args([])
+    with pytest.raises(SystemExit):
+        parse_args([])
+    args = parse_args(["--holdout-source-dir", "frozen-v1.2"])
     assert args.output_dir.name == "synthetic_v1_3"
     for argv in (
         ["--count", "600"],

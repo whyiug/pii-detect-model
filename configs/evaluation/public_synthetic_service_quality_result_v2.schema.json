@@ -1,0 +1,877 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/public_synthetic_service_quality_result_v2.schema.json",
+  "title": "Replayable aggregate-only Open-24 community service quality result v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "reported_status",
+    "scope",
+    "protocol",
+    "candidate",
+    "threshold_contract",
+    "input_bindings",
+    "bootstrap",
+    "tracks",
+    "claims",
+    "implementation_bindings",
+    "privacy",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.public-synthetic-service-quality-result.v2"
+    },
+    "receipt_id": {
+      "$ref": "#/$defs/sha256"
+    },
+    "reported_status": {
+      "$ref": "#/$defs/status"
+    },
+    "scope": {
+      "const": {
+        "benchmark_id": "public_synthetic_chinese_pii_community_v2",
+        "data": "public_open_source_and_synthetic_only",
+        "input_provenance_verified_by_this_producer": false,
+        "input_manifest_chain_verified": true,
+        "prediction_origin_replay_verified_by_this_producer": false,
+        "performance_measurement_replay_verified_by_this_producer": false,
+        "public_test_exposed": true,
+        "production_evidence": false,
+        "real_world_generalization_established": false
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taxonomy_version",
+        "label_count",
+        "ordered_labels",
+        "strict_span_matching",
+        "document_count",
+        "pii_free_document_count",
+        "gold_label_support_complete"
+      ],
+      "properties": {
+        "taxonomy_version": {
+          "const": "1.0.0"
+        },
+        "label_count": {
+          "const": 24
+        },
+        "ordered_labels": {
+          "$ref": "#/$defs/labels"
+        },
+        "strict_span_matching": {
+          "const": "document_label_start_end_left_closed_right_open"
+        },
+        "document_count": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "pii_free_document_count": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "gold_label_support_complete": {
+          "const": true
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "service_id"
+      ],
+      "properties": {
+        "model_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "service_id": {
+          "$ref": "#/$defs/safeId"
+        }
+      }
+    },
+    "threshold_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_id",
+        "file_sha256",
+        "canonical_sha256",
+        "thresholds_reused_without_change",
+        "v1_closed8_comparator_registry_reused"
+      ],
+      "properties": {
+        "contract_id": {
+          "const": "public_synthetic_service_quality_v1"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "canonical_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "thresholds_reused_without_change": {
+          "const": true
+        },
+        "v1_closed8_comparator_registry_reused": {
+          "const": false
+        }
+      }
+    },
+    "input_bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gold",
+        "gold_provenance",
+        "final_model_manifest",
+        "service_configuration_manifest",
+        "open24_comparator_registry",
+        "tracks"
+      ],
+      "properties": {
+        "gold": {
+          "$ref": "#/$defs/binding"
+        },
+        "gold_provenance": {
+          "$ref": "#/$defs/goldProvenance"
+        },
+        "final_model_manifest": {
+          "$ref": "#/$defs/binding"
+        },
+        "service_configuration_manifest": {
+          "$ref": "#/$defs/binding"
+        },
+        "open24_comparator_registry": {
+          "$ref": "#/$defs/binding"
+        },
+        "tracks": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_raw",
+            "full_system"
+          ],
+          "properties": {
+            "model_raw": {
+              "$ref": "#/$defs/trackBindings"
+            },
+            "full_system": {
+              "$ref": "#/$defs/trackBindings"
+            }
+          }
+        }
+      }
+    },
+    "bootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_resamples",
+        "actual_resamples",
+        "confidence_level",
+        "seed",
+        "paired_by_document"
+      ],
+      "properties": {
+        "minimum_resamples": {
+          "const": 10000
+        },
+        "actual_resamples": {
+          "type": "integer",
+          "minimum": 10000
+        },
+        "confidence_level": {
+          "const": 0.95
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "paired_by_document": {
+          "const": true
+        }
+      }
+    },
+    "tracks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_raw",
+        "full_system"
+      ],
+      "properties": {
+        "model_raw": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/trackResult"
+            },
+            {
+              "properties": {
+                "canonical_track": {
+                  "const": "model_raw"
+                },
+                "paired_bootstrap": {
+                  "properties": {
+                    "track": {
+                      "const": "model_raw"
+                    },
+                    "comparator_track": {
+                      "const": "model_raw"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "full_system": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/trackResult"
+            },
+            {
+              "properties": {
+                "canonical_track": {
+                  "const": "full_system"
+                },
+                "paired_bootstrap": {
+                  "properties": {
+                    "track": {
+                      "const": "full_system"
+                    },
+                    "comparator_track": {
+                      "const": "full_system"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "first_chinese_pii_model",
+        "global_sota",
+        "production_ready",
+        "real_world_sota",
+        "claim_activation_allowed",
+        "named_open24_descriptive_leader_by_track"
+      ],
+      "properties": {
+        "first_chinese_pii_model": {
+          "const": false
+        },
+        "global_sota": {
+          "const": false
+        },
+        "production_ready": {
+          "const": false
+        },
+        "real_world_sota": {
+          "const": false
+        },
+        "claim_activation_allowed": {
+          "const": false
+        },
+        "named_open24_descriptive_leader_by_track": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_raw",
+            "full_system"
+          ],
+          "properties": {
+            "model_raw": {
+              "type": "boolean"
+            },
+            "full_system": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "implementation_bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer_sha256",
+        "result_schema_sha256",
+        "registry_schema_sha256",
+        "metric_source_sha256",
+        "prediction_provenance_source_sha256"
+      ],
+      "properties": {
+        "producer_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "result_schema_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "registry_schema_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "metric_source_sha256": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "src/pii_zh/evaluation/io.py",
+            "src/pii_zh/evaluation/metrics.py",
+            "src/pii_zh/evaluation/paired_bootstrap.py",
+            "src/pii_zh/evaluation/paired_bootstrap_three_metric.py",
+            "src/pii_zh/evaluation/service_quality_suite.py"
+          ],
+          "properties": {
+            "src/pii_zh/evaluation/io.py": {
+              "$ref": "#/$defs/sha256"
+            },
+            "src/pii_zh/evaluation/metrics.py": {
+              "$ref": "#/$defs/sha256"
+            },
+            "src/pii_zh/evaluation/paired_bootstrap.py": {
+              "$ref": "#/$defs/sha256"
+            },
+            "src/pii_zh/evaluation/paired_bootstrap_three_metric.py": {
+              "$ref": "#/$defs/sha256"
+            },
+            "src/pii_zh/evaluation/service_quality_suite.py": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "prediction_provenance_source_sha256": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "configs/evaluation/release_eval_v2_prediction_provenance_v1.schema.json",
+            "src/pii_zh/evaluation/release_eval_v2_prediction_provenance.py",
+            "scripts/release_eval_v2_prediction_provenance.py",
+            "configs/evaluation/open24_comparator_prediction_provenance_v1.schema.json"
+          ],
+          "properties": {
+            "configs/evaluation/release_eval_v2_prediction_provenance_v1.schema.json": {
+              "$ref": "#/$defs/sha256"
+            },
+            "src/pii_zh/evaluation/release_eval_v2_prediction_provenance.py": {
+              "$ref": "#/$defs/sha256"
+            },
+            "scripts/release_eval_v2_prediction_provenance.py": {
+              "$ref": "#/$defs/sha256"
+            },
+            "configs/evaluation/open24_comparator_prediction_provenance_v1.schema.json": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        }
+      }
+    },
+    "privacy": {
+      "const": {
+        "aggregate_only": true,
+        "contains_paths": false,
+        "contains_raw_text": false,
+        "contains_document_ids": false,
+        "contains_entity_values": false,
+        "contains_per_document_statistics": false,
+        "model_weights_read": false,
+        "gpu_queried_or_used": false,
+        "network_used": false
+      }
+    },
+    "receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "nonnegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nonnegativeNumber": {
+      "type": "number",
+      "minimum": 0
+    },
+    "unit": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "finiteDelta": {
+      "type": "number",
+      "minimum": -1,
+      "maximum": 1
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "trackBindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_predictions",
+        "candidate_prediction_manifest",
+        "candidate_prediction_manifest_sha256",
+        "comparator_predictions",
+        "comparator_prediction_manifest",
+        "comparator_prediction_manifest_sha256",
+        "candidate_prediction_full_replay_required",
+        "comparator_generation_replay_required",
+        "performance_harness_replay_required",
+        "performance_manifest"
+      ],
+      "properties": {
+        "candidate_predictions": {
+          "$ref": "#/$defs/binding"
+        },
+        "candidate_prediction_manifest": {
+          "$ref": "#/$defs/binding"
+        },
+        "candidate_prediction_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "comparator_predictions": {
+          "$ref": "#/$defs/binding"
+        },
+        "comparator_prediction_manifest": {
+          "$ref": "#/$defs/binding"
+        },
+        "comparator_prediction_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_prediction_full_replay_required": {
+          "const": true
+        },
+        "comparator_generation_replay_required": {
+          "const": true
+        },
+        "performance_harness_replay_required": {
+          "const": true
+        },
+        "performance_manifest": {
+          "$ref": "#/$defs/binding"
+        }
+      }
+    },
+    "goldProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_manifest",
+        "materialization_receipt",
+        "freeze_receipt",
+        "dataset_id",
+        "dataset_version",
+        "gold_split",
+        "document_count",
+        "dataset_manifest_file_sha256",
+        "dataset_manifest_sha256",
+        "materialization_receipt_file_sha256",
+        "materialization_receipt_sha256",
+        "freeze_receipt_file_sha256"
+      ],
+      "properties": {
+        "dataset_manifest": {
+          "$ref": "#/$defs/binding"
+        },
+        "materialization_receipt": {
+          "$ref": "#/$defs/binding"
+        },
+        "freeze_receipt": {
+          "$ref": "#/$defs/binding"
+        },
+        "dataset_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "dataset_version": {
+          "$ref": "#/$defs/safeId"
+        },
+        "gold_split": {
+          "const": "internal_evaluation"
+        },
+        "document_count": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "dataset_manifest_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dataset_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "materialization_receipt_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "materialization_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "freeze_receipt_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "labels": {
+      "const": [
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "EMAIL_ADDRESS",
+        "ADDRESS",
+        "DATE_OF_BIRTH",
+        "CN_RESIDENT_ID",
+        "PASSPORT_NUMBER",
+        "DRIVER_LICENSE_NUMBER",
+        "SOCIAL_SECURITY_NUMBER",
+        "BANK_CARD_NUMBER",
+        "BANK_ACCOUNT_NUMBER",
+        "VEHICLE_LICENSE_PLATE",
+        "EMPLOYEE_ID",
+        "STUDENT_ID",
+        "MEDICAL_RECORD_NUMBER",
+        "WECHAT_ID",
+        "QQ_NUMBER",
+        "ALIPAY_ACCOUNT",
+        "USERNAME",
+        "IP_ADDRESS",
+        "MAC_ADDRESS",
+        "DEVICE_ID",
+        "GEO_COORDINATE",
+        "SECRET"
+      ]
+    },
+    "labelScore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tp",
+        "fp",
+        "fn",
+        "precision",
+        "recall",
+        "f1"
+      ],
+      "properties": {
+        "tp": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "fp": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "fn": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "precision": {
+          "$ref": "#/$defs/unit"
+        },
+        "recall": {
+          "$ref": "#/$defs/unit"
+        },
+        "f1": {
+          "$ref": "#/$defs/unit"
+        }
+      }
+    },
+    "perLabel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "EMAIL_ADDRESS",
+        "ADDRESS",
+        "DATE_OF_BIRTH",
+        "CN_RESIDENT_ID",
+        "PASSPORT_NUMBER",
+        "DRIVER_LICENSE_NUMBER",
+        "SOCIAL_SECURITY_NUMBER",
+        "BANK_CARD_NUMBER",
+        "BANK_ACCOUNT_NUMBER",
+        "VEHICLE_LICENSE_PLATE",
+        "EMPLOYEE_ID",
+        "STUDENT_ID",
+        "MEDICAL_RECORD_NUMBER",
+        "WECHAT_ID",
+        "QQ_NUMBER",
+        "ALIPAY_ACCOUNT",
+        "USERNAME",
+        "IP_ADDRESS",
+        "MAC_ADDRESS",
+        "DEVICE_ID",
+        "GEO_COORDINATE",
+        "SECRET"
+      ],
+      "properties": {
+        "PERSON_NAME": { "$ref": "#/$defs/labelScore" },
+        "PHONE_NUMBER": { "$ref": "#/$defs/labelScore" },
+        "EMAIL_ADDRESS": { "$ref": "#/$defs/labelScore" },
+        "ADDRESS": { "$ref": "#/$defs/labelScore" },
+        "DATE_OF_BIRTH": { "$ref": "#/$defs/labelScore" },
+        "CN_RESIDENT_ID": { "$ref": "#/$defs/labelScore" },
+        "PASSPORT_NUMBER": { "$ref": "#/$defs/labelScore" },
+        "DRIVER_LICENSE_NUMBER": { "$ref": "#/$defs/labelScore" },
+        "SOCIAL_SECURITY_NUMBER": { "$ref": "#/$defs/labelScore" },
+        "BANK_CARD_NUMBER": { "$ref": "#/$defs/labelScore" },
+        "BANK_ACCOUNT_NUMBER": { "$ref": "#/$defs/labelScore" },
+        "VEHICLE_LICENSE_PLATE": { "$ref": "#/$defs/labelScore" },
+        "EMPLOYEE_ID": { "$ref": "#/$defs/labelScore" },
+        "STUDENT_ID": { "$ref": "#/$defs/labelScore" },
+        "MEDICAL_RECORD_NUMBER": { "$ref": "#/$defs/labelScore" },
+        "WECHAT_ID": { "$ref": "#/$defs/labelScore" },
+        "QQ_NUMBER": { "$ref": "#/$defs/labelScore" },
+        "ALIPAY_ACCOUNT": { "$ref": "#/$defs/labelScore" },
+        "USERNAME": { "$ref": "#/$defs/labelScore" },
+        "IP_ADDRESS": { "$ref": "#/$defs/labelScore" },
+        "MAC_ADDRESS": { "$ref": "#/$defs/labelScore" },
+        "DEVICE_ID": { "$ref": "#/$defs/labelScore" },
+        "GEO_COORDINATE": { "$ref": "#/$defs/labelScore" },
+        "SECRET": { "$ref": "#/$defs/labelScore" }
+      }
+    },
+    "strictSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tp",
+        "fp",
+        "fn",
+        "micro_precision",
+        "micro_recall",
+        "micro_f1",
+        "macro_f1",
+        "per_label"
+      ],
+      "properties": {
+        "tp": { "$ref": "#/$defs/nonnegativeInteger" },
+        "fp": { "$ref": "#/$defs/nonnegativeInteger" },
+        "fn": { "$ref": "#/$defs/nonnegativeInteger" },
+        "micro_precision": { "$ref": "#/$defs/unit" },
+        "micro_recall": { "$ref": "#/$defs/unit" },
+        "micro_f1": { "$ref": "#/$defs/unit" },
+        "macro_f1": { "$ref": "#/$defs/unit" },
+        "per_label": { "$ref": "#/$defs/perLabel" }
+      }
+    },
+    "piiFree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eligibility",
+        "document_count",
+        "false_positive_document_count",
+        "document_fpr",
+        "text_character_count",
+        "false_positive_span_count",
+        "false_positive_spans_per_1000_characters"
+      ],
+      "properties": {
+        "eligibility": {
+          "const": "explicit_synthetic_or_open24_empty_gold_partition"
+        },
+        "document_count": { "$ref": "#/$defs/positiveInteger" },
+        "false_positive_document_count": { "$ref": "#/$defs/nonnegativeInteger" },
+        "document_fpr": { "$ref": "#/$defs/unit" },
+        "text_character_count": { "$ref": "#/$defs/positiveInteger" },
+        "false_positive_span_count": { "$ref": "#/$defs/nonnegativeInteger" },
+        "false_positive_spans_per_1000_characters": {
+          "$ref": "#/$defs/nonnegativeNumber"
+        }
+      }
+    },
+    "characterError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "definition",
+        "gold_pii_character_count",
+        "missed_pii_character_count",
+        "pii_character_miss_rate",
+        "non_pii_character_count",
+        "falsely_flagged_non_pii_character_count",
+        "non_pii_character_false_positive_rate"
+      ],
+      "properties": {
+        "definition": {
+          "const": "label_agnostic_union_of_left_closed_right_open_pii_intervals"
+        },
+        "gold_pii_character_count": { "$ref": "#/$defs/positiveInteger" },
+        "missed_pii_character_count": { "$ref": "#/$defs/nonnegativeInteger" },
+        "pii_character_miss_rate": { "$ref": "#/$defs/unit" },
+        "non_pii_character_count": { "$ref": "#/$defs/positiveInteger" },
+        "falsely_flagged_non_pii_character_count": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "non_pii_character_false_positive_rate": { "$ref": "#/$defs/unit" }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_count",
+        "latency_p50_ms",
+        "latency_p95_ms",
+        "latency_p99_ms",
+        "throughput_documents_per_second",
+        "throughput_characters_per_second",
+        "peak_cpu_rss_mb",
+        "peak_gpu_memory_mb"
+      ],
+      "properties": {
+        "sample_count": { "$ref": "#/$defs/positiveInteger" },
+        "latency_p50_ms": { "$ref": "#/$defs/nonnegativeNumber" },
+        "latency_p95_ms": { "$ref": "#/$defs/nonnegativeNumber" },
+        "latency_p99_ms": { "$ref": "#/$defs/nonnegativeNumber" },
+        "throughput_documents_per_second": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "throughput_characters_per_second": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_cpu_rss_mb": { "$ref": "#/$defs/nonnegativeNumber" },
+        "peak_gpu_memory_mb": { "$ref": "#/$defs/nonnegativeNumber" }
+      }
+    },
+    "delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "point_delta_candidate_minus_comparator",
+        "ci_low",
+        "ci_high"
+      ],
+      "properties": {
+        "point_delta_candidate_minus_comparator": { "$ref": "#/$defs/finiteDelta" },
+        "ci_low": { "$ref": "#/$defs/finiteDelta" },
+        "ci_high": { "$ref": "#/$defs/finiteDelta" }
+      }
+    },
+    "pairedBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "comparison_unit",
+        "track",
+        "candidate_id",
+        "comparator_id",
+        "comparator_track",
+        "seed",
+        "resamples",
+        "confidence_level",
+        "prng",
+        "resample_plan_sha256",
+        "micro_f1_delta",
+        "macro_f1_delta",
+        "document_fpr_delta"
+      ],
+      "properties": {
+        "method": {
+          "const": "paired_atomic_stratified_document_bootstrap_percentile"
+        },
+        "comparison_unit": { "const": "document" },
+        "track": { "enum": ["model_raw", "full_system"] },
+        "candidate_id": { "$ref": "#/$defs/safeId" },
+        "comparator_id": { "$ref": "#/$defs/safeId" },
+        "comparator_track": { "enum": ["model_raw", "full_system"] },
+        "seed": { "type": "integer" },
+        "resamples": { "type": "integer", "minimum": 10000 },
+        "confidence_level": { "const": 0.95 },
+        "prng": { "const": "sha256_counter_rejection_v1" },
+        "resample_plan_sha256": { "$ref": "#/$defs/sha256" },
+        "micro_f1_delta": { "$ref": "#/$defs/delta" },
+        "macro_f1_delta": { "$ref": "#/$defs/delta" },
+        "document_fpr_delta": { "$ref": "#/$defs/delta" }
+      }
+    },
+    "comparatorAggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strict_span",
+        "pii_free",
+        "character_error"
+      ],
+      "properties": {
+        "strict_span": { "$ref": "#/$defs/strictSpan" },
+        "pii_free": { "$ref": "#/$defs/piiFree" },
+        "character_error": { "$ref": "#/$defs/characterError" }
+      }
+    },
+    "trackResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declared_status",
+        "failure_ids",
+        "canonical_track",
+        "candidate_id",
+        "comparator_id",
+        "strict_span",
+        "pii_free",
+        "character_error",
+        "performance",
+        "comparator_aggregate",
+        "paired_bootstrap",
+        "benchmark_leading_on_named_open24_suite"
+      ],
+      "properties": {
+        "declared_status": { "$ref": "#/$defs/status" },
+        "failure_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "canonical_track": { "enum": ["model_raw", "full_system"] },
+        "candidate_id": { "$ref": "#/$defs/safeId" },
+        "comparator_id": { "$ref": "#/$defs/safeId" },
+        "strict_span": { "$ref": "#/$defs/strictSpan" },
+        "pii_free": { "$ref": "#/$defs/piiFree" },
+        "character_error": { "$ref": "#/$defs/characterError" },
+        "performance": { "$ref": "#/$defs/performance" },
+        "comparator_aggregate": { "$ref": "#/$defs/comparatorAggregate" },
+        "paired_bootstrap": { "$ref": "#/$defs/pairedBootstrap" },
+        "benchmark_leading_on_named_open24_suite": { "type": "boolean" }
+      }
+    }
+  }
+}

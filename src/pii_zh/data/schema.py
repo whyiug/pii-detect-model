@@ -31,6 +31,7 @@ class DataPool(str, Enum):
 
 class QualityTier(str, Enum):
     GOLD = "G0"
+    HUMAN_REVIEWED = "G1"
     SYNTHETIC_VALIDATED = "S0"
     MULTI_TEACHER = "S1"
     SINGLE_TEACHER = "S2"

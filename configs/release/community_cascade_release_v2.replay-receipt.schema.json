@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_cascade_release_v2.replay-receipt.schema.json",
+  "title": "Independent exact replay receipt consumed by community release v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "track",
+    "status",
+    "quality",
+    "target",
+    "identity",
+    "replay",
+    "privacy",
+    "receipt_id",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-cascade-replay-receipt.v2"
+    },
+    "receipt_type": {
+      "enum": [
+        "quality_strict_replay",
+        "candidate_prediction_full_replay",
+        "comparator_generation_replay",
+        "performance_harness_replay"
+      ]
+    },
+    "track": {
+      "oneOf": [
+        { "type": "null" },
+        { "enum": ["model_raw", "full_system"] }
+      ]
+    },
+    "status": {
+      "const": "EXACT_REPLAY_PASS"
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file_sha256", "receipt_sha256"],
+      "properties": {
+        "file_sha256": { "$ref": "#/$defs/sha256" },
+        "receipt_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_kind", "file_sha256", "canonical_sha256"],
+      "properties": {
+        "artifact_kind": {
+          "enum": [
+            "quality_result_receipt",
+            "candidate_prediction_manifest",
+            "comparator_prediction_manifest",
+            "performance_manifest"
+          ]
+        },
+        "file_sha256": { "$ref": "#/$defs/sha256" },
+        "canonical_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "service_id",
+        "training_manifest_sha256",
+        "model_identity_sha256",
+        "calibration_bundle_file_sha256",
+        "service_configuration_sha256",
+        "service_implementation_sha256",
+        "source_manifest_sha256",
+        "quality_receipt_sha256",
+        "internal_unlock_sha256"
+      ],
+      "properties": {
+        "model_id": { "$ref": "#/$defs/safeId" },
+        "service_id": { "$ref": "#/$defs/safeId" },
+        "training_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "model_identity_sha256": { "$ref": "#/$defs/sha256" },
+        "calibration_bundle_file_sha256": { "$ref": "#/$defs/sha256" },
+        "service_configuration_sha256": { "$ref": "#/$defs/sha256" },
+        "service_implementation_sha256": { "$ref": "#/$defs/sha256" },
+        "source_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "quality_receipt_sha256": { "$ref": "#/$defs/sha256" },
+        "internal_unlock_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementation_file_sha256",
+        "implementation_identity_sha256",
+        "input_set_sha256",
+        "output_set_sha256",
+        "mode"
+      ],
+      "properties": {
+        "implementation_file_sha256": { "$ref": "#/$defs/sha256" },
+        "implementation_identity_sha256": { "$ref": "#/$defs/sha256" },
+        "input_set_sha256": { "$ref": "#/$defs/sha256" },
+        "output_set_sha256": { "$ref": "#/$defs/sha256" },
+        "mode": { "const": "full_exact_replay" }
+      }
+    },
+    "privacy": {
+      "const": {
+        "contains_paths": false,
+        "contains_raw_text": false,
+        "contains_document_ids": false,
+        "contains_entity_values": false,
+        "aggregate_only": true,
+        "network_used": false
+      }
+    },
+    "receipt_id": { "$ref": "#/$defs/sha256" },
+    "receipt_sha256": { "$ref": "#/$defs/sha256" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "receipt_type": { "const": "quality_strict_replay" } }
+      },
+      "then": {
+        "properties": {
+          "track": { "type": "null" },
+          "target": {
+            "properties": { "artifact_kind": { "const": "quality_result_receipt" } }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "track": { "enum": ["model_raw", "full_system"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "receipt_type": { "const": "candidate_prediction_full_replay" }
+        }
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "properties": {
+              "artifact_kind": { "const": "candidate_prediction_manifest" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "receipt_type": { "const": "comparator_generation_replay" }
+        }
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "properties": {
+              "artifact_kind": { "const": "comparator_prediction_manifest" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "receipt_type": { "const": "performance_harness_replay" }
+        }
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "properties": {
+              "artifact_kind": { "const": "performance_manifest" }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    }
+  }
+}

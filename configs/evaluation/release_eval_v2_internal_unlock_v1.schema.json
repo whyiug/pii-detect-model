@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/release_eval_v2_internal_unlock_v1.schema.json",
+  "title": "Frozen release-eval-v2 internal pre-open unlock",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "receipt_type", "status", "dataset", "upstream",
+    "bindings", "authorization", "privacy", "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "pii-zh.release-eval-v2-internal-unlock.v1"},
+    "receipt_type": {"const": "release_eval_v2_internal_preopen_unlock"},
+    "status": {"const": "INTERNAL_EVALUATION_AUTHORIZED_ONE_SHOT"},
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id", "dataset_version", "dataset_manifest_file_sha256",
+        "dataset_manifest_sha256", "materialization_receipt_file_sha256",
+        "materialization_receipt_sha256", "freeze_receipt_file_sha256",
+        "target_split", "gold_file_sha256", "gold_size_bytes", "gold_document_count"
+      ],
+      "properties": {
+        "dataset_id": {"const": "pii_zh_synthetic_sota_release_eval_v2"},
+        "dataset_version": {"const": "2.0.0"},
+        "dataset_manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "dataset_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "materialization_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "materialization_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "freeze_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "target_split": {"const": "internal_evaluation"},
+        "gold_file_sha256": {"$ref": "#/$defs/sha256"},
+        "gold_size_bytes": {"const": 33626033},
+        "gold_document_count": {"const": 10000}
+      }
+    },
+    "upstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calibration_authorization_file_sha256", "calibration_authorization_sha256",
+        "amendment_file_sha256", "amendment_sha256"
+      ],
+      "properties": {
+        "calibration_authorization_file_sha256": {"$ref": "#/$defs/sha256"},
+        "calibration_authorization_sha256": {"$ref": "#/$defs/sha256"},
+        "amendment_file_sha256": {"$ref": "#/$defs/sha256"},
+        "amendment_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "final_model_binding_file_sha256", "final_model_binding_sha256",
+        "service_configuration_binding_file_sha256",
+        "service_configuration_binding_sha256", "calibration_bundle_file_sha256",
+        "calibration_diagnostics_manifest_sha256"
+      ],
+      "properties": {
+        "final_model_binding_file_sha256": {"$ref": "#/$defs/sha256"},
+        "final_model_binding_sha256": {"$ref": "#/$defs/sha256"},
+        "service_configuration_binding_file_sha256": {"$ref": "#/$defs/sha256"},
+        "service_configuration_binding_sha256": {"$ref": "#/$defs/sha256"},
+        "calibration_bundle_file_sha256": {"$ref": "#/$defs/sha256"},
+        "calibration_diagnostics_manifest_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_tracks", "allowed_consumers", "one_shot",
+        "model_checkpoint_or_calibration_change_after_read_allowed",
+        "service_configuration_change_after_read_allowed", "quality_production_allowed"
+      ],
+      "properties": {
+        "allowed_tracks": {
+          "const": ["model_raw", "model_calibrated", "full_system"]
+        },
+        "allowed_consumers": {
+          "const": [
+            "candidate_prediction_generation", "comparator_generation", "quality_production"
+          ]
+        },
+        "one_shot": {"const": true},
+        "model_checkpoint_or_calibration_change_after_read_allowed": {"const": false},
+        "service_configuration_change_after_read_allowed": {"const": false},
+        "quality_production_allowed": {"const": true}
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contains_paths", "contains_raw_text", "contains_entity_values",
+        "contains_document_ids", "internal_evaluation_opened_hashed_or_decoded_during_unlock"
+      ],
+      "properties": {
+        "contains_paths": {"const": false},
+        "contains_raw_text": {"const": false},
+        "contains_entity_values": {"const": false},
+        "contains_document_ids": {"const": false},
+        "internal_evaluation_opened_hashed_or_decoded_during_unlock": {"const": false}
+      }
+    },
+    "receipt_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

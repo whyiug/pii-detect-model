@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -68,9 +70,59 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _assert_safe_output(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    if args.output is None:
+        return
+    output = args.output.expanduser().resolve(strict=False)
+    if args.output.exists() or args.output.is_symlink():
+        parser.error("refusing to overwrite an existing evaluation output")
+    inputs = [args.gold, args.predictions]
+    inputs.extend(
+        path
+        for path in (
+            args.dataset_manifest,
+            args.prediction_manifest,
+            args.model_training_manifest,
+        )
+        if path is not None
+    )
+    if output in {path.expanduser().resolve(strict=False) for path in inputs}:
+        parser.error("evaluation output collides with an input artifact")
+    model_manifest = args.model_training_manifest
+    if model_manifest is not None:
+        model_root = model_manifest.expanduser().resolve(strict=False).parent
+        if output == model_root or model_root in output.parents:
+            parser.error("evaluation output must not be written inside the model artifact")
+def _write_new_text(serialized: str, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.exists() or destination.is_symlink():
+        raise FileExistsError("refusing to overwrite an existing evaluation output")
+    with tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        dir=destination.parent,
+        delete=False,
+        prefix=f".{destination.name}.",
+    ) as handle:
+        temporary = Path(handle.name)
+        try:
+            handle.write(serialized)
+            handle.flush()
+            os.fsync(handle.fileno())
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+    try:
+        os.link(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+    destination.chmod(0o444)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
+    _assert_safe_output(args, parser)
     try:
         gold = load_gold_jsonl(args.gold)
         predictions = load_prediction_jsonl(args.predictions)
@@ -101,7 +153,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.output is None:
             sys.stdout.write(serialized)
         else:
-            args.output.write_text(serialized, encoding="utf-8")
+            _write_new_text(serialized, args.output)
     except (EvaluationDataError, OSError, ValueError) as exc:
         parser.error(str(exc))
     return 0

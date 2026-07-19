@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_cascade_release_v2.artifact-evidence.schema.json",
+  "title": "Typed path-free community release artifact evidence v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "status",
+    "release",
+    "inputs",
+    "result",
+    "privacy",
+    "producer",
+    "artifact_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-release-artifact-evidence.v2"
+    },
+    "artifact_id": {
+      "enum": [
+        "model_card",
+        "model_package_manifest",
+        "technical_documentation_manifest",
+        "wheel_manifest",
+        "wheelhouse_manifest",
+        "container_manifest",
+        "sbom",
+        "license_report",
+        "public_artifact_scan",
+        "dependency_scan"
+      ]
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "COMPLETE_HUMAN_APPROVAL_PENDING"
+      ]
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "display_name",
+        "package_name",
+        "package_version",
+        "publication_state",
+        "production_ready"
+      ],
+      "properties": {
+        "display_name": {
+          "const": "pii-zh-qwen3-0.6b-24class"
+        },
+        "package_name": {
+          "const": "pii-zh-qwen"
+        },
+        "package_version": {
+          "const": "0.2.0rc1"
+        },
+        "publication_state": {
+          "const": "unpublished_local_candidate"
+        },
+        "production_ready": {
+          "const": false
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/safeId"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/fileBinding"
+      }
+    },
+    "result": {
+      "type": "object"
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contains_local_paths",
+        "contains_raw_records",
+        "contains_secrets",
+        "network_used"
+      ],
+      "properties": {
+        "contains_local_paths": {
+          "const": false
+        },
+        "contains_raw_records": {
+          "const": false
+        },
+        "contains_secrets": {
+          "const": false
+        },
+        "network_used": {
+          "type": "boolean"
+        }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "schema_file_sha256",
+        "implementation_identity_sha256"
+      ],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "schema_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "implementation_identity_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "artifact_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    },
+    "fileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

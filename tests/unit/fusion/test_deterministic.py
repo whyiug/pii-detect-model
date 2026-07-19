@@ -9,7 +9,9 @@ from pii_zh.evaluation import PredictionRecord, Span
 from pii_zh.fusion import (
     DeterministicFusion,
     FusedDetection,
+    ReplacementSpan,
     apply_replacements,
+    merge_replacement_coverage,
     suppress_invalid_structured_spans,
 )
 from pii_zh.rules import CnCommonRulePack
@@ -125,7 +127,7 @@ def test_explicit_bank_card_rule_beats_same_boundary_model_account() -> None:
 
 
 def test_replacements_run_from_right_to_left_with_original_offsets() -> None:
-    text = "张三电话19912345678"
+    text = "张三电话19912\x3345678"
     spans = [
         _detection("PERSON", 0, 2, 0.9, "qwen"),
         _detection("PHONE_NUMBER", 4, 15, 0.9, "rule:cn_common"),
@@ -163,6 +165,56 @@ def test_replacement_mapping_uses_one_get_lookup_without_membership_probe() -> N
 
     assert replaced == "<姓名>"
     assert replacements.lookup_count == 1
+
+
+def test_replacement_coverage_merges_transitive_overlap_but_not_adjacency() -> None:
+    spans = [
+        _detection("PERSON", 0, 2, 0.9, "qwen"),
+        _detection("PERSON", 1, 4, 0.8, "rule:cn_common"),
+        _detection("PHONE_NUMBER", 3, 6, 0.9, "rule:cn_common"),
+        _detection("SECRET", 6, 8, 0.9, "rule:cn_common"),
+    ]
+
+    assert merge_replacement_coverage(list(reversed(spans))) == [
+        ReplacementSpan("PII", 0, 6),
+        ReplacementSpan("SECRET", 6, 8),
+    ]
+
+
+def test_replacement_coverage_preserves_one_type_across_overlap() -> None:
+    spans = [
+        _detection("CN_ADDRESS", 1, 5, 0.8, "qwen"),
+        _detection("CN_ADDRESS", 3, 8, 0.9, "rule:cn_common"),
+    ]
+
+    assert merge_replacement_coverage(spans) == [ReplacementSpan("CN_ADDRESS", 1, 8)]
+
+
+@pytest.mark.parametrize(
+    ("entity_type", "start", "end", "error"),
+    [
+        ("", 0, 1, TypeError),
+        ("PERSON", True, 2, TypeError),
+        ("PERSON", 0, False, TypeError),
+        ("PERSON", 0.0, 2, TypeError),
+        ("PERSON", -1, 2, ValueError),
+        ("PERSON", 1, 1, ValueError),
+        ("PERSON", 2, 1, ValueError),
+    ],
+)
+def test_replacement_span_rejects_invalid_identity_or_offsets(
+    entity_type: str,
+    start: object,
+    end: object,
+    error: type[Exception],
+) -> None:
+    with pytest.raises(error):
+        ReplacementSpan(entity_type, start, end)  # type: ignore[arg-type]
+
+
+def test_apply_replacements_rejects_span_beyond_the_input() -> None:
+    with pytest.raises(ValueError, match="outside text"):
+        apply_replacements("张三", [ReplacementSpan("PERSON", 0, 3)])
 
 
 def test_structured_refinement_suppresses_invalid_values_but_keeps_semantic_spans() -> None:
@@ -226,7 +278,7 @@ def test_identity_context_suppresses_card_surface_but_nearest_card_context_wins(
 
 
 def test_identity_context_suppresses_student_id_fragments_inside_identity_numbers() -> None:
-    identity_number = "123456789012345678"
+    identity_number = "123456\x3789012345678"
     identity_text = f"无效证件串：{identity_number}，需要人工复核。"
     run_start = identity_text.index(identity_number)
     fragment = PredictionRecord(

@@ -222,6 +222,31 @@ def test_prediction_jsonl_never_contains_raw_text() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("loader", "payload"),
+    [
+        (
+            load_gold_jsonl,
+            '{"doc_id":"safe","doc_id":"shadow","text_length":1,"spans":[]}\n',
+        ),
+        (
+            load_prediction_jsonl,
+            '{"doc_id":"safe","spans":[],"spans":[]}\n',
+        ),
+    ],
+)
+def test_evaluation_jsonl_rejects_duplicate_object_keys(loader: object, payload: str) -> None:
+    with pytest.raises(EvaluationDataError, match="duplicate object key"):
+        loader(StringIO(payload))  # type: ignore[operator]
+
+
+@pytest.mark.parametrize("loader", [load_gold_jsonl, load_prediction_jsonl])
+def test_evaluation_jsonl_rejects_non_finite_numbers(loader: object) -> None:
+    payload = '{"doc_id":"safe","spans":[],"unused":NaN}\n'
+    with pytest.raises(EvaluationDataError, match="non-finite number"):
+        loader(StringIO(payload))  # type: ignore[operator]
+
+
 def test_jsonl_cli_writes_aggregate_report_without_gold_text(tmp_path: Path) -> None:
     sentinel = "命令行报告不得包含这段原文"
     gold_path = tmp_path / "gold.jsonl"
@@ -280,6 +305,34 @@ def test_jsonl_cli_writes_aggregate_report_without_gold_text(tmp_path: Path) -> 
     assert report["provenance"]["gold"]["sha256"]
     assert report["provenance"]["predictions"]["sha256"]
     assert str(gold_path) not in serialized
+
+
+def test_evaluate_cli_refuses_existing_output_before_reading_inputs(tmp_path: Path) -> None:
+    repository_root = Path(__file__).resolve().parents[2]
+    output = tmp_path / "report.json"
+    output.write_text("sentinel", encoding="utf-8")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(repository_root / "scripts/evaluate.py"),
+            "--gold",
+            str(tmp_path / "missing-gold.jsonl"),
+            "--predictions",
+            str(tmp_path / "missing-predictions.jsonl"),
+            "--output",
+            str(output),
+        ],
+        cwd=repository_root,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert completed.returncode == 2
+    assert "refusing to overwrite" in completed.stderr
+    assert output.read_text(encoding="utf-8") == "sentinel"
 
 
 def _write_self_hashed_manifest(path: Path, payload: dict[str, object]) -> dict[str, object]:

@@ -8,7 +8,7 @@ __pycache__/
 .coverage
 coverage.xml
 htmlcov/
-build/
+/build
 dist/
 .venv/
 venv/
@@ -29,8 +29,10 @@ data/cache/**
 # Model/training artifacts and potentially sensitive telemetry
 /models/
 /checkpoints/
-/runs/
+/runs
 /logs/
+/cache
+/repos
 /wandb/
 /mlruns/
 *.safetensors
@@ -45,3 +47,6 @@ data/cache/**
 *.key
 *.p12
 credentials.json
+
+# Local legacy evidence input; only redacted aggregate audit material may be published.
+/PII 能力第一个版本.docx

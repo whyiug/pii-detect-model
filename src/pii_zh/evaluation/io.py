@@ -142,8 +142,27 @@ def _sorted_spans(spans: Iterable[Span]) -> list[Span]:
 
 
 def _load_json_object(line: str, *, kind: str, line_number: int) -> Mapping[str, Any]:
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise EvaluationDataError(
+                    f"{kind} JSONL line {line_number} contains a duplicate object key"
+                )
+            result[key] = value
+        return result
+
+    def reject_non_finite(_token: str) -> None:
+        raise EvaluationDataError(
+            f"{kind} JSONL line {line_number} contains a non-finite number"
+        )
+
     try:
-        value = json.loads(line)
+        value = json.loads(
+            line,
+            object_pairs_hook=unique_object,
+            parse_constant=reject_non_finite,
+        )
     except json.JSONDecodeError as exc:
         raise EvaluationDataError(f"{kind} JSONL line {line_number} is not valid JSON") from exc
     if not isinstance(value, Mapping):

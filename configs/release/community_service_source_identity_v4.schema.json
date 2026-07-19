@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_service_source_identity_v4.schema.json",
+  "title": "Path-free complete community service source identity v4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "service_id",
+    "profile_id",
+    "implementation_source_sha256",
+    "implementation_sha256",
+    "runtime_package_source_sha256",
+    "runtime_package_inventory_sha256",
+    "runtime_package_file_count",
+    "runtime_package_inventory_complete",
+    "predecessor",
+    "successor_delta",
+    "contains_paths",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-service-source-identity.v4"
+    },
+    "service_id": { "$ref": "#/$defs/safeId" },
+    "profile_id": { "$ref": "#/$defs/safeId" },
+    "implementation_source_sha256": { "$ref": "#/$defs/sourceMapNonempty" },
+    "implementation_sha256": { "$ref": "#/$defs/sha256" },
+    "runtime_package_source_sha256": { "$ref": "#/$defs/sourceMapNonempty" },
+    "runtime_package_inventory_sha256": { "$ref": "#/$defs/sha256" },
+    "runtime_package_file_count": { "type": "integer", "minimum": 1 },
+    "runtime_package_inventory_complete": { "const": true },
+    "predecessor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "file_sha256",
+        "manifest_sha256",
+        "runtime_package_inventory_sha256",
+        "runtime_package_file_count"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "pii-zh.community-service-source-identity.v3"
+        },
+        "file_sha256": { "$ref": "#/$defs/sha256" },
+        "manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "runtime_package_inventory_sha256": { "$ref": "#/$defs/sha256" },
+        "runtime_package_file_count": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "successor_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "added",
+        "changed",
+        "removed",
+        "added_count",
+        "changed_count",
+        "removed_count",
+        "summary_sha256"
+      ],
+      "properties": {
+        "added": {
+          "allOf": [
+            { "$ref": "#/$defs/sourceMap" },
+            { "maxProperties": 0 }
+          ]
+        },
+        "changed": {
+          "allOf": [
+            { "$ref": "#/$defs/sourceMap" },
+            { "minProperties": 5, "maxProperties": 5 }
+          ]
+        },
+        "removed": {
+          "allOf": [
+            { "$ref": "#/$defs/sourceMap" },
+            { "maxProperties": 0 }
+          ]
+        },
+        "added_count": { "const": 0 },
+        "changed_count": { "const": 5 },
+        "removed_count": { "const": 0 },
+        "summary_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "contains_paths": { "const": false },
+    "manifest_sha256": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    },
+    "sourceMap": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/safeId" },
+      "additionalProperties": { "$ref": "#/$defs/sha256" }
+    },
+    "sourceMapNonempty": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/safeId" },
+      "additionalProperties": { "$ref": "#/$defs/sha256" }
+    }
+  }
+}

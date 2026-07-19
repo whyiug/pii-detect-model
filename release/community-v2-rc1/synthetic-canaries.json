@@ -1,0 +1,40 @@
+{
+  "canaries": [
+    {
+      "purpose": "Programmatically authored 199-prefix phone used only by converter and fusion unit tests.",
+      "sha256": "sha256:086bde31bb16756c28a3578c77a21d61c25d5400d51cfd592917192ef7817d43",
+      "synthetic": true
+    },
+    {
+      "purpose": "Reserved 990000-prefix identifier used only by context-enhancer unit tests.",
+      "sha256": "sha256:4be34cee3409085843734bf843bc16610dc03b016085a0c2237a00f27eb4cc4e",
+      "synthetic": true
+    },
+    {
+      "purpose": "Deliberately invalid reserved identifier/card-like unit-test fixture.",
+      "sha256": "sha256:7a8e3d2e9e8faf2e770c2a8d05c0e036c1fc87a45928c038aa4fc9ab078e18de",
+      "synthetic": true
+    },
+    {
+      "purpose": "Canonical documentation-only phone fixture used by BIO decoder tests.",
+      "sha256": "sha256:a6942f9771d67f34034d2f1926988ed3fad3bf1b4e7cedb9a31f31398dea43bc",
+      "synthetic": true
+    },
+    {
+      "purpose": "Illustrative phone in the design plan's canonical JSON example.",
+      "sha256": "sha256:38aed9048140b0e437ea81461d9ea4524169f6795004da120bcf7d41894e4d15",
+      "synthetic": true
+    },
+    {
+      "purpose": "Reserved 199000-prefix phone used only by current community service unit tests.",
+      "sha256": "sha256:beb16f48dbf094e5a9dcecd0c4564412cc8fbd27c1842521371c6c12a84f4c5a",
+      "synthetic": true
+    },
+    {
+      "purpose": "Reserved 990000-prefix account-like value used only by current community service unit tests.",
+      "sha256": "sha256:fd74eacb9de7c352e6e188f8b0ce88f51973f1027423b2cc2ce2c292cde01b91",
+      "synthetic": true
+    }
+  ],
+  "schema_version": 1
+}

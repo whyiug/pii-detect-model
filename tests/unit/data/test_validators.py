@@ -11,6 +11,7 @@ from pii_zh.data.validators import (
     validate_mac,
     validate_phone,
 )
+from pii_zh.data.validators.cn_vehicle_plate import validate_cn_vehicle_license_plate
 
 
 def test_cn_resident_id_mod_11_2_and_invalid_date() -> None:
@@ -44,3 +45,39 @@ def test_basic_contact_and_network_validators() -> None:
     assert not validate_mac("02:00:00:AA:BB").valid
     assert validate_coordinate("31.2,121.5").valid
     assert not validate_coordinate("91,121.5").valid
+
+
+def test_conservative_mainland_vehicle_plate_validator_accepts_bound_v6_scope() -> None:
+    cases = {
+        "京A12345": "京A12345",
+        "粤B12C34": "粤B12C34",
+        "沪C1D2E3": "沪C1D2E3",
+        "浙AD12345": "浙AD12345",
+        "苏A12345F": "苏A12345F",
+        "京A·12345": "京A12345",
+        "粤b•12c34": "粤B12C34",
+    }
+
+    for candidate, normalized in cases.items():
+        result = validate_cn_vehicle_license_plate(candidate)
+        assert result.valid, (candidate, result.reason)
+        assert result.normalized == normalized
+
+
+def test_conservative_mainland_vehicle_plate_validator_rejects_unsupported_shapes() -> None:
+    cases = (
+        "岚A12345",
+        "京I12345",
+        "京A12I45",
+        "京AABCD1",
+        "京A-12345",
+        "京A1234",
+        "京A123456",
+        "京AD1234A",
+        "京A1234警",
+        "京A12",
+        "京Ａ１２３４５",
+    )
+
+    for candidate in cases:
+        assert not validate_cn_vehicle_license_plate(candidate).valid, candidate

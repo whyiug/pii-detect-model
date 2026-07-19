@@ -1,0 +1,162 @@
+{
+  "activation": {
+    "benchmark_comparison_allowed": false,
+    "best_first_or_sota_claim_allowed": false,
+    "claim_activation_allowed": false,
+    "model_card_activation_allowed": false,
+    "registry_activation_allowed": false,
+    "release_allowed": false,
+    "training_allowed": false,
+    "v1_evaluation_success": false
+  },
+  "artifact_type": "native_presidio_zh_ner_execution_failure_withdrawal_receipt",
+  "builder_access": {
+    "benchmark_files_opened": 0,
+    "benchmark_rows_parsed": 0,
+    "gpu_queried": false,
+    "metrics_computed": false,
+    "metrics_published": false,
+    "model_weights_loaded": 0,
+    "network_used": false,
+    "prediction_byte_streams_opened": 4,
+    "prediction_json_records_parsed": 0,
+    "prediction_values_interpreted": false,
+    "raw_text_or_entity_values_emitted": false
+  },
+  "execution_failure": {
+    "all_four_private_prediction_files_completed": true,
+    "error_class": "NativePresidioEvaluationError",
+    "error_message": "results.ernie.formal macro arithmetic changed",
+    "evaluator_bound_sha256": "2215df773b3b24cd1f41641af15425a8a093c72570c0acbd5ed3ab1a49be7db1",
+    "failure_stage": "post_prediction_pre_publication_all_results_validation",
+    "private_run_receipt_written": false,
+    "public_aggregate_written": false,
+    "root_cause": {
+      "correct_arithmetic": "mean_unrounded_count_derived_per_label_f1_then_round_once",
+      "discrepancy": "one_unit_in_the_eighth_decimal_place",
+      "failure_kind": "validation_rounding_order_defect",
+      "metrics_computed_or_published_by_receipt_builder": false,
+      "v1_validator_arithmetic": "mean_of_already_eight_decimal_rounded_per_label_f1"
+    },
+    "validation_failed_closed": true
+  },
+  "implementation": {
+    "source_bindings": [
+      {
+        "id": "builder",
+        "relative_path": "scripts/build_native_presidio_zh_ner_v1_failure_receipt.py",
+        "sha256": "ba0741e53d1bcde1fb96b8214d22a3c78e77c6db42f3e4ef58eee2f70ba3cd4b",
+        "size_bytes": 30805
+      },
+      {
+        "id": "schema",
+        "relative_path": "configs/evaluation/native_presidio_zh_ner_v1_failure_receipt.schema.json",
+        "sha256": "269c8c5a3c26435fdcc60ad87cd014b2e53a358e69e31b9d735125bbb361161d",
+        "size_bytes": 10642
+      },
+      {
+        "id": "tests",
+        "relative_path": "tests/unit/test_native_presidio_zh_ner_v1_failure_receipt.py",
+        "sha256": "8d53967c68c2cab75a480eea154f61c642cf989b5facfa1a8d44aedacab58478",
+        "size_bytes": 11230
+      }
+    ]
+  },
+  "preregistration": {
+    "artifact_type": "native_presidio_zh_ner_framework_hybrid_preregistration",
+    "canonical_sha256": "56a8d093beec0cded1aa736088af0a67f22661d65968dd22246d5ca5d5b38ef7",
+    "file_mode": "0444",
+    "file_sha256": "2d6f24deaed3ef9b0d7d2c2a193c63e0742eef93841c67f8c0bd8a8557cc5480",
+    "immutable_file_unchanged": true,
+    "logical_id": "native_presidio_zh_ner_framework_hybrid_v1",
+    "size_bytes": 14289
+  },
+  "private_prediction_evidence": [
+    {
+      "byte_hash_verified": true,
+      "contents_or_values_emitted": false,
+      "file_mode": "0600",
+      "json_records_parsed": false,
+      "logical_id": "ernie_formal_private_predictions",
+      "model": "ernie",
+      "newline_record_count_verified": true,
+      "prediction_record_count": 5000,
+      "record_values_interpreted": false,
+      "sha256": "9074a89c878cc0e627e693af4682e04f8d5f53e842e4f4a919d7ebd53601b921",
+      "size_bytes": 1705074,
+      "suite": "formal"
+    },
+    {
+      "byte_hash_verified": true,
+      "contents_or_values_emitted": false,
+      "file_mode": "0600",
+      "json_records_parsed": false,
+      "logical_id": "ernie_chat_private_predictions",
+      "model": "ernie",
+      "newline_record_count_verified": true,
+      "prediction_record_count": 3000,
+      "record_values_interpreted": false,
+      "sha256": "a936054d752974ea676e4b599ae45168e0c6bd8328ccea78bfe272d0cb1076b6",
+      "size_bytes": 868136,
+      "suite": "chat"
+    },
+    {
+      "byte_hash_verified": true,
+      "contents_or_values_emitted": false,
+      "file_mode": "0600",
+      "json_records_parsed": false,
+      "logical_id": "cluener_formal_private_predictions",
+      "model": "cluener",
+      "newline_record_count_verified": true,
+      "prediction_record_count": 5000,
+      "record_values_interpreted": false,
+      "sha256": "a29949e27ef9cc96f259a4dc0b0363b0c0bd4ae246f9dfc094b83be903e1c681",
+      "size_bytes": 1526390,
+      "suite": "formal"
+    },
+    {
+      "byte_hash_verified": true,
+      "contents_or_values_emitted": false,
+      "file_mode": "0600",
+      "json_records_parsed": false,
+      "logical_id": "cluener_chat_private_predictions",
+      "model": "cluener",
+      "newline_record_count_verified": true,
+      "prediction_record_count": 3000,
+      "record_values_interpreted": false,
+      "sha256": "bb818c30483d77e89b36c5c439d97829ed0e2b09e7cb8fed80c21ee0c791ee5b",
+      "size_bytes": 786348,
+      "suite": "chat"
+    }
+  ],
+  "publication_outcomes": {
+    "private_run_receipt": {
+      "checked_by_caller_supplied_path": true,
+      "exists": false,
+      "logical_id": "v1_private_run_receipt",
+      "path_embedded": false
+    },
+    "public_aggregate": {
+      "checked_by_caller_supplied_path": true,
+      "exists": false,
+      "logical_id": "v1_public_aggregate",
+      "path_embedded": false
+    }
+  },
+  "receipt_id": "native_presidio_zh_ner_framework_hybrid_v1_failure_withdrawal",
+  "schema_version": 1,
+  "self_hash": "26b17c57521c2f22b69653fa48556c545bde7f08d3215f358746e49bf9ec8e09",
+  "status": "WITHDRAWN_VALIDATION_FAILURE_SUPERSEDED",
+  "trust_scope": "additive_immutable_non_activating_failure_evidence",
+  "withdrawal": {
+    "bound_evaluator_was_modified_after_failed_execution": true,
+    "failure_receipt_changes_v1_freeze": false,
+    "successor_blindness_claim_allowed": false,
+    "successor_preregistration_required": true,
+    "successor_required": true,
+    "superseded": true,
+    "superseding_artifact_id": null,
+    "v1_execution_withdrawn": true,
+    "v1_metrics_or_comparisons_claimable": false
+  }
+}

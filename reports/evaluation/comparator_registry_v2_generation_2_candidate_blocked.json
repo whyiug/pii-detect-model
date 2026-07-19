@@ -1,0 +1,113 @@
+{
+  "activation": {
+    "blocked_freeze_may_be_mutated_in_place": false,
+    "claim_activation_allowed": false,
+    "human_hidden_execution_allowed": false,
+    "registry_activation_allowed": false,
+    "successor_registry_required": true
+  },
+  "checks": {
+    "candidate_set_identity": {
+      "evidence": "12 systems and 18 track variants pass the bound Draft 2020-12 schema; project candidate models are excluded.",
+      "status": "PASS"
+    },
+    "claims_disabled": {
+      "evidence": "first, blind, best, global-best, SOTA, and registry claim eligibility are false.",
+      "status": "PASS"
+    },
+    "closed8_public_diagnostics": {
+      "evidence": "Nine legacy and eight OpenMed aggregate-only track selectors resolve; all remain descriptive.",
+      "status": "PASS"
+    },
+    "legacy_hybrid_semantics_source_closure": {
+      "evidence": "ERNIE/CLUENER historical custom fusion is not yet closed as release-native AnalyzerEngine execution.",
+      "status": "BLOCKED"
+    },
+    "open24_and_human_hidden_mapping_closure": {
+      "evidence": "Open-24 member contracts and the zero-access human hidden test are not materialized.",
+      "status": "BLOCKED"
+    },
+    "pii_engineer_multi_same_protocol_reproduction": {
+      "evidence": "No repository-local artifact, mapping, runner, license closure, or same-protocol result exists.",
+      "status": "BLOCKED"
+    },
+    "predecessor_withdrawal_chain": {
+      "evidence": "Generation-1 exact bytes and effective claims-disabled withdrawal are bound.",
+      "status": "PASS"
+    },
+    "public_search_inventory": {
+      "evidence": "Recent material Chinese-capable PII Engineer Multi v2.1 remains visible as required pending.",
+      "status": "PASS"
+    },
+    "source_mapping_and_runner_bindings": {
+      "evidence": "Container bytes, mapping selectors/payload hashes, current runner bytes, and disclosed drift are bound.",
+      "status": "PASS"
+    },
+    "three_metric_paired_bootstrap_implementation": {
+      "evidence": "Current implementation is strict-micro-only; macro and PII-free document FPR are missing.",
+      "status": "BLOCKED"
+    }
+  },
+  "claims": {
+    "best": false,
+    "blind": false,
+    "first": false,
+    "global_best": false,
+    "scope_limited_descriptive_reporting_only": true,
+    "sota": false
+  },
+  "generated_at": "2026-07-16T04:26:44+08:00",
+  "hash_contract": "receipt_sha256 is SHA-256 of canonical UTF-8 JSON after removing the top-level receipt_sha256 field under the same canonical JSON rules",
+  "privacy": {
+    "aggregate_and_metadata_only": true,
+    "benchmark_rows_read": 0,
+    "gpu_queried_or_used": false,
+    "hidden_gold_read": 0,
+    "model_weights_loaded": false,
+    "network_used": false,
+    "prediction_files_read": 0,
+    "raw_text_or_entity_values_copied": false
+  },
+  "receipt_id": "comparator_registry_v2_generation_2_candidate_freeze_receipt",
+  "receipt_sha256": "e60b2298247efc10ce0a360c65971f93bf43d5b78553f550f4345abd860d2217",
+  "registry": {
+    "canonical_sha256": "fc36c2e070e359227061bb67ae0b527053126ada6726a292c2dc766add6c2baa",
+    "file_mode": "0444",
+    "file_sha256": "42ee4a48984bca02a5a6ddaac3af01f0ea5bb488020a324b153e9fdfcd6bc221",
+    "path": "configs/evaluation/comparator_registry_v2_generation_2_candidate.json",
+    "registry_id": "comparator_registry_v2_generation_2",
+    "registry_state": "frozen_candidate_set_blocked"
+  },
+  "schema_version": 1,
+  "status": "BLOCKED",
+  "summary": {
+    "blocked_check_count": 4,
+    "blocked_check_ids": [
+      "legacy_hybrid_semantics_source_closure",
+      "open24_and_human_hidden_mapping_closure",
+      "pii_engineer_multi_same_protocol_reproduction",
+      "three_metric_paired_bootstrap_implementation"
+    ],
+    "check_count": 10,
+    "existing_public_diagnostic_track_count": 17,
+    "passed_check_count": 6,
+    "passed_check_ids": [
+      "candidate_set_identity",
+      "claims_disabled",
+      "closed8_public_diagnostics",
+      "predecessor_withdrawal_chain",
+      "public_search_inventory",
+      "source_mapping_and_runner_bindings"
+    ],
+    "required_pending_track_count": 1,
+    "system_count": 12,
+    "track_variant_count": 18
+  },
+  "timezone": "Asia/Shanghai",
+  "verification_scope": {
+    "portable_external_registry_and_receipt_file_hashes_required": true,
+    "portable_git_checkout_replay": "bytes_policy_schema_and_self_consistent_build_time_mtime_attestation",
+    "portable_replay_alone_does_not_reconstruct_original_mtimes": true,
+    "strict_local_replay": "bytes_policy_schema_modes_and_original_mtimes"
+  }
+}

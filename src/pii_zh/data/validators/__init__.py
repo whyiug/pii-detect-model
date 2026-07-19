@@ -173,17 +173,50 @@ def validate_entity_value(label: str, value: str) -> ValidationResult | None:
     return validator(value) if validator is not None else None
 
 
+# Imported after ``ValidationResult`` and the base validators are defined: the
+# community module intentionally reuses this package's stable validation type.
+from .community import (  # noqa: E402
+    COMMUNITY_STRUCTURED_VALIDATORS,
+    validate_alipay_account,
+    validate_bank_account_number,
+    validate_community_vehicle_plate,
+    validate_device_id,
+    validate_driver_license_number,
+    validate_employee_id,
+    validate_medical_record_number,
+    validate_passport_number,
+    validate_qq_number,
+    validate_secret,
+    validate_social_security_number,
+    validate_student_id,
+    validate_wechat_id,
+)
+
 __all__ = [
     "VALIDATORS",
+    "COMMUNITY_STRUCTURED_VALIDATORS",
     "ValidationResult",
     "cn_resident_id_check_code",
     "luhn_check_digit",
     "validate_cn_resident_id",
+    "validate_community_vehicle_plate",
     "validate_coordinate",
     "validate_email",
+    "validate_employee_id",
     "validate_entity_value",
     "validate_ip",
     "validate_luhn",
     "validate_mac",
+    "validate_medical_record_number",
+    "validate_passport_number",
     "validate_phone",
+    "validate_qq_number",
+    "validate_secret",
+    "validate_social_security_number",
+    "validate_student_id",
+    "validate_wechat_id",
+    "validate_alipay_account",
+    "validate_bank_account_number",
+    "validate_device_id",
+    "validate_driver_license_number",
 ]

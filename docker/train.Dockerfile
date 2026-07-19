@@ -14,7 +14,8 @@ ENV HF_HUB_OFFLINE=1 \
 RUN groupadd --system app && useradd --system --gid app --create-home app
 WORKDIR /workspace
 
-COPY pyproject.toml uv.lock README.md LICENSE ./
+COPY pyproject.toml uv.lock LICENSE ./
+COPY docker/PACKAGE_README.md ./README.md
 COPY src ./src
 COPY scripts/train.py ./scripts/train.py
 RUN python -m pip install --no-cache-dir "uv==${UV_VERSION}" && \

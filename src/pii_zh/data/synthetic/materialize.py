@@ -59,9 +59,6 @@ SURFACE_SHORTCUTS: tuple[str, ...] = (
     "虚构",
     "演练",
 )
-DEFAULT_FROZEN_HOLDOUT_SOURCE_DIR = Path(
-    "/data1/datasets/pii-detect-model/processed/public_release_pool/synthetic_v1_2"
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1002,7 +999,6 @@ __all__ = [
     "DATASET_ID",
     "DATASET_VERSION",
     "DEFAULT_COUNT",
-    "DEFAULT_FROZEN_HOLDOUT_SOURCE_DIR",
     "DEFAULT_HARD_NEGATIVE_RATIO",
     "DEFAULT_SEED",
     "DEFAULT_SPLIT_RATIOS",

@@ -64,6 +64,40 @@ PLACEHOLDER_VALUES = frozenset({"changeme", "example", "placeholder", "redacted"
 RESERVED_EMAIL_SUFFIXES = (".example", ".invalid", ".localhost", ".test")
 RESERVED_EMAIL_DOMAINS = frozenset({"example.com", "example.net", "example.org"})
 
+# Public artifacts may describe portable roots such as ``$MODEL_ROOT``, but
+# must not retain a build host's private/shared absolute locations.  Keep this
+# deliberately narrower than "every string beginning with /" so HTTP routes,
+# container paths such as /tmp, and normal POSIX command examples remain
+# usable.  ``file://`` is always local-location disclosure and is rejected
+# independently of its path prefix.
+PRIVATE_LOCAL_PATH_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"(?i)(?<![A-Za-z0-9+.-])file://[^\s\"'`<>]+"),
+    re.compile(
+        r"(?<![A-Za-z0-9_.~$-])/(?:data\d*|home|Users|root)"
+        r"(?![A-Za-z0-9_.~-])(?:/[^\s\"'`<>|]+)+"
+    ),
+    re.compile(
+        r"(?i)(?<![A-Za-z0-9])"
+        r"[A-Z]:[\\/](?:Users|Documents and Settings)[\\/]"
+        r"[^\s\"'`<>|]+"
+    ),
+)
+
+# ``cuda:0`` is the correct logical device after CUDA visibility isolation and
+# is therefore portable.  What must not escape into public artifacts is a
+# fixed physical-card selection in CUDA_VISIBLE_DEVICES.
+FIXED_PHYSICAL_GPU_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(
+        r"\bCUDA_VISIBLE_DEVICES\s*=\s*"
+        r"(?:[\"']\d+(?:\s*,\s*\d+)*[\"']|\d+(?:\s*,\s*\d+)*)"
+        r"(?=$|[\s;,&|)\]}\"'`\\])"
+    ),
+    re.compile(
+        r"[\"']CUDA_VISIBLE_DEVICES[\"']\s*:\s*"
+        r"[\"']\d+(?:\s*,\s*\d+)*[\"']"
+    ),
+)
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -281,6 +315,20 @@ def _scan_line(
         if domain in RESERVED_EMAIL_DOMAINS or domain.endswith(RESERVED_EMAIL_SUFFIXES):
             continue
         add("potential_email", match.group(0), canary_allowed=True)
+
+    # Report at most one location disclosure per line.  A file URI may also
+    # contain a private Unix/Windows prefix; emitting two redacted findings for
+    # the same disclosure adds noise without improving the gate.
+    for pattern in PRIVATE_LOCAL_PATH_PATTERNS:
+        match = pattern.search(line)
+        if match is not None:
+            add("private_local_path", match.group(0), canary_allowed=False)
+            break
+    for pattern in FIXED_PHYSICAL_GPU_PATTERNS:
+        match = pattern.search(line)
+        if match is not None:
+            add("fixed_physical_gpu", match.group(0), canary_allowed=False)
+            break
     return findings
 
 

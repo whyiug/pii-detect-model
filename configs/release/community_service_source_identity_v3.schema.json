@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_service_source_identity_v3.schema.json",
+  "title": "Path-free complete community service source identity v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "service_id",
+    "profile_id",
+    "implementation_source_sha256",
+    "implementation_sha256",
+    "runtime_package_source_sha256",
+    "runtime_package_inventory_sha256",
+    "runtime_package_file_count",
+    "runtime_package_inventory_complete",
+    "contains_paths",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-service-source-identity.v3"
+    },
+    "service_id": { "$ref": "#/$defs/safeId" },
+    "profile_id": { "$ref": "#/$defs/safeId" },
+    "implementation_source_sha256": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/safeId" },
+      "additionalProperties": { "$ref": "#/$defs/sha256" }
+    },
+    "implementation_sha256": { "$ref": "#/$defs/sha256" },
+    "runtime_package_source_sha256": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/safeId" },
+      "additionalProperties": { "$ref": "#/$defs/sha256" }
+    },
+    "runtime_package_inventory_sha256": { "$ref": "#/$defs/sha256" },
+    "runtime_package_file_count": { "type": "integer", "minimum": 1 },
+    "runtime_package_inventory_complete": { "const": true },
+    "contains_paths": { "const": false },
+    "manifest_sha256": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    }
+  }
+}

@@ -474,7 +474,7 @@ def test_summary_is_path_free_self_hashed_and_release_gate_compatible(tmp_path: 
         "  - name: community-rc-fixture\n"
         "    results:\n"
         "      - metrics:\n"
-        "          - {name: Strict Micro F1, type: strict_micro_f1, value: 0.97}\n",
+        "          - {name: Model Raw Strict Micro F1, type: strict_micro_f1, value: 0.97}\n",
         encoding="utf-8",
     )
     sys.path.insert(0, str(repository_root / "scripts"))

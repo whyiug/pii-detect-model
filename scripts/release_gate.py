@@ -9,11 +9,18 @@ from __future__ import annotations
 
 import argparse
 import ast
+import contextlib
+import errno
+import fcntl
 import hashlib
 import json
 import math
+import os
 import re
+import shutil
+import stat
 import sys
+import tempfile
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timezone
@@ -25,19 +32,40 @@ try:
 except ImportError as exc:  # pragma: no cover - CLI dependency error
     raise SystemExit("release_gate.py requires PyYAML; install the project's core extra") from exc
 
-from build_release import (
-    ALLOWED_RELEASE_FILES,
-    AUTO_MAP,
-    BOUNDARY_MODE,
-    BOUNDARY_MODE_CONFIG_KEY,
-    FORBIDDEN_NAME_PARTS,
-    FORBIDDEN_SUFFIXES,
-    RAW_DATA_SUFFIXES,
-    REQUIRED_RELEASE_FILES,
-    output_artifact_fingerprint,
-    validate_safetensors,
-)
-from scan_public_artifacts import load_canary_allowlist, scan_paths
+if __package__:
+    from scripts import build_model_card_evidence_v2 as model_card_v2
+    from scripts.build_release import (
+        ALLOWED_RELEASE_FILES,
+        AUTO_MAP,
+        BOUNDARY_MODE,
+        BOUNDARY_MODE_CONFIG_KEY,
+        FORBIDDEN_NAME_PARTS,
+        FORBIDDEN_SUFFIXES,
+        OPTIONAL_EVIDENCE_FILES,
+        RAW_DATA_SUFFIXES,
+        REQUIRED_RELEASE_FILES,
+        output_artifact_fingerprint,
+        validate_safetensors,
+    )
+    from scripts.scan_public_artifacts import load_canary_allowlist, scan_paths
+else:
+    import build_model_card_evidence_v2 as model_card_v2
+    from build_release import (
+        ALLOWED_RELEASE_FILES,
+        AUTO_MAP,
+        BOUNDARY_MODE,
+        BOUNDARY_MODE_CONFIG_KEY,
+        FORBIDDEN_NAME_PARTS,
+        FORBIDDEN_SUFFIXES,
+        OPTIONAL_EVIDENCE_FILES,
+        RAW_DATA_SUFFIXES,
+        REQUIRED_RELEASE_FILES,
+        output_artifact_fingerprint,
+        validate_safetensors,
+    )
+    from scan_public_artifacts import load_canary_allowlist, scan_paths
+
+from pii_zh.data.artifact_policy import ArtifactPolicyError, assert_document_allowed
 
 CHECKSUM_PATTERN = re.compile(r"([0-9a-f]{64})  ([^\r\n]+)")
 PLACEHOLDER_PATTERN = re.compile(r"(?:\bTODO\b|\bTBD\b|<org>|<model|\{\{[^}]+\}\})", re.IGNORECASE)
@@ -91,13 +119,118 @@ class GateResult:
     details: dict[str, Any]
 
 
+@dataclass
+class GateInputSnapshot:
+    """Pinned, private view used by every gate and by the PASS receipt.
+
+    The artifact tree is copied (using filesystem CoW when available) into a
+    private temporary directory while the original root directory is held open.
+    This makes an A/B rename or an in-place source write unable to change which
+    bytes the gates read.  Small external evidence files are copied once.  A
+    final integrity check rejects changes to either the pinned source tree or
+    the private view.
+    """
+
+    args: argparse.Namespace
+    original_artifact: Path | None = None
+    original_root_identity: tuple[int, int] | None = None
+    source_fd: int | None = None
+    source_tree_identity: str | None = None
+    snapshot_tree_identity: str | None = None
+
+    @property
+    def active(self) -> bool:
+        return self.original_artifact is not None
+
+    def integrity_gate(self) -> GateResult:
+        if not self.active:
+            return _result("artifact_snapshot_integrity", [], activated=False)
+
+        issues: list[GateIssue] = []
+        assert self.original_artifact is not None
+        assert self.original_root_identity is not None
+        assert self.source_fd is not None
+        assert self.source_tree_identity is not None
+        assert self.snapshot_tree_identity is not None
+        try:
+            current = os.lstat(self.original_artifact)
+            current_root_identity = (current.st_dev, current.st_ino)
+            if not stat.S_ISDIR(current.st_mode) or current_root_identity != (
+                self.original_root_identity
+            ):
+                issues.append(
+                    GateIssue(
+                        "RC_BLOCKED_ARTIFACT_ROOT_REPLACED",
+                        "artifact root identity changed while release gates were running",
+                    )
+                )
+        except OSError:
+            issues.append(
+                GateIssue(
+                    "RC_BLOCKED_ARTIFACT_ROOT_REPLACED",
+                    "artifact root became unavailable while release gates were running",
+                )
+            )
+        try:
+            if _fd_tree_metadata_identity(self.source_fd) != self.source_tree_identity:
+                issues.append(
+                    GateIssue(
+                        "RC_BLOCKED_ARTIFACT_SOURCE_MUTATED",
+                        "pinned artifact source tree changed while release gates were running",
+                    )
+                )
+        except OSError:
+            issues.append(
+                GateIssue(
+                    "RC_BLOCKED_ARTIFACT_SOURCE_MUTATED",
+                    "pinned artifact source tree could not be re-verified",
+                )
+            )
+        try:
+            if _artifact_tree_identity(self.args.artifact) != self.snapshot_tree_identity:
+                issues.append(
+                    GateIssue(
+                        "RC_BLOCKED_ARTIFACT_SNAPSHOT_MUTATED",
+                        "private artifact snapshot changed while release gates were running",
+                    )
+                )
+        except OSError:
+            issues.append(
+                GateIssue(
+                    "RC_BLOCKED_ARTIFACT_SNAPSHOT_MUTATED",
+                    "private artifact snapshot could not be re-verified",
+                )
+            )
+        return _result(
+            "artifact_snapshot_integrity",
+            issues,
+            activated=True,
+            snapshot_manifest_sha256=self.snapshot_tree_identity,
+        )
+
+
 def _result(name: str, issues: Iterable[GateIssue], **details: Any) -> GateResult:
     materialized = list(issues)
     return GateResult(name=name, passed=not materialized, issues=materialized, details=details)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    def reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, item in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key {key!r}: {path}")
+            result[key] = item
+        return result
+
+    def reject_constant(value: str) -> object:
+        raise ValueError(f"forbidden non-finite JSON constant {value}: {path}")
+
+    value = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=reject_duplicate_keys,
+        parse_constant=reject_constant,
+    )
     if not isinstance(value, dict):
         raise ValueError(f"expected a JSON object: {path}")
     return value
@@ -119,8 +252,363 @@ def _sha256_file(path: Path) -> str:
 
 
 def _canonical_json_hash(value: Any) -> str:
-    encoded = json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    encoded = json.dumps(
+        value,
+        allow_nan=False,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
     return hashlib.sha256(encoded.encode()).hexdigest()
+
+
+def _fd_tree_metadata(fd: int, *, prefix: str = "") -> list[dict[str, Any]]:
+    """Describe a directory through an already-open fd without path re-resolution."""
+
+    entries: list[dict[str, Any]] = []
+    for name in sorted(os.listdir(fd)):
+        relative = f"{prefix}/{name}" if prefix else name
+        item_stat = os.stat(name, dir_fd=fd, follow_symlinks=False)
+        common: dict[str, Any] = {
+            "path": relative,
+            "device": item_stat.st_dev,
+            "inode": item_stat.st_ino,
+            "mode": stat.S_IFMT(item_stat.st_mode),
+            "size": item_stat.st_size,
+            "mtime_ns": item_stat.st_mtime_ns,
+            "ctime_ns": item_stat.st_ctime_ns,
+        }
+        if stat.S_ISDIR(item_stat.st_mode):
+            common["type"] = "directory"
+            entries.append(common)
+            child_fd = os.open(
+                name,
+                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC,
+                dir_fd=fd,
+            )
+            try:
+                entries.extend(_fd_tree_metadata(child_fd, prefix=relative))
+            finally:
+                os.close(child_fd)
+        elif stat.S_ISREG(item_stat.st_mode):
+            common["type"] = "file"
+            file_fd = os.open(
+                name,
+                os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC,
+                dir_fd=fd,
+            )
+            try:
+                before = os.fstat(file_fd)
+                digest = hashlib.sha256()
+                while chunk := os.read(file_fd, 1024 * 1024):
+                    digest.update(chunk)
+                after = os.fstat(file_fd)
+                if (
+                    _unchanged_file_identity(before)
+                    != _unchanged_file_identity(after)
+                    or _unchanged_file_identity(before)
+                    != _unchanged_file_identity(item_stat)
+                ):
+                    raise ValueError(
+                        f"artifact file changed while its identity was read: {relative}"
+                    )
+                common["sha256"] = digest.hexdigest()
+            finally:
+                os.close(file_fd)
+            entries.append(common)
+        elif stat.S_ISLNK(item_stat.st_mode):
+            common["type"] = "symlink"
+            common["target"] = os.readlink(name, dir_fd=fd)
+            entries.append(common)
+        else:
+            common["type"] = "unsupported"
+            entries.append(common)
+    return entries
+
+
+def _fd_tree_metadata_identity(fd: int) -> str:
+    return _canonical_json_hash(_fd_tree_metadata(fd))
+
+
+_FICLONE = 0x40049409
+
+
+def _unchanged_file_identity(file_stat: os.stat_result) -> tuple[int, ...]:
+    return (
+        file_stat.st_dev,
+        file_stat.st_ino,
+        file_stat.st_mode,
+        file_stat.st_size,
+        file_stat.st_mtime_ns,
+        file_stat.st_ctime_ns,
+    )
+
+
+def _copy_fd_file(source_directory_fd: int, name: str, destination: Path) -> None:
+    """Copy one pinned regular file to an independent CoW/byte snapshot."""
+
+    source_fd = os.open(
+        name,
+        os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC,
+        dir_fd=source_directory_fd,
+    )
+    destination_fd = os.open(
+        destination,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+        0o400,
+    )
+    try:
+        before = os.fstat(source_fd)
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError(f"artifact entry is not a regular file: {name}")
+        try:
+            fcntl.ioctl(destination_fd, _FICLONE, source_fd)
+        except OSError as exc:
+            if exc.errno not in {
+                errno.EINVAL,
+                errno.ENOTTY,
+                errno.EOPNOTSUPP,
+                errno.EXDEV,
+            }:
+                raise
+            os.lseek(source_fd, 0, os.SEEK_SET)
+            os.ftruncate(destination_fd, 0)
+            while chunk := os.read(source_fd, 1024 * 1024):
+                view = memoryview(chunk)
+                while view:
+                    written = os.write(destination_fd, view)
+                    view = view[written:]
+        os.fsync(destination_fd)
+        os.fchmod(destination_fd, 0o400)
+        after = os.fstat(source_fd)
+        if _unchanged_file_identity(after) != _unchanged_file_identity(before):
+            raise ValueError(f"artifact file changed while it was copied: {name}")
+    finally:
+        os.close(destination_fd)
+        os.close(source_fd)
+
+
+def _copy_fd_tree(fd: int, destination: Path) -> None:
+    """Copy one pinned tree without accepting links or special files."""
+
+    destination.mkdir(mode=0o700)
+    for name in sorted(os.listdir(fd)):
+        item_stat = os.stat(name, dir_fd=fd, follow_symlinks=False)
+        output = destination / name
+        if stat.S_ISDIR(item_stat.st_mode):
+            child_fd = os.open(
+                name,
+                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC,
+                dir_fd=fd,
+            )
+            try:
+                _copy_fd_tree(child_fd, output)
+            finally:
+                os.close(child_fd)
+        elif stat.S_ISREG(item_stat.st_mode):
+            _copy_fd_file(fd, name, output)
+        elif stat.S_ISLNK(item_stat.st_mode):
+            raise ValueError(f"artifact snapshot refuses symlink: {name}")
+        else:
+            raise ValueError(f"unsupported artifact entry type: {name}")
+    directory_fd = os.open(destination, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+    destination.chmod(0o500)
+
+
+def _artifact_tree_identity(root: Path) -> str:
+    """Hash every entry and regular-file byte in one materialized gate view."""
+
+    entries: list[dict[str, Any]] = []
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root).as_posix()
+        item_stat = path.lstat()
+        if stat.S_ISDIR(item_stat.st_mode):
+            entries.append({"path": relative, "type": "directory"})
+        elif stat.S_ISREG(item_stat.st_mode):
+            entries.append(
+                {
+                    "path": relative,
+                    "type": "file",
+                    "size": item_stat.st_size,
+                    "sha256": _sha256_file(path),
+                }
+            )
+        elif stat.S_ISLNK(item_stat.st_mode):
+            entries.append(
+                {"path": relative, "type": "symlink", "target": os.readlink(path)}
+            )
+        else:
+            entries.append({"path": relative, "type": "unsupported"})
+    return _canonical_json_hash(entries)
+
+
+def _validate_snapshot_matches_source_metadata(
+    snapshot_root: Path, source_entries: list[dict[str, Any]]
+) -> None:
+    """Require the private view to contain exactly the pinned source entries."""
+
+    expected_paths = {str(entry["path"]) for entry in source_entries}
+    actual_paths = {
+        path.relative_to(snapshot_root).as_posix() for path in snapshot_root.rglob("*")
+    }
+    if actual_paths != expected_paths:
+        raise ValueError("artifact changed while its gate snapshot was being constructed")
+    for entry in source_entries:
+        path = snapshot_root / str(entry["path"])
+        item_stat = path.lstat()
+        entry_type = entry["type"]
+        if entry_type == "file":
+            if (
+                not stat.S_ISREG(item_stat.st_mode)
+                or item_stat.st_size != entry["size"]
+                or (item_stat.st_dev, item_stat.st_ino)
+                == (entry["device"], entry["inode"])
+                or _sha256_file(path) != entry["sha256"]
+            ):
+                raise ValueError("artifact file identity changed during snapshot construction")
+        elif entry_type == "directory":
+            if not stat.S_ISDIR(item_stat.st_mode):
+                raise ValueError("artifact directory identity changed during snapshot construction")
+        elif entry_type == "symlink":
+            if not stat.S_ISLNK(item_stat.st_mode) or os.readlink(path) != entry["target"]:
+                raise ValueError("artifact symlink changed during snapshot construction")
+        else:
+            raise ValueError("unsupported artifact entry in snapshot construction")
+
+
+def _copy_regular_input(source: Path, destination: Path) -> Path:
+    """Copy one external evidence file once, refusing final symlinks."""
+
+    source_fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        source_stat = os.fstat(source_fd)
+        if not stat.S_ISREG(source_stat.st_mode):
+            raise ValueError(f"gate input must be a regular file: {source}")
+        with os.fdopen(source_fd, "rb", closefd=False) as input_stream:
+            with destination.open("xb") as output_stream:
+                shutil.copyfileobj(input_stream, output_stream, length=1024 * 1024)
+                output_stream.flush()
+                os.fsync(output_stream.fileno())
+        destination.chmod(0o400)
+        final_stat = os.fstat(source_fd)
+        if (
+            final_stat.st_dev,
+            final_stat.st_ino,
+            final_stat.st_size,
+            final_stat.st_mtime_ns,
+            final_stat.st_ctime_ns,
+        ) != (
+            source_stat.st_dev,
+            source_stat.st_ino,
+            source_stat.st_size,
+            source_stat.st_mtime_ns,
+            source_stat.st_ctime_ns,
+        ):
+            raise ValueError(f"gate input changed while it was snapshotted: {source}")
+    finally:
+        os.close(source_fd)
+    return destination
+
+
+def _remove_private_snapshot(root: Path) -> None:
+    """Restore owner write permission only to delete this process's temp tree."""
+
+    if not root.exists():
+        return
+    for path in sorted(root.rglob("*"), reverse=True):
+        try:
+            if path.is_dir() and not path.is_symlink():
+                path.chmod(0o700)
+        except OSError:
+            pass
+    try:
+        root.chmod(0o700)
+    except OSError:
+        pass
+    shutil.rmtree(root, ignore_errors=True)
+
+
+def _receipt_output_inside_artifact(args: argparse.Namespace) -> bool:
+    if args.json_output is None:
+        return False
+    artifact = args.artifact.absolute()
+    output = args.json_output.absolute()
+    return output == artifact or artifact in output.parents
+
+
+@contextlib.contextmanager
+def snapshot_gate_inputs(args: argparse.Namespace) -> Iterable[GateInputSnapshot]:
+    """Yield one immutable-enough, content-addressed view for all release gates."""
+
+    original = args.artifact.absolute()
+    if _receipt_output_inside_artifact(args):
+        raise ValueError("release-gate receipt output must be outside the artifact tree")
+    try:
+        root_lstat = os.lstat(original)
+    except OSError:
+        yield GateInputSnapshot(args=args)
+        return
+    if not stat.S_ISDIR(root_lstat.st_mode):
+        yield GateInputSnapshot(args=args)
+        return
+
+    source_fd = os.open(
+        original,
+        os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC,
+    )
+    # Respect TMPDIR so operators can place the independent byte snapshot on
+    # a capacious local filesystem.  tempfile creates the root mode 0700.
+    temporary_root = Path(tempfile.mkdtemp(prefix=f".{original.name}.gate-snapshot-"))
+    os.chmod(temporary_root, 0o700)
+    try:
+        snapshot_artifact = temporary_root / "artifact"
+        _copy_fd_tree(source_fd, snapshot_artifact)
+        source_tree_metadata = _fd_tree_metadata(source_fd)
+        _validate_snapshot_matches_source_metadata(
+            snapshot_artifact, source_tree_metadata
+        )
+        source_tree_identity = _canonical_json_hash(source_tree_metadata)
+        snapshot_tree_identity = _artifact_tree_identity(snapshot_artifact)
+
+        snapshot_args = argparse.Namespace(**vars(args))
+        snapshot_args.artifact = snapshot_artifact
+        snapshot_args.artifact_snapshot_sha256 = snapshot_tree_identity
+        inputs_dir = temporary_root / "inputs"
+        inputs_dir.mkdir(mode=0o700)
+        for attribute in (
+            "source_registry",
+            "canary_allowlist",
+            "dependency_scan",
+            "dependency_exceptions",
+        ):
+            source = getattr(args, attribute)
+            if source is None:
+                continue
+            if source.is_symlink() or not source.is_file():
+                # Invalid inputs cannot produce PASS; leave their original path
+                # so the existing gate reports the field-specific blocker.
+                continue
+            setattr(
+                snapshot_args,
+                attribute,
+                _copy_regular_input(source, inputs_dir / attribute),
+            )
+        root_stat = os.fstat(source_fd)
+        yield GateInputSnapshot(
+            args=snapshot_args,
+            original_artifact=original,
+            original_root_identity=(root_stat.st_dev, root_stat.st_ino),
+            source_fd=source_fd,
+            source_tree_identity=source_tree_identity,
+            snapshot_tree_identity=snapshot_tree_identity,
+        )
+    finally:
+        os.close(source_fd)
+        _remove_private_snapshot(temporary_root)
 
 
 def _regular_file_sha256(path: Path | None) -> str | None:
@@ -147,7 +635,7 @@ def artifact_identity(args: argparse.Namespace) -> dict[str, str | int | None]:
     """Return the path-free content identity recorded in the gate receipt."""
 
     artifact = args.artifact
-    return {
+    identity: dict[str, str | int | None] = {
         "checksums_sha256": _regular_file_sha256(artifact / "checksums.txt"),
         "package_file_count": _package_file_count(artifact),
         "sbom_sha256": _regular_file_sha256(artifact / "sbom.cdx.json"),
@@ -155,6 +643,14 @@ def artifact_identity(args: argparse.Namespace) -> dict[str, str | int | None]:
         "dependency_scan_sha256": _regular_file_sha256(args.dependency_scan),
         "dependency_exceptions_sha256": _regular_file_sha256(args.dependency_exceptions),
     }
+    if args.v2_contract_sha256 is not None:
+        identity["v2_contract_sha256"] = args.v2_contract_sha256
+    if args.v2_selected_receipt_sha256 is not None:
+        identity["v2_selected_receipt_sha256"] = args.v2_selected_receipt_sha256
+    snapshot_sha256 = getattr(args, "artifact_snapshot_sha256", None)
+    if snapshot_sha256 is not None:
+        identity["artifact_snapshot_sha256"] = snapshot_sha256
+    return identity
 
 
 def gate_receipt_identity(
@@ -170,6 +666,8 @@ def gate_receipt_identity(
         "source_registry_sha256",
         "dependency_scan_sha256",
     ]
+    if "artifact_snapshot_sha256" in identity:
+        required_hashes.append("artifact_snapshot_sha256")
     if dependency_exceptions_configured:
         required_hashes.append("dependency_exceptions_sha256")
     missing = [
@@ -321,6 +819,15 @@ def gate_config_and_remote_code(artifact: Path) -> GateResult:
         tokenizer_config = _load_json(artifact / "tokenizer_config.json")
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         return _result("remote_code", [GateIssue("RC_BLOCKED_CONFIG", str(exc))])
+    try:
+        assert_document_allowed(training, purpose="release")
+    except ArtifactPolicyError:
+        issues.append(
+            GateIssue(
+                "RC_BLOCKED_ARTIFACT_LINEAGE",
+                "training manifest is denied by artifact lineage policy",
+            )
+        )
     if config.get("architectures") != ["Qwen3BiForTokenClassification"]:
         issues.append(GateIssue("RC_BLOCKED_ARCHITECTURE", "config architectures is not Qwen3Bi"))
     if config.get("auto_map") != AUTO_MAP:
@@ -748,6 +1255,15 @@ def gate_provenance(artifact: Path, registry_path: Path) -> GateResult:
         ("data_provenance.json", data),
         ("teacher_provenance.json", teacher),
     ):
+        try:
+            assert_document_allowed(document, purpose="release")
+        except ArtifactPolicyError:
+            issues.append(
+                GateIssue(
+                    "RC_BLOCKED_ARTIFACT_LINEAGE",
+                    f"{filename} is denied by artifact lineage policy",
+                )
+            )
         references = _evaluation_only_references(document)
         if references:
             issues.append(
@@ -954,6 +1470,15 @@ def gate_quality(artifact: Path) -> GateResult:
         report = _load_json(artifact / "evaluation_report.json")
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         return _result("quality", [GateIssue("RC_BLOCKED_QUALITY_PARSE", str(exc))])
+    try:
+        assert_document_allowed(report, purpose="release")
+    except ArtifactPolicyError:
+        issues.append(
+            GateIssue(
+                "RC_BLOCKED_ARTIFACT_LINEAGE",
+                "evaluation report is denied by artifact lineage policy",
+            )
+        )
     runs = _seed_runs(report)
     unique_seeds = {run.get("seed") for run in runs if isinstance(run.get("seed"), int)}
     if len(unique_seeds) < 3:
@@ -1097,10 +1622,11 @@ def gate_quality(artifact: Path) -> GateResult:
             for metric in result["metrics"]
             if isinstance(metric, dict)
         ]
+        attributable_prefixes = ("Model Raw ", "Model Calibrated ")
         if (
             not indexed_results
             or not indexed_metrics
-            or not any(
+            or not all(
                 not isinstance(metric.get("value"), bool)
                 and isinstance(metric.get("value"), (int, float))
                 and math.isfinite(metric["value"])
@@ -1111,6 +1637,18 @@ def gate_quality(artifact: Path) -> GateResult:
                 GateIssue(
                     "RC_BLOCKED_MODEL_INDEX",
                     "model-index.yml has no result with a finite numeric metric",
+                )
+            )
+        elif not all(
+            isinstance(metric.get("name"), str)
+            and metric["name"].startswith(attributable_prefixes)
+            for metric in indexed_metrics
+        ):
+            issues.append(
+                GateIssue(
+                    "RC_BLOCKED_MODEL_INDEX_ATTRIBUTION",
+                    "model-index.yml metrics must be explicitly attributed to Model Raw or "
+                    "Model Calibrated output",
                 )
             )
     return _result("quality", issues, unique_seed_count=len(unique_seeds))
@@ -1170,6 +1708,88 @@ def gate_release_text(artifact: Path) -> GateResult:
                 )
             )
     return _result("release_text", issues)
+
+
+def gate_model_card_evidence_v2(
+    artifact: Path,
+    *,
+    expected_contract_sha256: str | None,
+    expected_selected_receipt_sha256: str | None,
+) -> GateResult:
+    """Activate the successor gate only for an explicit packaged v2 contract."""
+
+    present_v2_files = {
+        name
+        for name in OPTIONAL_EVIDENCE_FILES
+        if (artifact / name).exists() or (artifact / name).is_symlink()
+    }
+    activated = bool(present_v2_files)
+    external_anchor_supplied = (
+        expected_contract_sha256 is not None or expected_selected_receipt_sha256 is not None
+    )
+    if not activated:
+        issues = []
+        if external_anchor_supplied:
+            issues.append(
+                GateIssue(
+                    "RC_BLOCKED_MODEL_CARD_EVIDENCE_V2_MISSING",
+                    "v2 trust anchors were supplied but no explicit v2 release contract exists",
+                )
+            )
+        return _result("model_card_evidence_v2", issues, activated=False)
+
+    issues: list[GateIssue] = []
+    if present_v2_files != set(OPTIONAL_EVIDENCE_FILES):
+        missing = sorted(set(OPTIONAL_EVIDENCE_FILES) - present_v2_files)
+        issues.append(
+            GateIssue(
+                "RC_BLOCKED_MODEL_CARD_EVIDENCE_V2_INCOMPLETE",
+                "explicit v2 release bundle is incomplete; missing: " + ", ".join(missing),
+            )
+        )
+        return _result(
+            "model_card_evidence_v2",
+            issues,
+            activated=True,
+            externally_anchored=False,
+        )
+    anchors = {
+        "contract": expected_contract_sha256,
+        "selected_receipt": expected_selected_receipt_sha256,
+    }
+    invalid_anchors = sorted(
+        name
+        for name, value in anchors.items()
+        if not isinstance(value, str) or SHA256_PATTERN.fullmatch(value) is None
+    )
+    if invalid_anchors:
+        issues.append(
+            GateIssue(
+                "RC_BLOCKED_MODEL_CARD_EVIDENCE_V2_TRUST_ANCHOR",
+                "explicit v2 release requires external frozen SHA-256 anchors for: "
+                + ", ".join(invalid_anchors),
+            )
+        )
+    else:
+        try:
+            model_card_v2.validate_release_bundle(
+                artifact,
+                expected_contract_sha256=expected_contract_sha256,
+                expected_selected_receipt_sha256=expected_selected_receipt_sha256,
+            )
+        except (model_card_v2.ModelCardEvidenceError, OSError, ValueError) as exc:
+            issues.append(
+                GateIssue(
+                    "RC_BLOCKED_MODEL_CARD_EVIDENCE_V2",
+                    str(exc),
+                )
+            )
+    return _result(
+        "model_card_evidence_v2",
+        issues,
+        activated=True,
+        externally_anchored=not invalid_anchors,
+    )
 
 
 def _normalized_vulnerabilities(scan: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1344,6 +1964,11 @@ def run_gates(args: argparse.Namespace) -> list[GateResult]:
         gate_quality(artifact),
         gate_public_scan(artifact, args.canary_allowlist),
         gate_release_text(artifact),
+        gate_model_card_evidence_v2(
+            artifact,
+            expected_contract_sha256=args.v2_contract_sha256,
+            expected_selected_receipt_sha256=args.v2_selected_receipt_sha256,
+        ),
         gate_sbom(artifact),
         gate_dependencies(
             args.dependency_scan,
@@ -1360,31 +1985,56 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--canary-allowlist", type=Path)
     parser.add_argument("--dependency-scan", type=Path)
     parser.add_argument("--dependency-exceptions", type=Path)
+    parser.add_argument("--v2-contract-sha256")
+    parser.add_argument("--v2-selected-receipt-sha256")
     parser.add_argument("--json-output", type=Path)
     return parser.parse_args()
 
 
-def main() -> int:
-    args = _parse_args()
+def execute_gates(
+    args: argparse.Namespace,
+) -> tuple[list[GateResult], dict[str, str | int | None], bool]:
+    """Run every check and build its receipt from one pinned input snapshot."""
+
     execution_error = False
     try:
-        results = run_gates(args)
-    except (OSError, ValueError, json.JSONDecodeError, yaml.YAMLError) as exc:
-        print(f"release gate error: {exc}", file=sys.stderr)
+        with snapshot_gate_inputs(args) as snapshot:
+            try:
+                results = run_gates(snapshot.args)
+            except (OSError, ValueError, json.JSONDecodeError, yaml.YAMLError) as exc:
+                print(f"release gate error: {exc}", file=sys.stderr)
+                execution_error = True
+                results = [
+                    _result(
+                        "gate_execution",
+                        [GateIssue("RC_BLOCKED_GATE_EXECUTION", str(exc))],
+                    )
+                ]
+            identity = artifact_identity(snapshot.args)
+            results.append(snapshot.integrity_gate())
+    except (OSError, ValueError) as exc:
+        print(f"release gate snapshot error: {exc}", file=sys.stderr)
         execution_error = True
         results = [
             _result(
-                "gate_execution",
-                [GateIssue("RC_BLOCKED_GATE_EXECUTION", str(exc))],
+                "artifact_snapshot_integrity",
+                [GateIssue("RC_BLOCKED_ARTIFACT_SNAPSHOT", str(exc))],
+                activated=False,
             )
         ]
-    identity = artifact_identity(args)
+        identity = artifact_identity(args)
     results.append(
         gate_receipt_identity(
             identity,
             dependency_exceptions_configured=args.dependency_exceptions is not None,
         )
     )
+    return results, identity, execution_error
+
+
+def main() -> int:
+    args = _parse_args()
+    results, identity, execution_error = execute_gates(args)
     blockers = sum(len(result.issues) for result in results)
     report: dict[str, Any] = {
         "schema_version": 2,
@@ -1403,7 +2053,7 @@ def main() -> int:
         "notice": "Machine checks do not replace required legal, privacy, and human reviews.",
     }
     report["manifest_sha256"] = _canonical_json_hash(report)
-    if args.json_output:
+    if args.json_output and not _receipt_output_inside_artifact(args):
         args.json_output.parent.mkdir(parents=True, exist_ok=True)
         args.json_output.write_text(
             json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"

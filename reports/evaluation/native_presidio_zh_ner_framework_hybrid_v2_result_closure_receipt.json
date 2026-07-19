@@ -1,0 +1,60 @@
+{
+  "aggregate_report": {
+    "canonical_sha256": "a4308adf743046d6195b943b50c60bd7a5f4d0dfe5450d51ff8f0834aee0cf69",
+    "file_sha256": "dbf55c58f8841e6fc4ee7ab050f576b9fe58c05dc0914b5bbc6b35ee8a1a720c",
+    "results_canonical_sha256": "83137b1ae62903b48d5f877e0583e49ba4671b9e080d194fc5dcdd0a73823ee0"
+  },
+  "checks": {
+    "aggregate_results_arithmetic": "PASS",
+    "aggregate_self_hash": "PASS",
+    "claim_non_activation": "PASS",
+    "license_non_activation": "PASS",
+    "prediction_manifest_binding": "PASS",
+    "preregistration_binding": "PASS",
+    "private_receipt_binding": "PASS",
+    "public_privacy_scan": "PASS",
+    "strict_json": "PASS",
+    "two_native_framework_hybrid_tracks": "PASS"
+  },
+  "closure_state": "RESULT_CLOSED_NON_ACTIVATING",
+  "governance": {
+    "best": false,
+    "blind": false,
+    "claim_activation_allowed": false,
+    "first": false,
+    "global_best": false,
+    "human_hidden_execution_allowed": false,
+    "overall_status": "BLOCKED",
+    "redistribution_allowed": false,
+    "registry_activation_allowed": false,
+    "release_bundle_allowed": false,
+    "sota": false
+  },
+  "predecessor_preregistration": {
+    "canonical_sha256": "fa15dda0d51a21a1444d330d88c854f71828163586b9d0ce588f961f8431cf80",
+    "file_sha256": "979a3d832acc0c7f2f5f1368e2a8ea22b04a1486096ad2aa9347c9c2116f87e5"
+  },
+  "private_evidence": {
+    "prediction_manifest_sha256": "01dd100cf4015d2535276cbdf7dbd99af08ee035243f87b5e3e32dc304fdad34",
+    "private_evidence_manifest_sha256": "a4541d408c6f3d6b1c65f45092ebe44f009cb202e326f313cbf72e2b5c04fa30",
+    "run_receipt_canonical_sha256": "b33728e075d2a7977b4c7b80f3e5f4c348be9b33c20319cd1c64e2bd36a076b5",
+    "run_receipt_file_sha256": "2838361cd9fafac7b117effe28206f04b9f6e2ae70b218b20c62782c08473d2b"
+  },
+  "publication": {
+    "multi_file_transaction_atomic": false,
+    "per_file_no_clobber": true,
+    "receipt_last": true
+  },
+  "receipt_id": "native_presidio_zh_ner_framework_hybrid_v2_result_closure_receipt",
+  "receipt_type": "native_presidio_zh_ner_result_closure_receipt",
+  "recorded_at": "2026-07-16T10:15:58+08:00",
+  "result_closure": {
+    "canonical_sha256": "595e612b4a51f7abc20d906094d17b14d68dafcef9aa7a6fe6ed9d263cfac49c",
+    "closure_id": "native_presidio_zh_ner_framework_hybrid_v2_result_closure",
+    "file_sha256": "b64b77d53a99fd43dd19aede66ad580020ffccbd7dca66516daa135fee71816f"
+  },
+  "schema_version": 1,
+  "self_hash": "499bbe9ca0a3bc9e87c13df6802240484953f96740bae82639e4d919c2e4115d",
+  "source_bundle_sha256": "8e6f0236bac48b1ec2e92bf363cd8cc7a2cfd919676d9fb7f4c72ab0f7e6e2fe",
+  "status": "BLOCKED_PUBLIC_TEST_EXPOSED"
+}

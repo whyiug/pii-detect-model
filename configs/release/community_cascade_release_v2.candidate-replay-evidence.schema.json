@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_cascade_release_v2.candidate-replay-evidence.schema.json",
+  "title": "Native candidate inference replay evidence consumed by community release v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "status",
+    "track",
+    "target",
+    "replayed",
+    "implementation",
+    "privacy",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-candidate-execution-replay-evidence.v1"
+    },
+    "receipt_type": {"const": "candidate_prediction_full_execution_replay"},
+    "status": {"const": "PASS"},
+    "track": {"enum": ["model_raw", "full_system"]},
+    "target": {"$ref": "#/$defs/executionIdentity"},
+    "replayed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_file_sha256",
+        "manifest_sha256",
+        "predictions_file_sha256",
+        "prediction_document_count",
+        "generation_receipt_file_sha256",
+        "generation_receipt_sha256",
+        "predictions_byte_identical",
+        "generation_receipt_exact_equal",
+        "provenance_exact_equal"
+      ],
+      "properties": {
+        "manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "predictions_file_sha256": {"$ref": "#/$defs/sha256"},
+        "prediction_document_count": {"type": "integer", "minimum": 1},
+        "generation_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "generation_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "predictions_byte_identical": {"const": true},
+        "generation_receipt_exact_equal": {"const": true},
+        "provenance_exact_equal": {"const": true}
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "replay_producer_file_sha256",
+        "generator_implementation_sha256",
+        "provenance_implementation_sha256",
+        "runtime_package_inventory_sha256",
+        "runtime_package_file_count",
+        "runtime_package_inventory_complete"
+      ],
+      "properties": {
+        "replay_producer_file_sha256": {"$ref": "#/$defs/sha256"},
+        "generator_implementation_sha256": {"$ref": "#/$defs/sha256"},
+        "provenance_implementation_sha256": {"$ref": "#/$defs/sha256"},
+        "runtime_package_inventory_sha256": {"$ref": "#/$defs/sha256"},
+        "runtime_package_file_count": {"type": "integer", "minimum": 1},
+        "runtime_package_inventory_complete": {"const": true}
+      }
+    },
+    "privacy": {
+      "const": {
+        "contains_paths": false,
+        "contains_raw_text": false,
+        "contains_document_ids": false,
+        "contains_entity_values": false,
+        "aggregate_only": true,
+        "network_used": false
+      }
+    },
+    "receipt_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "executionIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_file_sha256",
+        "manifest_sha256",
+        "predictions_file_sha256",
+        "prediction_document_count",
+        "generation_receipt_file_sha256",
+        "generation_receipt_sha256"
+      ],
+      "properties": {
+        "manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "predictions_file_sha256": {"$ref": "#/$defs/sha256"},
+        "prediction_document_count": {"type": "integer", "minimum": 1},
+        "generation_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "generation_receipt_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

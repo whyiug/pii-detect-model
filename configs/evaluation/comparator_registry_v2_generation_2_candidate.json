@@ -1,0 +1,1747 @@
+{
+  "amendment_policy": {
+    "blocker_resolution_requires_successor_registry_id_and_hash": true,
+    "factual_error_requires_withdrawal_sidecar": true,
+    "in_place_mutation_prohibited": true,
+    "new_system_requires_new_registry_id_and_hash": true,
+    "post_hidden_amendment_requires_new_generation": true
+  },
+  "candidate_policy": {
+    "candidate_flag_required_false": true,
+    "material_known_system_omission_prohibited": true,
+    "pending_systems_must_remain_visible": true,
+    "project_candidate_models_may_be_comparators": false,
+    "same_protocol_closure_required_before_activation": true
+  },
+  "claim_policy": {
+    "activation_requires_receipts": [
+      "activated_comparator_registry_receipt",
+      "sealed_human_hidden_execution_receipt",
+      "separate_claim_receipt"
+    ],
+    "best_claim_enabled": false,
+    "blind_claim_enabled": false,
+    "first_claim_enabled": false,
+    "global_best_claim_enabled": false,
+    "registry_claim_eligible": false,
+    "scope_limited_descriptive_reporting_allowed": true,
+    "sota_claim_enabled": false
+  },
+  "evaluator_and_statistics": {
+    "claim_statistic_status": "blocked_incomplete_three_metric_implementation",
+    "paired_bootstrap": {
+      "ci_method": "percentile",
+      "confidence": 0.95,
+      "current_capability": "strict_micro_f1_only_insufficient",
+      "implementation": {
+        "file_sha256": "af3852bbfe9cf8af98a0343a34bab2f3b5088e53a410f25b026af82564143ae6",
+        "path": "src/pii_zh/evaluation/paired_bootstrap.py"
+      },
+      "multiple_comparison": "intersection_union_must_beat_every_admitted_comparator",
+      "required_metrics": [
+        "strict_micro_f1",
+        "strict_macro_f1",
+        "pii_free_document_fpr"
+      ],
+      "resampling_unit": "document",
+      "samples": 1000,
+      "seed": 42,
+      "status": "blocked_missing_macro_and_fpr",
+      "suite_mixture": "preserved",
+      "tie_handling": "zero_delta_is_not_superiority"
+    },
+    "source_bindings": {
+      "baseline_reporting": {
+        "file_sha256": "3eae7efa5a7f8dee4f7a9d0528c16a33ca90e1e13a69110e275ccfad5312b8e1",
+        "path": "src/pii_zh/evaluation/baseline_reporting.py"
+      },
+      "evaluation_api": {
+        "file_sha256": "376e0560ce2d22c1faf43e57c68b12a4bd5b049c2ba15c9eb4b76e5cacace5ab",
+        "path": "src/pii_zh/evaluation/__init__.py"
+      },
+      "evaluation_io": {
+        "file_sha256": "63d23d4418e73e9ebbe0ad0b5fe1a2c5895ba2e3ea38559c964cef6c0882750a",
+        "path": "src/pii_zh/evaluation/io.py"
+      },
+      "evaluation_metrics": {
+        "file_sha256": "1e9623ac4be80bb3bf8218b81c8079c8843b096680f1a2e1de8ce723226ed271",
+        "path": "src/pii_zh/evaluation/metrics.py"
+      },
+      "evaluation_provenance": {
+        "file_sha256": "c5c97e2e319c00322a0a1ceff00217c7fbed77144bf4c714ea8314d3d67a63ca",
+        "path": "src/pii_zh/evaluation/provenance.py"
+      },
+      "openmed_bigmed_closure": {
+        "file_mode": "0444",
+        "file_sha256": "1c679f3f21914e963f2c9584c91077d6d4ea04f11c322121936a0b42fe886a45",
+        "path": "configs/evaluation/openmed_bigmed_eval_source_closure_v2.json"
+      },
+      "openmed_bigmed_gate": {
+        "file_mode": "0444",
+        "file_sha256": "58491379d68ca20b6f7d4fac87d0c62408f2dff7ee4264a6932a56f108dd2a29",
+        "path": "configs/evaluation/openmed_bigmed_repair_gate_v2.freeze.json"
+      },
+      "openmed_privacy_filter_closure": {
+        "file_mode": "0444",
+        "file_sha256": "eade95d508bcc7462ccee17f68271bcf245aa4d860cf268cdaba1711acce72b8",
+        "path": "configs/evaluation/openmed_privacy_filter_eval_source_closure_v2.json"
+      },
+      "openmed_privacy_filter_gate": {
+        "file_mode": "0444",
+        "file_sha256": "8a0e9f0a92591eb0ef1d6db8cb81a28355fe9a43b19f97cb2fffb3c7ecbe6f73",
+        "path": "configs/evaluation/openmed_privacy_filter_repair_gate_v3.freeze.json"
+      },
+      "openmed_qwenmed_closure": {
+        "file_mode": "0444",
+        "file_sha256": "a26149fba5fc0607630a44d1880519e540d3a45e8f53c7955af4b428994d0f18",
+        "path": "configs/evaluation/openmed_qwenmed_eval_source_closure_v2.json"
+      },
+      "openmed_qwenmed_gate": {
+        "file_mode": "0444",
+        "file_sha256": "80f8e3eafd077b9189ccbc3e34b152f365de3adff3ab74fe130caacb07d17714",
+        "path": "configs/evaluation/openmed_qwenmed_repair_gate_v2.freeze.json"
+      },
+      "openmed_repair_umbrella": {
+        "file_mode": "0444",
+        "file_sha256": "1ad600d73845912b4bf770798f51b66cb2e2b7fd3b1f524aac0840e718d2161e",
+        "path": "configs/evaluation/openmed_generation2_closed8_repair_umbrella_v2.freeze.json"
+      },
+      "openmed_runtime": {
+        "file_sha256": "f9295ef2e82497563770605748b90f91a2f56bd07a57650d103bb7b5d81caa1c",
+        "path": "src/pii_zh/evaluation/openmed_generation2_runtime.py"
+      },
+      "openmed_snowflake_closure": {
+        "file_mode": "0444",
+        "file_sha256": "aebfc518cf191255895ed55ba06af6dad36190810ae52663cca7d539a1a8a876",
+        "path": "configs/evaluation/openmed_eval_source_closure_v5.json"
+      },
+      "openmed_snowflake_gate": {
+        "file_mode": "0444",
+        "file_sha256": "38dc7ba308fe4ed1cf6f22ac706b182788a5e631622e27274242cf49457d509a",
+        "path": "configs/evaluation/openmed_snowflake_repair_gate_v3.freeze.json"
+      },
+      "openmed_strict_results": {
+        "canonical_sha256": "6101c085cfd0e47c32e611f119466f8983a93ce322bb7e757eef72d5794bc478",
+        "file_mode": "0444",
+        "file_sha256": "95c7fc0c5c910a3d985222014613bafb8102f5c39d8aeff66117ecb30b540328",
+        "path": "reports/baselines/openmed_generation2_repair_v2_results.json"
+      },
+      "presidio_mapping": {
+        "file_sha256": "9b750a50c14d65fd63473dd9b2af9dc617375831e1014dbff13518dd837b6c4a",
+        "path": "src/pii_zh/taxonomy/presidio_mapping.yaml"
+      },
+      "release_evaluator": {
+        "file_sha256": "99078f06a7dbf40884aa376e439b343b5c97c654afcef8571265a53bc7412e08",
+        "path": "scripts/evaluate.py"
+      },
+      "required_metrics": {
+        "file_sha256": "1d362661c53b5282302dd980f4c8875cf55252ea5017b3ef1a9457677a4a87e8",
+        "path": "src/pii_zh/evaluation/required_metrics.py"
+      },
+      "strict_readiness_v5": {
+        "file_mode": "0444",
+        "file_sha256": "033ca89c9d70a2864078f837ff74217331e67563bfccaeea421d13ce5d44adf6",
+        "path": "reports/evaluation_readiness/evaluation_readiness_post_repair_v5_blocked.json"
+      },
+      "taxonomy": {
+        "file_sha256": "8e3db18bb769ade3cb2487ae4d95c7c3863abc36845e99391ce55603e4409c13",
+        "path": "src/pii_zh/taxonomy/taxonomy.yaml"
+      },
+      "taxonomy_api": {
+        "file_sha256": "83a787764dd49e00027493ef75e1987e1befaf93cee8cbd686114a6fc1822674",
+        "path": "src/pii_zh/taxonomy/__init__.py"
+      },
+      "taxonomy_loader": {
+        "file_sha256": "7a66ad992a58f6f598633e841d3d99f636cdca2de3d5e96c4648c8a1d2ee842c",
+        "path": "src/pii_zh/taxonomy/loader.py"
+      }
+    },
+    "training_seeds": [
+      13,
+      42,
+      97
+    ]
+  },
+  "freeze_attestation": {
+    "all_bound_input_mtimes_not_after_freeze": true,
+    "builder_binding": {
+      "file_sha256": "6d621fee09fb70e136ba3d24607511da53671b951d3efab54b40000c535f1f0d",
+      "path": "scripts/build_comparator_registry_v2_candidate.py"
+    },
+    "candidate_set_mutation_after_hidden_access_prohibited": true,
+    "freeze_does_not_activate_execution_or_claims": true,
+    "human_hidden_access_count": 0,
+    "human_hidden_gold_status": "not_materialized_never_accessed",
+    "human_hidden_record_count": 0,
+    "latest_bound_input_mtime": "2026-07-15T20:26:19.137535+00:00",
+    "latest_bound_input_mtime_ns": 1784147179137535212,
+    "scope": "public_open_source_simplified_chinese_pii_comparator_candidate_set",
+    "search_completed_at": "2026-07-16T03:19:26+08:00",
+    "search_completed_before_freeze": true
+  },
+  "frozen_at": "2026-07-16T04:26:44+08:00",
+  "hash_contract": "registry_sha256 is SHA-256 of canonical UTF-8 JSON after removing the top-level registry_sha256 field; keys are sorted, separators are compact, ensure_ascii=false, allow_nan=false",
+  "leaderboard_generation": 2,
+  "pending_requirements": {
+    "legacy_hybrid_semantics_source_closure": {
+      "acceptance_criteria": [
+        "Either reproduce through the release-native AnalyzerEngine path or rename the track as custom fusion.",
+        "Close historical/current runner drift and bind exact fusion source bytes.",
+        "Do not label historical custom fusion as stock Presidio behavior."
+      ],
+      "affected_system_ids": [
+        "ernie_chinese_ner",
+        "cluener2020_roberta"
+      ],
+      "affected_track_variant_ids": [
+        "presidio_ernie_cn_common_framework_hybrid",
+        "presidio_cluener_cn_common_framework_hybrid"
+      ],
+      "blocking": true,
+      "reason": "ERNIE and CLUENER historical hybrids used LocalRecognizer plus custom fusion, not native AnalyzerEngine execution.",
+      "required_before": "registry_activation",
+      "status": "pending"
+    },
+    "open24_and_human_hidden_mapping_closure": {
+      "acceptance_criteria": [
+        "Freeze every member's open-24 mapping, unsupported-FN handling, pre-decode policy, and suite support.",
+        "Materialize, sign off, seal, and keep the human hidden test at zero access before execution.",
+        "Generate a successor active registry rather than mutating this blocked freeze."
+      ],
+      "affected_system_ids": [
+        "aiguard_qwen3_0_6b",
+        "openai_privacy_filter",
+        "pii_engineer_chinese_ner_v1_0",
+        "pii_engineer_multi_ner_v2_1",
+        "ernie_chinese_ner",
+        "cluener2020_roberta",
+        "cn_common_v5",
+        "argus_redact_fast",
+        "openmed_snowflake",
+        "openmed_qwenmed",
+        "openmed_bigmed",
+        "openmed_multilingual_privacy_filter"
+      ],
+      "affected_track_variant_ids": [
+        "aiguard_qwen3_0_6b_model_raw",
+        "argus_redact_fast_rules_only",
+        "cluener2020_roberta_model_raw",
+        "cn_common_v5_rules_only",
+        "ernie_chinese_ner_model_raw",
+        "openai_privacy_filter_model_raw",
+        "openmed_bigmed_framework_hybrid",
+        "openmed_bigmed_model_raw",
+        "openmed_multilingual_privacy_filter_framework_hybrid",
+        "openmed_multilingual_privacy_filter_model_raw",
+        "openmed_qwenmed_framework_hybrid",
+        "openmed_qwenmed_model_raw",
+        "openmed_snowflake_framework_hybrid",
+        "openmed_snowflake_model_raw",
+        "pii_engineer_chinese_ner_model_raw",
+        "pii_engineer_multi_ner_v2_1_model_raw_pending",
+        "presidio_cluener_cn_common_framework_hybrid",
+        "presidio_ernie_cn_common_framework_hybrid"
+      ],
+      "blocking": true,
+      "reason": "Existing evidence covers public synthetic closed-8 only; member-level open-24 and human-hidden contracts do not exist.",
+      "required_before": "human_hidden_execution",
+      "status": "pending"
+    },
+    "pii_engineer_multi_same_protocol_reproduction": {
+      "acceptance_criteria": [
+        "Pin artifact files and reconcile the Apache-2.0 versus AGPL-3.0 declarations.",
+        "Freeze source mapping, decoder, operating point, runner, and unsupported-FN policy.",
+        "Produce a same-protocol aggregate report without using hidden gold for selection."
+      ],
+      "affected_system_ids": [
+        "pii_engineer_multi_ner_v2_1"
+      ],
+      "affected_track_variant_ids": [
+        "pii_engineer_multi_ner_v2_1_model_raw_pending"
+      ],
+      "blocking": true,
+      "reason": "Recent Chinese-capable model is material but has no repo-local immutable closure or same-protocol result.",
+      "required_before": "registry_activation",
+      "status": "pending"
+    },
+    "three_metric_paired_bootstrap_implementation": {
+      "acceptance_criteria": [
+        "Implement paired document bootstrap for strict micro F1, strict macro F1, and PII-free document FPR.",
+        "Preserve suite mixture and the frozen 1000-sample seed-42 percentile contract.",
+        "Require intersection-union superiority against every admitted comparator without post-hoc deletion."
+      ],
+      "affected_system_ids": [
+        "aiguard_qwen3_0_6b",
+        "openai_privacy_filter",
+        "pii_engineer_chinese_ner_v1_0",
+        "pii_engineer_multi_ner_v2_1",
+        "ernie_chinese_ner",
+        "cluener2020_roberta",
+        "cn_common_v5",
+        "argus_redact_fast",
+        "openmed_snowflake",
+        "openmed_qwenmed",
+        "openmed_bigmed",
+        "openmed_multilingual_privacy_filter"
+      ],
+      "affected_track_variant_ids": [
+        "aiguard_qwen3_0_6b_model_raw",
+        "argus_redact_fast_rules_only",
+        "cluener2020_roberta_model_raw",
+        "cn_common_v5_rules_only",
+        "ernie_chinese_ner_model_raw",
+        "openai_privacy_filter_model_raw",
+        "openmed_bigmed_framework_hybrid",
+        "openmed_bigmed_model_raw",
+        "openmed_multilingual_privacy_filter_framework_hybrid",
+        "openmed_multilingual_privacy_filter_model_raw",
+        "openmed_qwenmed_framework_hybrid",
+        "openmed_qwenmed_model_raw",
+        "openmed_snowflake_framework_hybrid",
+        "openmed_snowflake_model_raw",
+        "pii_engineer_chinese_ner_model_raw",
+        "pii_engineer_multi_ner_v2_1_model_raw_pending",
+        "presidio_cluener_cn_common_framework_hybrid",
+        "presidio_ernie_cn_common_framework_hybrid"
+      ],
+      "blocking": true,
+      "reason": "Current paired bootstrap implements strict micro F1 only and cannot support macro F1 or PII-free document FPR claims.",
+      "required_before": "human_hidden_execution",
+      "status": "pending"
+    }
+  },
+  "predecessor_chain": {
+    "generation_1_registry": {
+      "canonical_sha256": "37565121cffb708a87812bc2d3a86a8988b54f458c38f12d87055bfb36d4a5f2",
+      "file_mode": "0600",
+      "file_sha256": "b82b6492bf5fc3c57a3053f846138924bf61930876d2acf83bec40547de80cfb",
+      "immutability_status": "legacy_not_immutable_by_mode",
+      "logical_id": "comparator_registry_v1_generation_1",
+      "path": "configs/evaluation/comparator_registry_v1.yaml",
+      "status": "withdrawn_not_active"
+    },
+    "generation_1_withdrawal": {
+      "canonical_sha256": "cc0e4ba05a3735f072a21b519729c41bac85a596322fbf0ee89d77919904d00c",
+      "file_mode": "0600",
+      "file_sha256": "5601606a625b09bda0ccf13af7461996e7f6b5cf9f0f8cbc5f56edab33117bf3",
+      "immutability_status": "legacy_not_immutable_by_mode",
+      "logical_id": "comparator_registry_v1_generation_1_freeze_time_withdrawal",
+      "path": "configs/evaluation/comparator_registry_v1_withdrawal.yaml",
+      "status": "effective_claims_disabled"
+    },
+    "historical_claims_enabled": false
+  },
+  "protocol_contracts": {
+    "generation_2_confirmatory": {
+      "closed_8_non_protocol_outputs_excluded_before_decode": true,
+      "execution_allowed": false,
+      "human_hidden_access_count": 0,
+      "pii_free_documents_required": true,
+      "protocol_id": "pii_zh_generation_2_open_24_human_hidden_v1",
+      "required_suites": [
+        "formal",
+        "chat",
+        "pii_free",
+        "hard_negative",
+        "long_document"
+      ],
+      "status": "blocked_not_materialized",
+      "taxonomy_binding": {
+        "file_sha256": "8e3db18bb769ade3cb2487ae4d95c7c3863abc36845e99391ce55603e4409c13",
+        "path": "src/pii_zh/taxonomy/taxonomy.yaml"
+      },
+      "tracks": [
+        "model_raw",
+        "model_calibrated",
+        "rules_only",
+        "framework_hybrid",
+        "full_system"
+      ],
+      "unsupported_labels_count_as_false_negatives": true
+    },
+    "public_closed_8_diagnostic": {
+      "benchmark_exposure": "test_already_seen_not_for_selection_or_claim_activation",
+      "benchmark_threshold_tuning": false,
+      "claim_eligible": false,
+      "labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "manifest_file_sha256": "62c03dc8c5ba343a883498cf92d272ab9f240252e92ea06a665022f5ce7df6f1",
+      "manifest_logical_sha256": "545c990c96f23118ddc097ec0bed1d7f180785ac72e9f2a6ed56eb1ba3ee5e9b",
+      "metric": "strict_exact_start_end_label",
+      "non_protocol_outputs_excluded_before_decode_or_metric_serialization": true,
+      "pii_free_document_fpr_estimable": false,
+      "protocol_id": "pii_bench_zh_closed_8_v1",
+      "repository": "wan9yu/pii-bench-zh",
+      "revision": "c350b94897af668517ff5de237d89f2ce2eaa6f0",
+      "status": "existing_descriptive_public_diagnostic",
+      "unsupported_labels_count_as_false_negatives": true
+    }
+  },
+  "registry_id": "comparator_registry_v2_generation_2",
+  "registry_sha256": "fc36c2e070e359227061bb67ae0b527053126ada6726a292c2dc766add6c2baa",
+  "registry_state": "frozen_candidate_set_blocked",
+  "schema_binding": {
+    "file_mode": "0444",
+    "file_sha256": "8daf14beaaf88a70ff49bd229b322e76714518ea939cb51b35d3f837c80336b4",
+    "path": "configs/evaluation/comparator_registry_v2_candidate.schema.json"
+  },
+  "schema_version": 2,
+  "search_inventory": {
+    "excluded_public_resources": {
+      "ar86bat_multi": {
+        "decision": "excluded_language_scope",
+        "language_scope": [
+          "en",
+          "de",
+          "fr",
+          "it"
+        ],
+        "observation_sha256": "27e9d5291d7f2dde5fcba279607dcebcd9efcec76083c6cfb29ecb6fccbb9700",
+        "reason": "No Chinese language scope",
+        "repository": "Ar86Bat/PII-multilingual-ner",
+        "revision": "25111047e70291ad9e6194547296846784951fb1"
+      },
+      "fastino_gliner2": {
+        "decision": "excluded_language_scope",
+        "language_scope": [
+          "en",
+          "fr",
+          "es",
+          "de",
+          "it",
+          "pt",
+          "nl"
+        ],
+        "observation_sha256": "0ed09b25cde818205078c855c7f6adaf2e8772e8ebc0ba98fa74af5874c8654a",
+        "reason": "No Chinese language scope; synthetic training is also disclosed",
+        "repository": "fastino/gliner2-multilingual-pii",
+        "revision": "e40819b10177c9b9cdea62a3ece5cfdebd921e01"
+      },
+      "ossredact_large": {
+        "decision": "excluded_language_scope",
+        "language_scope": [
+          "fr",
+          "en"
+        ],
+        "observation_sha256": "6dd3ec7a77f24be7bc79d84a584c8ac735158fd7b5a237daea60e1281a01dab1",
+        "reason": "No Simplified-Chinese language scope",
+        "repository": "ZenSystemAI/OSSRedact-PII-Detection-Large",
+        "revision": "1341549fc6d3fd57ffd87743a89030a6c3829328"
+      },
+      "piiranha": {
+        "decision": "excluded_language_scope",
+        "language_scope": [
+          "en",
+          "it",
+          "fr",
+          "de",
+          "nl",
+          "es"
+        ],
+        "observation_sha256": "55f44cc4dede6ea704f71f225551d331f48bc6e79efcad61e71f8e61fcfdbd03",
+        "reason": "No Chinese language scope",
+        "repository": "iiiorg/piiranha-v1-detect-personal-information",
+        "revision": "255acde67a2f34cf452eb42e365b24d2957352fc"
+      },
+      "privacy_filter_tw": {
+        "decision": "deferred_cross_locale",
+        "language_scope": [
+          "zh_TW",
+          "en"
+        ],
+        "observation_sha256": "898d5ce9d27ab4b4e581e514b9971208ed4efd4781d3ef231700237cfb33c574",
+        "reason": "Traditional-Chinese Taiwan 19-label protocol requires a separate cross-locale track",
+        "repository": "lianghsun/privacy-filter-tw",
+        "revision": "89bc359c7cd130707992495c4347154ba7796e3c"
+      },
+      "urchade_gliner": {
+        "decision": "excluded_language_scope",
+        "language_scope": [
+          "en",
+          "fr",
+          "de",
+          "es",
+          "pt",
+          "it"
+        ],
+        "observation_sha256": "2077ef7142d96d102232016983c1924538727078429e07cb27838f31770fe3cd",
+        "reason": "No Chinese language scope",
+        "repository": "urchade/gliner_multi_pii-v1",
+        "revision": "1fcf13e85f4eef5394e1fcd406cf2ca9ea82351d"
+      }
+    },
+    "method": "public_hugging_face_metadata_plus_existing_repository_evidence",
+    "network_snapshot_archived": false,
+    "newly_discovered_required_system_ids": [
+      "pii_engineer_multi_ner_v2_1"
+    ],
+    "observation_digest_scope": "SHA-256 of public API response bytes observed during the pre-freeze search; responses are not repository-archived evidence and cannot activate claims",
+    "observed_public_resources": {
+      "openmed_bigmed": {
+        "decision": "required_candidate",
+        "language_scope": [
+          "zh"
+        ],
+        "observation_sha256": "d6d176d7682879e8abe3c2f3de5dc1a8f13c539fb3c447c5303f1e7d0168777d",
+        "reason": "Existing Generation-2 reproduced comparator",
+        "repository": "OpenMed/OpenMed-PII-Chinese-BigMed-Large-560M-v1",
+        "revision": "5cf65bca4760d6efbea015a65b9cf9116aa3519c"
+      },
+      "openmed_multilingual_privacy_filter": {
+        "decision": "required_candidate",
+        "language_scope": [
+          "multilingual",
+          "zh"
+        ],
+        "observation_sha256": "6352be61403b30ef901995504ce6c3b337e794de2d5412435c6eb2555229d43a",
+        "reason": "Existing Generation-2 reproduced comparator",
+        "repository": "OpenMed/privacy-filter-multilingual-v2",
+        "revision": "0d0c0430fa386435ace1d9f842f0f966903a9ac8"
+      },
+      "openmed_qwenmed": {
+        "decision": "required_candidate",
+        "language_scope": [
+          "zh"
+        ],
+        "observation_sha256": "10d3e4e750cc5814d01ace6fce12792b00fb1412f471e70a06326a03ff0af325",
+        "reason": "Existing Generation-2 reproduced comparator",
+        "repository": "OpenMed/OpenMed-PII-Chinese-QwenMed-XLarge-600M-v1",
+        "revision": "b230cddef42b3ed6ee2dc24fe065a130fdac6653"
+      },
+      "openmed_snowflake": {
+        "decision": "required_candidate",
+        "language_scope": [
+          "zh"
+        ],
+        "observation_sha256": "de4b24c3307704a010e70fb0168d2ff5e48244be1b8d63b53fb5aef91ba48fa3",
+        "reason": "Existing Generation-2 reproduced comparator",
+        "repository": "OpenMed/OpenMed-PII-Chinese-SnowflakeMed-Large-568M-v1",
+        "revision": "a7f9f4bbc43961ce1a7cdc38ade5545fcfcfbe64"
+      },
+      "pii_engineer_chinese_ner_v1_0": {
+        "decision": "required_candidate",
+        "language_scope": [
+          "zh"
+        ],
+        "observation_sha256": "48d3b812f70710367dffed307cb04dd9dc06b4bb3ceefe2952a4ee2866f72d61",
+        "reason": "Existing reproduced Chinese-specific comparator",
+        "repository": "pii-engineer/PII-Engineer-Chinese-NER-v1.0",
+        "revision": "d16aa1c54f34f993b2d4c30c218ee9d712959b2d"
+      },
+      "pii_engineer_multi_ner_v2_1": {
+        "decision": "required_candidate",
+        "language_scope": [
+          "multilingual",
+          "zh"
+        ],
+        "observation_sha256": "a1e1ffc8915c2c86ce8e01285c06f7f24855502b74fe7edcccf9cb1e53e660d0",
+        "reason": "Chinese-capable recent public PII NER model; local closure remains pending",
+        "repository": "pii-engineer/PII-Engineer-Multi-NER-v2.1",
+        "revision": "8ce12a2da5c333483ca2bd9a85def9d60609f244"
+      }
+    },
+    "required_system_ids": [
+      "aiguard_qwen3_0_6b",
+      "openai_privacy_filter",
+      "pii_engineer_chinese_ner_v1_0",
+      "pii_engineer_multi_ner_v2_1",
+      "ernie_chinese_ner",
+      "cluener2020_roberta",
+      "cn_common_v5",
+      "argus_redact_fast",
+      "openmed_snowflake",
+      "openmed_qwenmed",
+      "openmed_bigmed",
+      "openmed_multilingual_privacy_filter"
+    ]
+  },
+  "systems": {
+    "aiguard_qwen3_0_6b": {
+      "artifact_binding_status": "pinned_revision_plus_aggregate_report",
+      "benchmark_exposure": "fixed public synthetic benchmark already seen; descriptive only",
+      "caveats": [
+        "Aggregate report does not embed its historical evaluator byte hash."
+      ],
+      "display_name": "AIguard PII Detection Fast Qwen3-0.6B",
+      "language_scope": [
+        "zh"
+      ],
+      "license": {
+        "declarations": [
+          "Apache-2.0"
+        ],
+        "evaluation_allowed": true,
+        "evidence": "Generation-1 registry and independently reproduced aggregate report",
+        "redistribution_allowed_by_project": true,
+        "release_bundle_included": false,
+        "status": "upstream_declared"
+      },
+      "repository": "ZJUICSR/AIguard-pii-detection-fast",
+      "resource_kind": "public_model",
+      "revision": "677a5ebc1600fef61e8973cafd3026be322b3a73",
+      "revision_status": "pinned_model_revision"
+    },
+    "argus_redact_fast": {
+      "artifact_binding_status": "package_version_report_and_declared_source_revision",
+      "benchmark_exposure": "development_coupled_synthetic_benchmark_same_author",
+      "caveats": [
+        "Framework repository and benchmark share an author and development artifacts.",
+        "Wheel-to-source revision is not cryptographically proven."
+      ],
+      "display_name": "Argus Redact fast rules",
+      "language_scope": [
+        "zh"
+      ],
+      "license": {
+        "declarations": [
+          "Apache-2.0"
+        ],
+        "evaluation_allowed": true,
+        "evidence": "Package metadata and declared corresponding source revision",
+        "redistribution_allowed_by_project": true,
+        "release_bundle_included": false,
+        "status": "upstream_declared"
+      },
+      "repository": "wan9yu/argus-redact",
+      "resource_kind": "open_source_framework_rules",
+      "revision": "88d0342012b43e6c71fe79a02b90a1432db0f9a9",
+      "revision_status": "source_revision_not_cryptographically_bound_to_wheel_0_7_18"
+    },
+    "cluener2020_roberta": {
+      "artifact_binding_status": "pinned_revision_plus_aggregate_report",
+      "benchmark_exposure": "fixed public synthetic benchmark already seen; descriptive only",
+      "caveats": [
+        "Historical framework track uses custom fusion, not native AnalyzerEngine semantics.",
+        "Only ADDRESS and PERSON_NAME are directly mapped in model_raw."
+      ],
+      "display_name": "RoBERTa CLUENER2020 Chinese NER",
+      "language_scope": [
+        "zh"
+      ],
+      "license": {
+        "declarations": [],
+        "evaluation_allowed": true,
+        "evidence": "Pinned model card and upstream data redistribution remain unresolved",
+        "redistribution_allowed_by_project": false,
+        "release_bundle_included": false,
+        "status": "not_declared_in_pinned_model_card"
+      },
+      "repository": "uer/roberta-base-finetuned-cluener2020-chinese",
+      "resource_kind": "public_model_with_framework_adapter",
+      "revision": "cddd8fc233e373855a8c0a7f4b7eb83acb686a2b",
+      "revision_status": "pinned_model_revision"
+    },
+    "cn_common_v5": {
+      "artifact_binding_status": "source_and_aggregate_report_bound",
+      "benchmark_exposure": "fixed public synthetic benchmark already seen; descriptive only",
+      "caveats": [
+        "ADDRESS and PERSON_NAME are unsupported and count as false negatives."
+      ],
+      "display_name": "pii_zh cn_common v5 rules",
+      "language_scope": [
+        "zh"
+      ],
+      "license": {
+        "declarations": [
+          "Apache-2.0"
+        ],
+        "evaluation_allowed": true,
+        "evidence": "Project source and report component hashes",
+        "redistribution_allowed_by_project": true,
+        "release_bundle_included": false,
+        "status": "project_declared"
+      },
+      "repository": "local:pii_zh.rules.cn_common",
+      "resource_kind": "project_open_source_rule_pack",
+      "revision": "sha256:41e06d41dcc8eabe59584cd27b64ecfd234bcb034dc6d2268d87095c1a8a8bbb",
+      "revision_status": "implementation_content_sha256"
+    },
+    "ernie_chinese_ner": {
+      "artifact_binding_status": "pinned_revision_plus_aggregate_report_current_runner_drift",
+      "benchmark_exposure": "fixed public synthetic benchmark already seen; descriptive only",
+      "caveats": [
+        "Current replay runner hash differs from the historical runner hash embedded in the report.",
+        "Historical framework track uses custom fusion, not native AnalyzerEngine semantics."
+      ],
+      "display_name": "ERNIE 3.0 Chinese NER",
+      "language_scope": [
+        "zh"
+      ],
+      "license": {
+        "declarations": [],
+        "evaluation_allowed": true,
+        "evidence": "Pinned model card has no declared model license",
+        "redistribution_allowed_by_project": false,
+        "release_bundle_included": false,
+        "status": "not_declared_in_pinned_model_card"
+      },
+      "repository": "gyr66/Ernie-3.0-base-chinese-finetuned-ner",
+      "resource_kind": "public_model_with_framework_adapter",
+      "revision": "3f3c3fa40cf87298586dbbed55fd7ca1988719a8",
+      "revision_status": "pinned_model_revision"
+    },
+    "openai_privacy_filter": {
+      "artifact_binding_status": "pinned_revision_decoder_and_aggregate_report",
+      "benchmark_exposure": "fixed public synthetic benchmark already seen; descriptive only",
+      "caveats": [
+        "English-primary transfer baseline; three closed-eight labels are unsupported."
+      ],
+      "display_name": "OpenAI Privacy Filter",
+      "language_scope": [
+        "en_primary",
+        "zh_transfer"
+      ],
+      "license": {
+        "declarations": [
+          "Apache-2.0"
+        ],
+        "evaluation_allowed": true,
+        "evidence": "Pinned model and official decoder source revisions",
+        "redistribution_allowed_by_project": true,
+        "release_bundle_included": false,
+        "status": "upstream_declared"
+      },
+      "repository": "openai/privacy-filter",
+      "resource_kind": "public_model",
+      "revision": "7ffa9a043d54d1be65afb281eddf0ffbe629385b",
+      "revision_status": "pinned_model_revision_plus_decoder_source_f7f00ca7fb869683eb732c010299d901457f19c3"
+    },
+    "openmed_bigmed": {
+      "artifact_binding_status": "pinned_revision_prereg_gate_source_closure_and_strict_receipt",
+      "benchmark_exposure": "post_freeze_repair_public_synthetic_benchmark_descriptive_only",
+      "caveats": [
+        "Public source aggregate report is represented by its hash inside the consolidated receipt.",
+        "Project does not redistribute comparator weights."
+      ],
+      "display_name": "OpenMed BigMed Large 560M",
+      "language_scope": [
+        "zh"
+      ],
+      "license": {
+        "declarations": [
+          "Apache-2.0-upstream-card"
+        ],
+        "evaluation_allowed": true,
+        "evidence": "Pinned upstream README SHA-256 246578f95cd936065d036701493092e17c1e0c101388370822520f70c5be4619; weights excluded from project bundle",
+        "redistribution_allowed_by_project": false,
+        "release_bundle_included": false,
+        "status": "upstream_declared_project_redistribution_disabled"
+      },
+      "repository": "OpenMed/OpenMed-PII-Chinese-BigMed-Large-560M-v1",
+      "resource_kind": "public_model",
+      "revision": "5cf65bca4760d6efbea015a65b9cf9116aa3519c",
+      "revision_status": "pinned_model_revision_gate_and_source_closure_bound"
+    },
+    "openmed_multilingual_privacy_filter": {
+      "artifact_binding_status": "pinned_revision_prereg_gate_source_closure_and_strict_receipt",
+      "benchmark_exposure": "post_freeze_repair_public_synthetic_benchmark_descriptive_only",
+      "caveats": [
+        "Public source aggregate report is represented by its hash inside the consolidated receipt.",
+        "Project does not redistribute comparator weights."
+      ],
+      "display_name": "OpenMed Privacy Filter Multilingual v2",
+      "language_scope": [
+        "zh"
+      ],
+      "license": {
+        "declarations": [
+          "Apache-2.0-upstream-card"
+        ],
+        "evaluation_allowed": true,
+        "evidence": "Pinned upstream README SHA-256 8757300f46dfc6f02dc8a570541d83739227e0e37b79b7016fdffb8198ee3d3c; weights excluded from project bundle",
+        "redistribution_allowed_by_project": false,
+        "release_bundle_included": false,
+        "status": "upstream_card_observed_project_prereg_did_not_bind_license"
+      },
+      "repository": "OpenMed/privacy-filter-multilingual-v2",
+      "resource_kind": "public_model",
+      "revision": "0d0c0430fa386435ace1d9f842f0f966903a9ac8",
+      "revision_status": "pinned_model_revision_gate_and_source_closure_bound"
+    },
+    "openmed_qwenmed": {
+      "artifact_binding_status": "pinned_revision_prereg_gate_source_closure_and_strict_receipt",
+      "benchmark_exposure": "post_freeze_repair_public_synthetic_benchmark_descriptive_only",
+      "caveats": [
+        "Public source aggregate report is represented by its hash inside the consolidated receipt.",
+        "Project does not redistribute comparator weights."
+      ],
+      "display_name": "OpenMed QwenMed XLarge 600M",
+      "language_scope": [
+        "zh"
+      ],
+      "license": {
+        "declarations": [
+          "Apache-2.0-upstream-card"
+        ],
+        "evaluation_allowed": true,
+        "evidence": "Pinned upstream README SHA-256 ce3d9310f2327558855388fb36c9f3d901f54f642f20c5263e1cd6d7540a7d68; weights excluded from project bundle",
+        "redistribution_allowed_by_project": false,
+        "release_bundle_included": false,
+        "status": "upstream_declared_project_redistribution_disabled"
+      },
+      "repository": "OpenMed/OpenMed-PII-Chinese-QwenMed-XLarge-600M-v1",
+      "resource_kind": "public_model",
+      "revision": "b230cddef42b3ed6ee2dc24fe065a130fdac6653",
+      "revision_status": "pinned_model_revision_gate_and_source_closure_bound"
+    },
+    "openmed_snowflake": {
+      "artifact_binding_status": "pinned_revision_prereg_gate_source_closure_and_strict_receipt",
+      "benchmark_exposure": "post_freeze_repair_public_synthetic_benchmark_descriptive_only",
+      "caveats": [
+        "Public source aggregate report is represented by its hash inside the consolidated receipt.",
+        "Project does not redistribute comparator weights."
+      ],
+      "display_name": "OpenMed SnowflakeMed Large 568M",
+      "language_scope": [
+        "zh"
+      ],
+      "license": {
+        "declarations": [
+          "Apache-2.0-upstream-card"
+        ],
+        "evaluation_allowed": true,
+        "evidence": "Pinned upstream README SHA-256 a5f795813b6bbbcf85e82a6cfda80b396aa9300132a64a0455e5a9c10bf0cc27; weights excluded from project bundle",
+        "redistribution_allowed_by_project": false,
+        "release_bundle_included": false,
+        "status": "upstream_declared_project_redistribution_disabled"
+      },
+      "repository": "OpenMed/OpenMed-PII-Chinese-SnowflakeMed-Large-568M-v1",
+      "resource_kind": "public_model",
+      "revision": "a7f9f4bbc43961ce1a7cdc38ade5545fcfcfbe64",
+      "revision_status": "pinned_model_revision_gate_and_source_closure_bound"
+    },
+    "pii_engineer_chinese_ner_v1_0": {
+      "artifact_binding_status": "pinned_revision_plus_aggregate_report_current_runner_drift",
+      "benchmark_exposure": "fixed public synthetic benchmark already seen; descriptive only",
+      "caveats": [
+        "Current replay runner hash differs from the historical runner hash embedded in the report.",
+        "Weight redistribution is disabled by this project."
+      ],
+      "display_name": "PII Engineer Chinese NER v1.0",
+      "language_scope": [
+        "zh"
+      ],
+      "license": {
+        "declarations": [
+          "Apache-2.0-frontmatter",
+          "AGPL-3.0-body"
+        ],
+        "evaluation_allowed": true,
+        "evidence": "Pinned model card contains conflicting declarations",
+        "redistribution_allowed_by_project": false,
+        "release_bundle_included": false,
+        "status": "conflicting_upstream_declarations"
+      },
+      "repository": "pii-engineer/PII-Engineer-Chinese-NER-v1.0",
+      "resource_kind": "public_model",
+      "revision": "d16aa1c54f34f993b2d4c30c218ee9d712959b2d",
+      "revision_status": "pinned_model_revision"
+    },
+    "pii_engineer_multi_ner_v2_1": {
+      "artifact_binding_status": "pending_local_snapshot_mapping_runner_and_same_protocol_report",
+      "benchmark_exposure": "not_run_under_repository_protocol",
+      "caveats": [
+        "Required candidate discovered before freeze but not locally auditable yet.",
+        "No report, mapping, runner, artifact manifest, or local license snapshot is admitted."
+      ],
+      "display_name": "PII Engineer Multi NER v2.1",
+      "language_scope": [
+        "multilingual",
+        "zh"
+      ],
+      "license": {
+        "declarations": [
+          "Apache-2.0-frontmatter",
+          "AGPL-3.0-body"
+        ],
+        "evaluation_allowed": false,
+        "evidence": "External public metadata observation only; no repository-local snapshot yet",
+        "redistribution_allowed_by_project": false,
+        "release_bundle_included": false,
+        "status": "conflicting_upstream_declarations_pending_review"
+      },
+      "repository": "pii-engineer/PII-Engineer-Multi-NER-v2.1",
+      "resource_kind": "public_model_required_pending_closure",
+      "revision": "8ce12a2da5c333483ca2bd9a85def9d60609f244",
+      "revision_status": "external_public_metadata_observed_pending_repo_local_closure"
+    }
+  },
+  "timezone": "Asia/Shanghai",
+  "track_variants": {
+    "aiguard_qwen3_0_6b_model_raw": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "model_raw",
+      "closed_8_coverage": 8,
+      "components": [
+        "pinned_checkpoint",
+        "native_token_classifier_decoder"
+      ],
+      "decoder": "masked_logits_then_argmax_and_BIO_decode",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": "model_only",
+      "mapping": {
+        "canonical_sha256": "d9cd9a547a79833209e7b8ee1769870ddbee0fa32876e150e08f0f65a49c1d4a",
+        "file_sha256": "c10fa63beaebff42ad402fcdfca0642c7d899e332a4da3ce3eadc8d52bfecd97",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "embedded_in_bound_report",
+        "path": "reports/baselines/aiguard_pii_bench_zh.json",
+        "selector": "comparison_contract.closed_8.source_to_target",
+        "status": "embedded_in_bound_report"
+      },
+      "operating_point": "upstream_default_no_test_threshold_tuning",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "c10fa63beaebff42ad402fcdfca0642c7d899e332a4da3ce3eadc8d52bfecd97",
+        "path": "reports/baselines/aiguard_pii_bench_zh.json",
+        "selector": "results",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "4ede18a1548ab0e66fee7979ff3797829ffb7025a4401f863dcade45b0119f4c",
+        "path": "scripts/evaluate_aiguard_baseline.py",
+        "status": "bound_current_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "aiguard_qwen3_0_6b",
+      "unsupported_closed_8_labels": []
+    },
+    "argus_redact_fast_rules_only": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "rules_only",
+      "closed_8_coverage": 8,
+      "components": [
+        "argus_redact_0_7_18_fast_mode"
+      ],
+      "decoder": "argus_fast_rules_type_filter",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": "rules_only",
+      "mapping": {
+        "canonical_sha256": "a56547675b633ecba282fdfff551933b53955746addd9239106f8863f2428d9f",
+        "file_sha256": "2cd12c69aec08544f99aa6e9af21dbd0bfcfc8701e7620d92213021d24e262bd",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "embedded_in_bound_report",
+        "path": "reports/baselines/argus_redact_pii_bench_zh.json",
+        "selector": "comparison_contract.closed_8.source_to_target",
+        "status": "embedded_in_bound_report"
+      },
+      "operating_point": "package_default_fast_mode",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "2cd12c69aec08544f99aa6e9af21dbd0bfcfc8701e7620d92213021d24e262bd",
+        "path": "reports/baselines/argus_redact_pii_bench_zh.json",
+        "selector": "results",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "d0ab1c76021763916576bc4937eaac5a2d110bd7263f5766e5faadf55c153db5",
+        "path": "scripts/evaluate_argus_redact_baseline.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "argus_redact_fast",
+      "unsupported_closed_8_labels": []
+    },
+    "cluener2020_roberta_model_raw": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "model_raw",
+      "closed_8_coverage": 2,
+      "components": [
+        "pinned_CLUENER_BIOS_checkpoint",
+        "LocalRecognizer_adapter"
+      ],
+      "decoder": "masked_logits_argmax_BIOS_repair",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": "model_only",
+      "mapping": {
+        "canonical_sha256": "d3da91edb1b064d0efe8519f5229c2046ad472addd3592d8e73bbde2d827e740",
+        "file_sha256": "a32b5d87c39604ea37f5f5dfd39f294cb560f6e1ff30c40ebbceac82cd718957",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "embedded_in_bound_report",
+        "path": "reports/baselines/presidio_cluener_pii_bench_zh.json",
+        "selector": "comparison_contract.closed_8.model_source_to_target",
+        "status": "embedded_in_bound_report"
+      },
+      "operating_point": "upstream_default_no_test_threshold_tuning",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "a32b5d87c39604ea37f5f5dfd39f294cb560f6e1ff30c40ebbceac82cd718957",
+        "path": "reports/baselines/presidio_cluener_pii_bench_zh.json",
+        "selector": "results.model_only",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "c8d09febff00a3734e2660fa8019eb20e6fe4d2bc774d8eb4a472a7f96dfd1cc",
+        "path": "scripts/evaluate_presidio_cluener_baseline.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "PERSON_NAME"
+      ],
+      "system_id": "cluener2020_roberta",
+      "unsupported_closed_8_labels": [
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ]
+    },
+    "cn_common_v5_rules_only": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "rules_only",
+      "closed_8_coverage": 6,
+      "components": [
+        "cn_common_v5",
+        "structured_validators"
+      ],
+      "decoder": "deterministic_rules_and_validators",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": "rules_only",
+      "mapping": {
+        "canonical_sha256": "4e776a14578b21e122112b4563be8a5fa6eafe15f1bf9b9df95fce7efea778a4",
+        "file_sha256": "7932f7566268a17f5ff741cfd07df054445f12b290706506850d9135142bbec8",
+        "identity_scope": "native_supported_label_contract",
+        "native_source_mapping_status": "embedded_in_bound_report",
+        "path": "reports/baselines/presidio_rules_closed8_pii_bench_zh.json",
+        "selector": "comparison_contract.supported_target_labels",
+        "status": "embedded_in_bound_report"
+      },
+      "operating_point": "cn_common_v5_fixed",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "7932f7566268a17f5ff741cfd07df054445f12b290706506850d9135142bbec8",
+        "path": "reports/baselines/presidio_rules_closed8_pii_bench_zh.json",
+        "selector": "subsets",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "b4df98fe9ad82e5d7fbca7d446be46a33d530455e6b9123550f25faa13d8abac",
+        "path": "scripts/predict_rules.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "cn_common_v5",
+      "unsupported_closed_8_labels": [
+        "ADDRESS",
+        "PERSON_NAME"
+      ]
+    },
+    "ernie_chinese_ner_model_raw": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "model_raw",
+      "closed_8_coverage": 4,
+      "components": [
+        "pinned_ERNIE_BIO_checkpoint",
+        "LocalRecognizer_adapter"
+      ],
+      "decoder": "masked_logits_argmax_BIO_repair",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": "model_only",
+      "mapping": {
+        "canonical_sha256": "bc717cf58f066fb19ab63658f3dfba4016665fd589165cbcf1eb9d397d982cf4",
+        "file_sha256": "b5f9442503d7e0acc8914e2d001f357df7f44212a206760d06210e2f634c7406",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "embedded_in_bound_report",
+        "path": "reports/baselines/presidio_ernie_pii_bench_zh.json",
+        "selector": "comparison_contract.closed_8.model_source_to_target",
+        "status": "embedded_in_bound_report"
+      },
+      "operating_point": "upstream_default_no_test_threshold_tuning",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "b5f9442503d7e0acc8914e2d001f357df7f44212a206760d06210e2f634c7406",
+        "path": "reports/baselines/presidio_ernie_pii_bench_zh.json",
+        "selector": "results.model_only",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "0fe286f041fb0f12560d0da05dc464d3f9a741fbc6b4995c443538366e6e93f5",
+        "path": "scripts/evaluate_presidio_ernie_baseline.py",
+        "status": "bound_current_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "EMAIL_ADDRESS",
+        "PERSON_NAME",
+        "PHONE_NUMBER"
+      ],
+      "system_id": "ernie_chinese_ner",
+      "unsupported_closed_8_labels": [
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "PASSPORT_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ]
+    },
+    "openai_privacy_filter_model_raw": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "model_raw",
+      "closed_8_coverage": 5,
+      "components": [
+        "pinned_checkpoint",
+        "official_constrained_viterbi"
+      ],
+      "decoder": "official_constrained_viterbi",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": "model_only",
+      "mapping": {
+        "canonical_sha256": "d1774737261163a1b22eff3457bbe606320d66c767ad477db1e3d829b00d05eb",
+        "file_sha256": "0461126c4f4b94b2657337325f72ba39f1b341fdc23de19d980947f1dbf5777f",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "embedded_in_bound_report",
+        "path": "reports/baselines/openai_privacy_filter_pii_bench_zh.json",
+        "selector": "comparison_contract.closed_8.source_to_target",
+        "status": "embedded_in_bound_report"
+      },
+      "operating_point": "upstream_default",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "0461126c4f4b94b2657337325f72ba39f1b341fdc23de19d980947f1dbf5777f",
+        "path": "reports/baselines/openai_privacy_filter_pii_bench_zh.json",
+        "selector": "results",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "53211458cde24ff0abd28692739762fb2e198bf096683a7bf50b5aa085da9adc",
+        "path": "scripts/evaluate_openai_privacy_filter_baseline.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "EMAIL_ADDRESS",
+        "PERSON_NAME",
+        "PHONE_NUMBER"
+      ],
+      "system_id": "openai_privacy_filter",
+      "unsupported_closed_8_labels": [
+        "CN_RESIDENT_ID",
+        "PASSPORT_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ]
+    },
+    "openmed_bigmed_framework_hybrid": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "framework_hybrid",
+      "closed_8_coverage": 8,
+      "components": [
+        "pinned_OpenMed_checkpoint",
+        "shared_sparse_BIO_runtime",
+        "presidio_analyzer_2_2_363",
+        "cn_common_v5",
+        "native_AnalyzerEngine"
+      ],
+      "decoder": "sparse_BIO_exact_offset_merge_and_deterministic_repair_v2",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": null,
+      "mapping": {
+        "canonical_sha256": "e54c629ee369c16a61e83676aa0df242a90914410a6920cd4de8bec4312246b5",
+        "file_sha256": "335e787ab5d1ec4e3cc40dbc71d8daba0fb3a4769d6b233491fa493383d544fd",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "source_closure_bound_no_standalone_declared_hash",
+        "path": "configs/evaluation/openmed_bigmed_closed8_model_raw_hybrid_v1.json",
+        "selector": "source_to_benchmark",
+        "status": "bound_via_frozen_source_closure"
+      },
+      "operating_point": "native_Presidio_AnalyzerEngine_2_2_363_fixed",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "95c7fc0c5c910a3d985222014613bafb8102f5c39d8aeff66117ecb30b540328",
+        "path": "reports/baselines/openmed_generation2_repair_v2_results.json",
+        "selector": "results.bigmed.tracks.framework_hybrid",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "8fb493ac7dea3eacfa98bf2160c1246978b9aa3df833b081983935101738ec8e",
+        "path": "scripts/evaluate_openmed_bigmed_baseline_v2.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "openmed_bigmed",
+      "unsupported_closed_8_labels": []
+    },
+    "openmed_bigmed_model_raw": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "model_raw",
+      "closed_8_coverage": 7,
+      "components": [
+        "pinned_OpenMed_checkpoint",
+        "shared_sparse_BIO_runtime"
+      ],
+      "decoder": "sparse_BIO_exact_offset_merge_and_deterministic_repair_v2",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": null,
+      "mapping": {
+        "canonical_sha256": "e54c629ee369c16a61e83676aa0df242a90914410a6920cd4de8bec4312246b5",
+        "file_sha256": "335e787ab5d1ec4e3cc40dbc71d8daba0fb3a4769d6b233491fa493383d544fd",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "source_closure_bound_no_standalone_declared_hash",
+        "path": "configs/evaluation/openmed_bigmed_closed8_model_raw_hybrid_v1.json",
+        "selector": "source_to_benchmark",
+        "status": "bound_via_frozen_source_closure"
+      },
+      "operating_point": "fixed_native_model_raw",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "95c7fc0c5c910a3d985222014613bafb8102f5c39d8aeff66117ecb30b540328",
+        "path": "reports/baselines/openmed_generation2_repair_v2_results.json",
+        "selector": "results.bigmed.tracks.model_raw",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "8fb493ac7dea3eacfa98bf2160c1246978b9aa3df833b081983935101738ec8e",
+        "path": "scripts/evaluate_openmed_bigmed_baseline_v2.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "openmed_bigmed",
+      "unsupported_closed_8_labels": [
+        "PASSPORT_NUMBER"
+      ]
+    },
+    "openmed_multilingual_privacy_filter_framework_hybrid": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "framework_hybrid",
+      "closed_8_coverage": 8,
+      "components": [
+        "pinned_OpenMed_checkpoint",
+        "shared_sparse_BIO_runtime",
+        "presidio_analyzer_2_2_363",
+        "cn_common_v5",
+        "native_AnalyzerEngine"
+      ],
+      "decoder": "sparse_BIO_exact_offset_merge_and_deterministic_repair_v2",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": null,
+      "mapping": {
+        "canonical_sha256": "e54c629ee369c16a61e83676aa0df242a90914410a6920cd4de8bec4312246b5",
+        "file_sha256": "443da78ffc10c032250c211ea2b2b58b0b13238feba00256b14584b4d82d6549",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "source_closure_bound_no_standalone_declared_hash",
+        "path": "configs/evaluation/openmed_privacy_filter_gen2_v1.final.yaml",
+        "selector": "mapping.source_to_benchmark",
+        "status": "bound_via_frozen_source_closure"
+      },
+      "operating_point": "native_Presidio_AnalyzerEngine_2_2_363_fixed",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "95c7fc0c5c910a3d985222014613bafb8102f5c39d8aeff66117ecb30b540328",
+        "path": "reports/baselines/openmed_generation2_repair_v2_results.json",
+        "selector": "results.multilingual_privacy_filter.tracks.framework_hybrid",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "863e37c93ef1b2c754fc43d16e63d4aa160986d9ba899b46f95bad360f7f624b",
+        "path": "scripts/evaluate_openmed_privacy_filter_gen2_repair_v2.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "openmed_multilingual_privacy_filter",
+      "unsupported_closed_8_labels": []
+    },
+    "openmed_multilingual_privacy_filter_model_raw": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "model_raw",
+      "closed_8_coverage": 7,
+      "components": [
+        "pinned_OpenMed_checkpoint",
+        "shared_sparse_BIO_runtime"
+      ],
+      "decoder": "sparse_BIO_exact_offset_merge_and_deterministic_repair_v2",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": null,
+      "mapping": {
+        "canonical_sha256": "e54c629ee369c16a61e83676aa0df242a90914410a6920cd4de8bec4312246b5",
+        "file_sha256": "443da78ffc10c032250c211ea2b2b58b0b13238feba00256b14584b4d82d6549",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "source_closure_bound_no_standalone_declared_hash",
+        "path": "configs/evaluation/openmed_privacy_filter_gen2_v1.final.yaml",
+        "selector": "mapping.source_to_benchmark",
+        "status": "bound_via_frozen_source_closure"
+      },
+      "operating_point": "fixed_native_model_raw",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "95c7fc0c5c910a3d985222014613bafb8102f5c39d8aeff66117ecb30b540328",
+        "path": "reports/baselines/openmed_generation2_repair_v2_results.json",
+        "selector": "results.multilingual_privacy_filter.tracks.model_raw",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "863e37c93ef1b2c754fc43d16e63d4aa160986d9ba899b46f95bad360f7f624b",
+        "path": "scripts/evaluate_openmed_privacy_filter_gen2_repair_v2.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "openmed_multilingual_privacy_filter",
+      "unsupported_closed_8_labels": [
+        "PASSPORT_NUMBER"
+      ]
+    },
+    "openmed_qwenmed_framework_hybrid": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "framework_hybrid",
+      "closed_8_coverage": 8,
+      "components": [
+        "pinned_OpenMed_checkpoint",
+        "shared_sparse_BIO_runtime",
+        "presidio_analyzer_2_2_363",
+        "cn_common_v5",
+        "native_AnalyzerEngine"
+      ],
+      "decoder": "sparse_BIO_exact_offset_merge_and_deterministic_repair_v2",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": null,
+      "mapping": {
+        "canonical_sha256": "e54c629ee369c16a61e83676aa0df242a90914410a6920cd4de8bec4312246b5",
+        "file_sha256": "c028e8eae45780d10416a1efcdc1159664bf08ae5b739ec045a35490935552f7",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "source_closure_bound_no_standalone_declared_hash",
+        "path": "configs/evaluation/openmed_qwenmed_closed8_model_raw_hybrid_v1.yaml",
+        "selector": "source_to_benchmark",
+        "status": "bound_via_frozen_source_closure"
+      },
+      "operating_point": "native_Presidio_AnalyzerEngine_2_2_363_fixed",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "95c7fc0c5c910a3d985222014613bafb8102f5c39d8aeff66117ecb30b540328",
+        "path": "reports/baselines/openmed_generation2_repair_v2_results.json",
+        "selector": "results.qwenmed.tracks.framework_hybrid",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "73eef1f15567e3d402fa3693c64d5b9c70f3bdbb1044d5412e6ae1abc30b61b2",
+        "path": "scripts/evaluate_openmed_qwenmed_baseline_v2.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "openmed_qwenmed",
+      "unsupported_closed_8_labels": []
+    },
+    "openmed_qwenmed_model_raw": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "model_raw",
+      "closed_8_coverage": 7,
+      "components": [
+        "pinned_OpenMed_checkpoint",
+        "shared_sparse_BIO_runtime"
+      ],
+      "decoder": "sparse_BIO_exact_offset_merge_and_deterministic_repair_v2",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": null,
+      "mapping": {
+        "canonical_sha256": "e54c629ee369c16a61e83676aa0df242a90914410a6920cd4de8bec4312246b5",
+        "file_sha256": "c028e8eae45780d10416a1efcdc1159664bf08ae5b739ec045a35490935552f7",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "source_closure_bound_no_standalone_declared_hash",
+        "path": "configs/evaluation/openmed_qwenmed_closed8_model_raw_hybrid_v1.yaml",
+        "selector": "source_to_benchmark",
+        "status": "bound_via_frozen_source_closure"
+      },
+      "operating_point": "fixed_native_model_raw",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "95c7fc0c5c910a3d985222014613bafb8102f5c39d8aeff66117ecb30b540328",
+        "path": "reports/baselines/openmed_generation2_repair_v2_results.json",
+        "selector": "results.qwenmed.tracks.model_raw",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "73eef1f15567e3d402fa3693c64d5b9c70f3bdbb1044d5412e6ae1abc30b61b2",
+        "path": "scripts/evaluate_openmed_qwenmed_baseline_v2.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "openmed_qwenmed",
+      "unsupported_closed_8_labels": [
+        "PASSPORT_NUMBER"
+      ]
+    },
+    "openmed_snowflake_framework_hybrid": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "framework_hybrid",
+      "closed_8_coverage": 8,
+      "components": [
+        "pinned_OpenMed_checkpoint",
+        "shared_sparse_BIO_runtime",
+        "presidio_analyzer_2_2_363",
+        "cn_common_v5",
+        "native_AnalyzerEngine"
+      ],
+      "decoder": "sparse_BIO_exact_offset_merge_and_deterministic_repair_v2",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": null,
+      "mapping": {
+        "canonical_sha256": "e54c629ee369c16a61e83676aa0df242a90914410a6920cd4de8bec4312246b5",
+        "file_sha256": "c1b3897eb3f946309789471277ff8553d098555142aa16d610f4acde5f75debf",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "source_closure_bound_no_standalone_declared_hash",
+        "path": "configs/evaluation/openmed_snowflake_closed8_model_raw_hybrid_v6.yaml",
+        "selector": "source_to_benchmark",
+        "status": "bound_via_frozen_source_closure"
+      },
+      "operating_point": "native_Presidio_AnalyzerEngine_2_2_363_fixed",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "95c7fc0c5c910a3d985222014613bafb8102f5c39d8aeff66117ecb30b540328",
+        "path": "reports/baselines/openmed_generation2_repair_v2_results.json",
+        "selector": "results.snowflake.tracks.framework_hybrid",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "4902e8bde96e836bb5dc4f58e1f432896ca59206f569ce4bcbdbb49993c5324d",
+        "path": "scripts/evaluate_openmed_snowflake_repair_v2.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "openmed_snowflake",
+      "unsupported_closed_8_labels": []
+    },
+    "openmed_snowflake_model_raw": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "model_raw",
+      "closed_8_coverage": 7,
+      "components": [
+        "pinned_OpenMed_checkpoint",
+        "shared_sparse_BIO_runtime"
+      ],
+      "decoder": "sparse_BIO_exact_offset_merge_and_deterministic_repair_v2",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": null,
+      "mapping": {
+        "canonical_sha256": "e54c629ee369c16a61e83676aa0df242a90914410a6920cd4de8bec4312246b5",
+        "file_sha256": "c1b3897eb3f946309789471277ff8553d098555142aa16d610f4acde5f75debf",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "source_closure_bound_no_standalone_declared_hash",
+        "path": "configs/evaluation/openmed_snowflake_closed8_model_raw_hybrid_v6.yaml",
+        "selector": "source_to_benchmark",
+        "status": "bound_via_frozen_source_closure"
+      },
+      "operating_point": "fixed_native_model_raw",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "95c7fc0c5c910a3d985222014613bafb8102f5c39d8aeff66117ecb30b540328",
+        "path": "reports/baselines/openmed_generation2_repair_v2_results.json",
+        "selector": "results.snowflake.tracks.model_raw",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "4902e8bde96e836bb5dc4f58e1f432896ca59206f569ce4bcbdbb49993c5324d",
+        "path": "scripts/evaluate_openmed_snowflake_repair_v2.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "openmed_snowflake",
+      "unsupported_closed_8_labels": [
+        "PASSPORT_NUMBER"
+      ]
+    },
+    "pii_engineer_chinese_ner_model_raw": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "model_raw",
+      "closed_8_coverage": 4,
+      "components": [
+        "pinned_ONNX_BERT_BIO_checkpoint",
+        "BIO_repair_decoder"
+      ],
+      "decoder": "masked_logits_argmax_BIO_repair",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": "model_only",
+      "mapping": {
+        "canonical_sha256": "c9e9e462d372b1f541fa192637cb7d366ff60e3c29e5b1b78809f4e0d6f973d6",
+        "file_sha256": "0d7a8e974c4b20afb3272208ba3a280e21710f9b207ee707ae6ebbc6791b2177",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "embedded_in_bound_report",
+        "path": "reports/baselines/pii_engineer_chinese_ner_pii_bench_zh.json",
+        "selector": "comparison_contract.closed_8.source_to_target",
+        "status": "embedded_in_bound_report"
+      },
+      "operating_point": "upstream_default_no_test_threshold_tuning",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "0d7a8e974c4b20afb3272208ba3a280e21710f9b207ee707ae6ebbc6791b2177",
+        "path": "reports/baselines/pii_engineer_chinese_ner_pii_bench_zh.json",
+        "selector": "results",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "93902073a81e115a673fdfdfe66b874bdae00da7d0bfc0a18bd2f2e1573654bd",
+        "path": "scripts/evaluate_pii_engineer_baseline.py",
+        "status": "bound_current_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "CN_RESIDENT_ID",
+        "PERSON_NAME",
+        "PHONE_NUMBER"
+      ],
+      "system_id": "pii_engineer_chinese_ner_v1_0",
+      "unsupported_closed_8_labels": [
+        "BANK_CARD_NUMBER",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ]
+    },
+    "pii_engineer_multi_ner_v2_1_model_raw_pending": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "model_raw",
+      "closed_8_coverage": 0,
+      "components": [
+        "upstream_multilingual_ONNX_modules_pending_local_closure"
+      ],
+      "decoder": "pending_same_protocol_adapter_and_decoder_closure",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": null,
+      "mapping": {
+        "canonical_sha256": null,
+        "file_sha256": null,
+        "identity_scope": "pending",
+        "native_source_mapping_status": "pending",
+        "path": null,
+        "selector": null,
+        "status": "pending"
+      },
+      "operating_point": "pending_upstream_default_freeze",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": null,
+        "path": null,
+        "selector": null,
+        "status": "pending_same_protocol_reproduction"
+      },
+      "runner": {
+        "file_sha256": null,
+        "path": null,
+        "status": "pending"
+      },
+      "supported_closed_8_labels": [],
+      "system_id": "pii_engineer_multi_ner_v2_1",
+      "unsupported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ]
+    },
+    "presidio_cluener_cn_common_framework_hybrid": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "framework_hybrid",
+      "closed_8_coverage": 8,
+      "components": [
+        "CLUENER_LocalRecognizer",
+        "cn_common_v5",
+        "custom_historical_fusion"
+      ],
+      "decoder": "model_BIOS_decode_plus_custom_exact_dedup_overlap_fusion",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": "framework_hybrid",
+      "mapping": {
+        "canonical_sha256": "d3da91edb1b064d0efe8519f5229c2046ad472addd3592d8e73bbde2d827e740",
+        "file_sha256": "a32b5d87c39604ea37f5f5dfd39f294cb560f6e1ff30c40ebbceac82cd718957",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "embedded_in_bound_report",
+        "path": "reports/baselines/presidio_cluener_pii_bench_zh.json",
+        "selector": "comparison_contract.closed_8.model_source_to_target",
+        "status": "embedded_in_bound_report"
+      },
+      "operating_point": "historical_custom_fusion_not_native_AnalyzerEngine",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "a32b5d87c39604ea37f5f5dfd39f294cb560f6e1ff30c40ebbceac82cd718957",
+        "path": "reports/baselines/presidio_cluener_pii_bench_zh.json",
+        "selector": "results.framework_hybrid",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "c8d09febff00a3734e2660fa8019eb20e6fe4d2bc774d8eb4a472a7f96dfd1cc",
+        "path": "scripts/evaluate_presidio_cluener_baseline.py",
+        "status": "bound_exact_historical_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "cluener2020_roberta",
+      "unsupported_closed_8_labels": []
+    },
+    "presidio_ernie_cn_common_framework_hybrid": {
+      "benchmark_threshold_tuning": false,
+      "candidate": false,
+      "canonical_track": "framework_hybrid",
+      "closed_8_coverage": 8,
+      "components": [
+        "ERNIE_LocalRecognizer",
+        "cn_common_v5",
+        "custom_historical_fusion"
+      ],
+      "decoder": "model_BIO_decode_plus_custom_exact_dedup_overlap_fusion",
+      "human_hidden_execution_status": "pending_not_executed",
+      "legacy_report_track": "framework_hybrid",
+      "mapping": {
+        "canonical_sha256": "bc717cf58f066fb19ab63658f3dfba4016665fd589165cbcf1eb9d397d982cf4",
+        "file_sha256": "b5f9442503d7e0acc8914e2d001f357df7f44212a206760d06210e2f634c7406",
+        "identity_scope": "native_source_to_closed_8_mapping",
+        "native_source_mapping_status": "embedded_in_bound_report",
+        "path": "reports/baselines/presidio_ernie_pii_bench_zh.json",
+        "selector": "comparison_contract.closed_8.model_source_to_target",
+        "status": "embedded_in_bound_report"
+      },
+      "operating_point": "historical_custom_fusion_not_native_AnalyzerEngine",
+      "public_diagnostic": {
+        "claim_eligible": false,
+        "file_sha256": "b5f9442503d7e0acc8914e2d001f357df7f44212a206760d06210e2f634c7406",
+        "path": "reports/baselines/presidio_ernie_pii_bench_zh.json",
+        "selector": "results.framework_hybrid",
+        "status": "available_descriptive_only"
+      },
+      "runner": {
+        "file_sha256": "0fe286f041fb0f12560d0da05dc464d3f9a741fbc6b4995c443538366e6e93f5",
+        "path": "scripts/evaluate_presidio_ernie_baseline.py",
+        "status": "bound_current_source"
+      },
+      "supported_closed_8_labels": [
+        "ADDRESS",
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ],
+      "system_id": "ernie_chinese_ner",
+      "unsupported_closed_8_labels": []
+    }
+  }
+}

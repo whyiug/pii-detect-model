@@ -1,0 +1,31 @@
+schema_version: 1
+pack: cn_common_v6
+implementation: pii_zh.rules.cn_common_v6.CnCommonRulePackV6
+enabled: true
+release_status: successor_candidate_non_default
+
+# Historical cn_common_v5 remains unchanged. The successor adds a conservative
+# GA 36-2018 civilian mainland vehicle-plate subset and keeps its model branch
+# disabled until a separate end-to-end service gain gate passes.
+validator_backed_entities:
+  CN_ID_CARD: CN_RESIDENT_ID
+  BANK_CARD_NUMBER: BANK_CARD_NUMBER
+  PHONE_NUMBER: PHONE_NUMBER
+  EMAIL_ADDRESS: EMAIL_ADDRESS
+  IP_ADDRESS: IP_ADDRESS
+  MAC_ADDRESS: MAC_ADDRESS
+  GEO_COORDINATE: GEO_COORDINATE
+  CN_VEHICLE_LICENSE_PLATE: CN_VEHICLE_LICENSE_PLATE
+
+successor_validator_implementation:
+  CN_VEHICLE_LICENSE_PLATE: pii_zh.data.validators.cn_vehicle_plate.validate_cn_vehicle_license_plate
+
+vehicle_plate_scope:
+  ordinary_civilian: supported
+  small_new_energy_initial_df_layout: supported
+  large_new_energy_initial_df_layout: supported
+  police_diplomatic_consular_cross_boundary_emergency_military_motorcycle_temporary: unsupported
+  model_branch_enabled: false
+
+invalid_candidate_policy: suppress
+already_masked_policy: detect_without_replacement

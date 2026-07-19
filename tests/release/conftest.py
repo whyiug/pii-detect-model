@@ -203,7 +203,7 @@ def release_fixture(tmp_path: Path, repository_root: Path) -> ReleaseFixture:
         "      - task: {type: token-classification}\n"
         "        dataset: {name: synthetic-release-test, type: synthetic}\n"
         "        metrics:\n"
-        "          - {name: Strict Span F1, type: strict_span_f1, value: 0.8}\n",
+        "          - {name: Model Raw Strict Span F1, type: strict_span_f1, value: 0.8}\n",
         encoding="utf-8",
     )
     write_json(

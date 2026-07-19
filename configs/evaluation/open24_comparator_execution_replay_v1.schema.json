@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/open24_comparator_execution_replay_v1.schema.json",
+  "title": "Open-24 comparator full execution replay v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "status",
+    "track",
+    "system_id",
+    "prediction",
+    "provenance",
+    "generation",
+    "implementation",
+    "measurement",
+    "execution",
+    "privacy",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.open24-comparator-execution-replay.v1"
+    },
+    "receipt_type": {"const": "open24_comparator_full_execution_replay"},
+    "status": {"const": "PASS"},
+    "track": {"enum": ["model_raw", "full_system"]},
+    "system_id": {"$ref": "#/$defs/safeId"},
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observed_file_sha256",
+        "replayed_file_sha256",
+        "byte_identical",
+        "document_count"
+      ],
+      "properties": {
+        "observed_file_sha256": {"$ref": "#/$defs/sha256"},
+        "replayed_file_sha256": {"$ref": "#/$defs/sha256"},
+        "byte_identical": {"const": true},
+        "document_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observed_manifest_file_sha256",
+        "observed_manifest_sha256",
+        "replayed_manifest_file_sha256",
+        "replayed_manifest_sha256",
+        "stage_and_support_strict_replay_passed"
+      ],
+      "properties": {
+        "observed_manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "observed_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "replayed_manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "replayed_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "stage_and_support_strict_replay_passed": {"const": true}
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observed_receipt_sha256",
+        "replayed_receipt_sha256",
+        "stage_gate_equal",
+        "input_identity_equal",
+        "output_identity_equal"
+      ],
+      "properties": {
+        "observed_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "replayed_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "stage_gate_equal": {"const": true},
+        "input_identity_equal": {"const": true},
+        "output_identity_equal": {"const": true}
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observed_file_sha256",
+        "replayed_file_sha256",
+        "document_sha256",
+        "implementation_sha256",
+        "byte_identical"
+      ],
+      "properties": {
+        "observed_file_sha256": {"$ref": "#/$defs/sha256"},
+        "replayed_file_sha256": {"$ref": "#/$defs/sha256"},
+        "document_sha256": {"$ref": "#/$defs/sha256"},
+        "implementation_sha256": {"$ref": "#/$defs/sha256"},
+        "byte_identical": {"const": true}
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observed_receipt_sha256",
+        "replayed_receipt_sha256",
+        "fresh_measurement_collected",
+        "numeric_equality_required",
+        "harness_replayed"
+      ],
+      "properties": {
+        "observed_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "replayed_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "fresh_measurement_collected": {"const": true},
+        "numeric_equality_required": {"const": false},
+        "harness_replayed": {"const": true}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inference_rerun", "generated_status", "fixture"],
+      "properties": {
+        "inference_rerun": {"const": true},
+        "generated_status": {
+          "enum": [
+            "PASS_GENERATED_REPLAY_REQUIRED",
+            "PASS_FIXTURE_GENERATED_REPLAY_REQUIRED"
+          ]
+        },
+        "fixture": {"type": "boolean"}
+      }
+    },
+    "privacy": {
+      "const": {
+        "contains_paths": false,
+        "contains_raw_text": false,
+        "contains_entity_values": false,
+        "contains_document_ids": false,
+        "aggregate_only": true
+      }
+    },
+    "receipt_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    }
+  }
+}

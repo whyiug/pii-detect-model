@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from numbers import Integral, Real
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from pii_zh.calibration import CalibrationBundle
 from pii_zh.taxonomy import load_presidio_mapping
@@ -23,6 +23,8 @@ class WindowPredictor(Protocol):
 
 
 ModelLoader = Callable[[Path], Any]
+RecognizerDeduplicationPolicy = Literal["high_overlap_v1", "exact_only_v1"]
+_DEDUPLICATION_POLICIES = frozenset({"high_overlap_v1", "exact_only_v1"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,7 +64,7 @@ def _integer_offset(name: str, value: object) -> int:
     return int(value)
 
 
-class QwenPiiRecognizer(LocalRecognizer):  # type: ignore[misc]
+class QwenPiiRecognizer(LocalRecognizer):
     """Run a caller-supplied local predictor as an additional Presidio recognizer.
 
     No model class is imported here.  A Full-Attention or other custom Qwen
@@ -88,6 +90,7 @@ class QwenPiiRecognizer(LocalRecognizer):  # type: ignore[misc]
         stride_fraction: float = 0.25,
         model_version: str = "unknown-local-model",
         attention_mode: str = "unknown",
+        deduplication_policy: RecognizerDeduplicationPolicy = "high_overlap_v1",
         name: str = "QwenPiiRecognizer",
         supported_language: str = "zh",
         version: str = "1.0.0",
@@ -141,6 +144,9 @@ class QwenPiiRecognizer(LocalRecognizer):  # type: ignore[misc]
         self.stride_fraction = stride_fraction
         self.model_version = model_version
         self.attention_mode = attention_mode
+        if deduplication_policy not in _DEDUPLICATION_POLICIES:
+            raise ValueError("deduplication_policy must be high_overlap_v1 or exact_only_v1")
+        self.deduplication_policy = deduplication_policy
         self.loader_metadata: dict[str, Any] = {}
         self._loaded = predictor is not None and chunker is not None
         # Presidio's EntityRecognizer constructor eagerly calls ``load``.
@@ -151,6 +157,13 @@ class QwenPiiRecognizer(LocalRecognizer):  # type: ignore[misc]
             supported_language=supported_language,
             version=version,
             context=[],
+        )
+        # Presidio exposes these values at runtime, but some supported patch
+        # releases do not declare ``name``/``id`` in their typing surface.
+        # Keep typed local copies for stable recognition metadata.
+        self._recognizer_name = name
+        self._recognizer_identifier = str(
+            getattr(self, "id", f"{name}_{supported_language}_{version}")
         )
 
     def load(self) -> None:
@@ -303,9 +316,13 @@ class QwenPiiRecognizer(LocalRecognizer):  # type: ignore[misc]
             metadata=dict(raw_metadata),
         )
 
-    @staticmethod
-    def _deduplicate(candidates: Sequence[_Candidate]) -> list[_Candidate]:
-        """Remove exact and high-overlap same-label cross-window duplicates."""
+    def _deduplicate(self, candidates: Sequence[_Candidate]) -> list[_Candidate]:
+        """Apply the explicit recognizer-level duplicate policy.
+
+        Production keeps the historical high-overlap suppression. Raw/union
+        evaluation uses ``exact_only_v1`` so this recognizer cannot remove a
+        partial overlap before the shared Pipeline observes it.
+        """
 
         kept: list[_Candidate] = []
         for candidate in sorted(
@@ -322,11 +339,15 @@ class QwenPiiRecognizer(LocalRecognizer):  # type: ignore[misc]
             for index, existing in enumerate(kept):
                 if existing.entity_type != candidate.entity_type:
                     continue
+                exact = existing.start == candidate.start and existing.end == candidate.end
                 intersection = max(
                     0, min(existing.end, candidate.end) - max(existing.start, candidate.start)
                 )
                 shorter = min(existing.end - existing.start, candidate.end - candidate.start)
-                if intersection and intersection / shorter >= 0.5:
+                high_overlap = bool(intersection and intersection / shorter >= 0.5)
+                if exact or (
+                    self.deduplication_policy == "high_overlap_v1" and high_overlap
+                ):
                     duplicate_indices.append(index)
             if not duplicate_indices:
                 kept.append(candidate)
@@ -372,15 +393,14 @@ class QwenPiiRecognizer(LocalRecognizer):  # type: ignore[misc]
                 candidates[document_index].append(candidate)
 
         results: list[list[RecognizerResult]] = []
-        recognizer_identifier = getattr(self, "id", self.name)
         for document_candidates in candidates:
             document_results: list[RecognizerResult] = []
             for candidate in self._deduplicate(document_candidates):
                 metadata = {
                     **self.loader_metadata,
                     **dict(candidate.metadata),
-                    "recognizer_name": self.name,
-                    "recognizer_identifier": recognizer_identifier,
+                    "recognizer_name": self._recognizer_name,
+                    "recognizer_identifier": self._recognizer_identifier,
                     "source": "qwen",
                     "raw_score": candidate.raw_score,
                     "calibrated_score": candidate.score,
@@ -391,6 +411,7 @@ class QwenPiiRecognizer(LocalRecognizer):  # type: ignore[misc]
                         candidate.model_label, candidate.entity_type
                     ),
                     "attention_mode": self.attention_mode,
+                    "deduplication_policy": self.deduplication_policy,
                     "window_id": candidate.window_id,
                     "boundary_refined": candidate.boundary_refined,
                 }
@@ -451,4 +472,10 @@ class QwenPiiRecognizer(LocalRecognizer):  # type: ignore[misc]
         return self._analyze_many(values, self._entity_filters(entities, len(values)))
 
 
-__all__ = ["LocalModelBundle", "ModelLoader", "QwenPiiRecognizer", "WindowPredictor"]
+__all__ = [
+    "LocalModelBundle",
+    "ModelLoader",
+    "QwenPiiRecognizer",
+    "RecognizerDeduplicationPolicy",
+    "WindowPredictor",
+]

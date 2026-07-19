@@ -1,0 +1,223 @@
+{
+  "schema_version": "pii-zh.community-cascade-release-contract.v2",
+  "contract_id": "community_cascade_release_v2",
+  "status": "blocked_pending_replays_and_artifacts",
+  "purpose": "fail_closed_release_gate_for_open24_quality_and_independent_replays",
+  "scope": {
+    "allowed_data": [
+      "public_open_source",
+      "synthetic"
+    ],
+    "community_release": true,
+    "human_evidence_required": false,
+    "production_ready": false,
+    "public_test_exposed": true,
+    "real_world_sota": false
+  },
+  "quality_gate": {
+    "result_receipt": null,
+    "strict_replay_receipt": null,
+    "required_schema_version": "pii-zh.public-synthetic-service-quality-result.v2",
+    "required_status": "PASS",
+    "reported_pass_is_not_replay_proof": true
+  },
+  "candidate_identity": null,
+  "replay_evidence": {
+    "model_raw": {
+      "candidate_prediction_full_replay": null,
+      "comparator_generation_replay": null,
+      "performance_harness_replay": null
+    },
+    "full_system": {
+      "candidate_prediction_full_replay": null,
+      "comparator_generation_replay": null,
+      "performance_harness_replay": null
+    }
+  },
+  "release_artifacts": {
+    "final_model_manifest": null,
+    "model_card": null,
+    "model_package_manifest": null,
+    "service_configuration_manifest": null,
+    "service_source_manifest": null,
+    "technical_documentation_manifest": null,
+    "wheel_manifest": null,
+    "wheelhouse_manifest": null,
+    "container_manifest": null,
+    "sbom": null,
+    "license_report": null,
+    "benchmark_report": null,
+    "public_artifact_scan": null,
+    "dependency_scan": null
+  },
+  "verification_receipts": {
+    "unit_tests": null,
+    "clean_wheel_smoke": null,
+    "container_smoke": null,
+    "offline_model_smoke": null,
+    "offline_service_smoke": null
+  },
+  "publication": {
+    "github": {
+      "target_id": null,
+      "authorized": false,
+      "published": false,
+      "publication_receipt": null
+    },
+    "hugging_face": {
+      "target_id": null,
+      "authorized": false,
+      "published": false,
+      "publication_receipt": null
+    },
+    "publication_requires_same_turn_user_authorization": true
+  },
+  "claims": {
+    "first_chinese_pii_model": false,
+    "global_sota": false,
+    "production_ready": false,
+    "real_world_sota": false,
+    "named_open24_leadership_requires_all_replays": true
+  },
+  "privacy": {
+    "contract_contains_paths": false,
+    "release_receipt_contains_paths": false,
+    "record_level_data_read_allowed": false,
+    "model_weight_read_allowed": true,
+    "network_allowed": false,
+    "gpu_query_or_use_allowed": false,
+    "publication_allowed_without_authorization": false
+  },
+  "implementation": {
+    "contract_schema": {
+      "logical_id": "contract_schema",
+      "file_sha256": "d16e3295a8031dfa5533ad4c801824cdc1432a1d30d7ac2102c2e704f440be8a"
+    },
+    "release_receipt_schema": {
+      "logical_id": "release_receipt_schema",
+      "file_sha256": "d4ce3b70c7a04e2d77d33060c8eb0a87c63a85d94af7951411c2932718b646e3"
+    },
+    "replay_receipt_schema": {
+      "logical_id": "replay_receipt_schema",
+      "file_sha256": "d596a450f31bc21e39aa419c26b7321b16f9934f13e7b157855de5b04e3563cc"
+    },
+    "source_identity_schema": {
+      "logical_id": "source_identity_schema",
+      "file_sha256": "c8b4532feec7225c92ccaa1d31a247795ebba88af81db97649969b4b2912d32e"
+    },
+    "source_identity_predecessor_schema": {
+      "logical_id": "source_identity_predecessor_schema",
+      "file_sha256": "508449e6d6c44382bec91c11633ace9bffbdb92546b7ae5c7c488bc7c2972aca"
+    },
+    "artifact_evidence_schema": {
+      "logical_id": "artifact_evidence_schema",
+      "file_sha256": "dec265ea7c47104dc36de238526e7466649cac4be7a2a08487f271a75b606584"
+    },
+    "verification_receipt_schema": {
+      "logical_id": "verification_receipt_schema",
+      "file_sha256": "6c551678540f03684c32f43e3a4df5cfe64f0c6febb660bd586075c1301abadc"
+    },
+    "quality_replay_evidence_schema": {
+      "logical_id": "quality_replay_evidence_schema",
+      "file_sha256": "53bf09203cb8d58807862d7c160a6e6fd834594987262532e6055bc54bcd1dc8"
+    },
+    "candidate_replay_evidence_schema": {
+      "logical_id": "candidate_replay_evidence_schema",
+      "file_sha256": "7741d17b342fba9f8bb838853970085c31eef723da5bfb6b0e9133305205ea09"
+    },
+    "comparator_replay_evidence_schema": {
+      "logical_id": "comparator_replay_evidence_schema",
+      "file_sha256": "645146dfd8505dc2c43f7edd08fbf60cc7186f6a5211414750d04eccce0cf52e"
+    },
+    "validator": {
+      "logical_id": "validator",
+      "file_sha256": "60e188ec86f15935775221c9fbcdd9648d71c08e34e860fdf80e9d2db50d9b8c"
+    },
+    "support": {
+      "logical_id": "support",
+      "file_sha256": "695d476c072b4e077766a625b4cee3c0ccc03f6d2debf779ab3fd59939a84e1b"
+    },
+    "evidence_producer": {
+      "logical_id": "evidence_producer",
+      "file_sha256": "9c8822b2ea7b288b52e41150e70d0e286b7c3751cf0ead96f0b53f3733aa4f92"
+    },
+    "artifact_producer": {
+      "logical_id": "artifact_producer",
+      "file_sha256": "f84f07f243b85c75d3fca1333edd010d2e8b1c533e9ccd2a6430a58cc8b79e06"
+    },
+    "verification_producer": {
+      "logical_id": "verification_producer",
+      "file_sha256": "f5f2f0ecc290810948153dfd1ecb3e6b26658f53c8a000de243343f4f7dd40ae"
+    },
+    "contract_builder": {
+      "logical_id": "contract_builder",
+      "file_sha256": "99a62d596074b5940bada3c9dfc0d13e6e7c3380ee852ffe23effa1efe0b7b54"
+    },
+    "model_package_builder": {
+      "logical_id": "model_package_builder",
+      "file_sha256": "8f8274c44fb056a1fe7bb1994131da412466a3df52dd464445632d6646f664b2"
+    },
+    "public_artifact_scanner": {
+      "logical_id": "public_artifact_scanner",
+      "file_sha256": "a24a722460f16e9d9adb8b3e9142945d9f218793612dee9a675286757834a06a"
+    },
+    "performance_harness_module": {
+      "logical_id": "performance_harness_module",
+      "file_sha256": "7e6b887c0ec0185d7498cf99aaf914160c5288fb77d6586febcc723678434c8f"
+    },
+    "performance_harness_cli": {
+      "logical_id": "performance_harness_cli",
+      "file_sha256": "f7939e31d9987a079898c0b40e2f232451de23c3e0351ccc75c4262e05d39658"
+    },
+    "quality_producer": {
+      "logical_id": "quality_producer",
+      "file_sha256": "5e4ad1172631dfab8281bdbf320e935cebd13b1f9d1f5e58e03e4b3ecef29b5e"
+    },
+    "quality_result_schema": {
+      "logical_id": "quality_result_schema",
+      "file_sha256": "585f7dc4c23ac3e2005031502db7b79fe455ee32e7a5cf8e125ae905aca4513a"
+    },
+    "quality_registry_schema": {
+      "logical_id": "quality_registry_schema",
+      "file_sha256": "467dcfaacd2b9a7a5ef795c2192d39aa69388cc83139069d39fd77026956c1ff"
+    },
+    "candidate_provenance_schema": {
+      "logical_id": "candidate_provenance_schema",
+      "file_sha256": "866eb8c375f705dc7589c2b442dd8d2060173255412b0d71a37c67579bd7584b"
+    },
+    "candidate_provenance_module": {
+      "logical_id": "candidate_provenance_module",
+      "file_sha256": "f7b9055f79126d9022ec30610ed382a35dcebc4fd51c81c817656132a9d9c5f7"
+    },
+    "candidate_provenance_cli": {
+      "logical_id": "candidate_provenance_cli",
+      "file_sha256": "5712a3a9262027b66651f2aae0c3eaa9cf8bca3bb0da26601a057aeb373e8e83"
+    },
+    "comparator_provenance_schema": {
+      "logical_id": "comparator_provenance_schema",
+      "file_sha256": "23209d4624df4c2baded330a59a98d0409f307b15051e5376711c52e72b44869"
+    },
+    "stage_gate_module": {
+      "logical_id": "stage_gate_module",
+      "file_sha256": "b466e4aec2c35477704db7aafe846cc84672f665a4cc5058b02e731db87766a5"
+    },
+    "stage_gate_cli": {
+      "logical_id": "stage_gate_cli",
+      "file_sha256": "750b0899ed92f5a32e988b76fb0ac7916d64a986f9933d6b501f59ca22e151a0"
+    },
+    "calibration_authorization_schema": {
+      "logical_id": "calibration_authorization_schema",
+      "file_sha256": "8788494e61cce4e3ddbf20e78d0f129008c5da52c57168fb4c9857c21148fc95"
+    },
+    "internal_unlock_schema": {
+      "logical_id": "internal_unlock_schema",
+      "file_sha256": "4517729ef53d321a4623bd15d30e5fcec00a06c2ddd4f20003f6bca6243ef6d3"
+    }
+  },
+  "historical_policy": {
+    "historical_v1_is_immutable": true,
+    "production_gates_inherit_this_pass": false,
+    "community_pass_is_not_real_world_evidence": true
+  },
+  "contract_sha256": "94b3aadcbb9f9fcbe9713bbdd48602b8f79b1956dc0f2efbc0ea533a0cd4ddd6"
+}

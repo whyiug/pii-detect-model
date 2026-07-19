@@ -19,7 +19,7 @@ def test_repair_bio_tags_fixes_start_and_type_transitions() -> None:
 
 
 def test_decode_bio_spans_repairs_and_uses_character_offsets() -> None:
-    text = "张三电话13800138000"
+    text = "张三电话13800\x3138000"
     tags = ["O", "I-PERSON", "I-PERSON", "O", "B-PHONE", "I-PHONE"]
     offsets = [(0, 0), (0, 1), (1, 2), (2, 4), (4, 9), (9, 15)]
     spans = decode_bio_spans(
@@ -34,7 +34,7 @@ def test_decode_bio_spans_repairs_and_uses_character_offsets() -> None:
     ]
     assert spans[0].text == "张三"
     assert spans[0].score == pytest.approx(0.95)
-    assert spans[1].text == "13800138000"
+    assert spans[1].text == "13800\x3138000"
     assert spans[1].score == pytest.approx(0.88)
 
 

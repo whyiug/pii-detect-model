@@ -74,6 +74,19 @@ def _community_report(*, validation_sha256: str) -> dict[str, Any]:
     )
 
 
+def _dataset_identity(*, suite: str, count: int, index: int) -> dict[str, Any]:
+    digest_char = ("2", "3", "4")[index]
+    return {
+        "evaluation_only": True,
+        "gold_sha256": digest_char * 64,
+        "manifest_file_sha256": "5" * 64,
+        "manifest_sha256": "6" * 64,
+        "record_count": count,
+        "source_id": suite,
+        "subset": "test",
+    }
+
+
 def _system_summary(
     *,
     training_manifest_sha256: str,
@@ -84,6 +97,7 @@ def _system_summary(
 ) -> dict[str, Any]:
     suites = {
         suite: {
+            "dataset": _dataset_identity(suite=suite, count=count, index=index),
             "metrics": {
                 "document_count": count,
                 "strict_micro": {
@@ -122,6 +136,83 @@ def _system_summary(
                     "calibration_version": calibration_version,
                     "diagnostics_manifest_sha256": diagnostics_manifest_sha256,
                 },
+            },
+            "privacy": {
+                "contains_paths": False,
+                "contains_raw_text": False,
+                "contains_entity_values": False,
+                "contains_document_ids": False,
+                "contains_record_level_data": False,
+            },
+        }
+    )
+
+
+def _model_summary(
+    *,
+    training_manifest_sha256: str,
+    training_file_sha256: str,
+    calibration_file_sha256: str,
+    calibration_version: str,
+    diagnostics_manifest_sha256: str,
+    track: str = "model_raw",
+) -> dict[str, Any]:
+    suites = {
+        suite: {
+            "dataset": _dataset_identity(suite=suite, count=count, index=index),
+            "metrics": {
+                "document_count": count,
+                "strict_micro": {
+                    "precision": 0.74 - index / 100,
+                    "recall": 0.73 - index / 100,
+                    "f1": 0.735 - index / 100,
+                },
+            },
+            "model_output": {
+                "evaluation_sha256": "7" * 64,
+                "predictions_sha256": ("8", "9", "a")[index] * 64,
+            },
+        }
+        for index, (suite, count) in enumerate(
+            zip(EXPECTED_SUITES, (2_000, 5_000, 3_000), strict=True)
+        )
+    }
+    model_identity: dict[str, Any] = {
+        "selected_seed": 42,
+        "attention_mode": "full",
+        "training": {
+            "manifest_sha256": training_manifest_sha256,
+            "manifest_file_sha256": training_file_sha256,
+        },
+        "decoder": {
+            "decoder_id": "fixture-bio-decoder-v1",
+            "implementation_sha256": "b" * 64,
+        },
+    }
+    if track == "model_calibrated":
+        model_identity["calibration"] = {
+            "bundle_sha256": calibration_file_sha256,
+            "calibration_version": calibration_version,
+            "diagnostics_manifest_sha256": diagnostics_manifest_sha256,
+        }
+    return _seal(
+        {
+            "schema_version": 1,
+            "artifact_type": "frozen_model_evaluation_summary",
+            "canonical_track": track,
+            "suite_order": list(EXPECTED_SUITES),
+            "suites": suites,
+            "model_identity": model_identity,
+            "attribution": {
+                "output_stage": track,
+                "checkpoint_output": True,
+                "decoder_applied": True,
+                "calibration_applied": track == "model_calibrated",
+                "rules_applied": False,
+                "framework_applied": False,
+                "cascade_applied": False,
+                "fusion_applied": False,
+                "refinement_applied": False,
             },
             "privacy": {
                 "contains_paths": False,
@@ -204,6 +295,16 @@ def _fixture(tmp_path: Path) -> dict[str, Any]:
     system_summary_path = tmp_path / "system_summary.json"
     _write_json(system_summary_path, system_summary)
 
+    model_summary = _model_summary(
+        training_manifest_sha256=training["manifest_sha256"],
+        training_file_sha256=training_file_sha256,
+        calibration_file_sha256=calibration_file_sha256,
+        calibration_version=calibration_version,
+        diagnostics_manifest_sha256=diagnostics["manifest_sha256"],
+    )
+    model_summary_path = tmp_path / "model_summary.json"
+    _write_json(model_summary_path, model_summary)
+
     provenance_binding = {
         "training_manifest_sha256": training["manifest_sha256"],
         "training_manifest_file_sha256": training_file_sha256,
@@ -255,6 +356,7 @@ def _fixture(tmp_path: Path) -> dict[str, Any]:
             "calibration_diagnostics_path": diagnostics_path,
             "community_report_path": community_path,
             "system_summary_path": system_summary_path,
+            "model_summary_path": model_summary_path,
             "data_provenance_path": data_provenance_path,
             "teacher_provenance_path": teacher_provenance_path,
             "output_dir": output_dir,
@@ -264,6 +366,8 @@ def _fixture(tmp_path: Path) -> dict[str, Any]:
         "community": community,
         "core_labels": core_labels,
         "data_provenance_path": data_provenance_path,
+        "model_summary": model_summary,
+        "model_summary_path": model_summary_path,
         "output_dir": output_dir,
         "system_summary": system_summary,
         "teacher_provenance_path": teacher_provenance_path,
@@ -288,6 +392,7 @@ def test_assemble_emits_gate_compatible_three_seed_report_and_deterministic_inde
     assert tuple(run["seed"] for run in report["seeds"]) == EXPECTED_SEEDS
     assert report["quality_gate"] == fixture["community"]["quality_gate"]
     assert report["release_decision"] == "passed"
+    assert report["frozen_model_evaluation"] == fixture["model_summary"]
     assert "runs" not in report
 
     thresholds = yaml.safe_load((output_dir / "thresholds.yaml").read_text(encoding="utf-8"))
@@ -303,18 +408,96 @@ def test_assemble_emits_gate_compatible_three_seed_report_and_deterministic_inde
     assert all(
         [metric["name"] for metric in result["metrics"]]
         == [
-            "System Strict Span Micro F1",
-            "System Strict Span Precision",
-            "System Strict Span Recall",
+            "Model Raw Strict Span Micro F1",
+            "Model Raw Strict Span Precision",
+            "Model Raw Strict Span Recall",
         ]
         for result in indexed["results"]
     )
+    assert indexed["results"][0]["metrics"][0]["value"] == 0.735
+    assert indexed["results"][0]["metrics"][0]["value"] != 0.935
     serialized = "\n".join(
         path.read_text(encoding="utf-8")
         for path in output_dir.iterdir()
         if path.suffix in {".json", ".yaml", ".yml"}
     )
     assert str(tmp_path) not in serialized
+
+
+def test_assemble_fails_closed_without_model_track_evidence(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    kwargs = dict(fixture["assemble_kwargs"])
+    kwargs["model_summary_path"] = None
+
+    with pytest.raises(assembly.ReleaseEvidenceError, match="model-track evaluation evidence"):
+        assembly.assemble(**kwargs)
+
+    assert not fixture["output_dir"].exists()
+
+
+@pytest.mark.parametrize("track", ["rules_only", "framework_hybrid", "full_system", "cascade"])
+def test_assemble_rejects_non_model_index_tracks(tmp_path: Path, track: str) -> None:
+    fixture = _fixture(tmp_path)
+    model_summary = json.loads(fixture["model_summary_path"].read_text(encoding="utf-8"))
+    model_summary["canonical_track"] = track
+    model_summary["attribution"]["output_stage"] = track
+    _write_json(fixture["model_summary_path"], _seal(model_summary))
+
+    with pytest.raises(assembly.ReleaseEvidenceError, match="model_raw or model_calibrated"):
+        assembly.assemble(**fixture["assemble_kwargs"])
+
+
+@pytest.mark.parametrize(
+    "component",
+    ["rules_applied", "framework_applied", "cascade_applied", "fusion_applied"],
+)
+def test_assemble_rejects_system_components_disguised_as_model_raw(
+    tmp_path: Path, component: str
+) -> None:
+    fixture = _fixture(tmp_path)
+    model_summary = json.loads(fixture["model_summary_path"].read_text(encoding="utf-8"))
+    model_summary["attribution"][component] = True
+    _write_json(fixture["model_summary_path"], _seal(model_summary))
+
+    with pytest.raises(assembly.ReleaseEvidenceError, match="non-model component"):
+        assembly.assemble(**fixture["assemble_kwargs"])
+
+
+def test_build_model_index_rejects_a_full_system_summary(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+
+    with pytest.raises(assembly.ReleaseEvidenceError, match="unapproved field|model evaluation"):
+        assembly.build_model_index(fixture["system_summary"], release_name="must-fail")
+
+
+def test_model_calibrated_index_requires_and_names_calibration_binding(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    diagnostics_path = fixture["assemble_kwargs"]["calibration_diagnostics_path"]
+    diagnostics = json.loads(diagnostics_path.read_text(encoding="utf-8"))
+    calibrated = _model_summary(
+        training_manifest_sha256=fixture["training"]["manifest_sha256"],
+        training_file_sha256=fixture["training_file_sha256"],
+        calibration_file_sha256=assembly.sha256_file(
+            fixture["assemble_kwargs"]["calibration_path"]
+        ),
+        calibration_version=fixture["calibration"]["calibration_version"],
+        diagnostics_manifest_sha256=diagnostics["manifest_sha256"],
+        track="model_calibrated",
+    )
+    _write_json(fixture["model_summary_path"], calibrated)
+
+    assembly.assemble(**fixture["assemble_kwargs"])
+
+    model_index = yaml.safe_load(
+        (fixture["output_dir"] / "model-index.yml").read_text(encoding="utf-8")
+    )
+    metric_names = [
+        metric["name"]
+        for result in model_index["model-index"][0]["results"]
+        for metric in result["metrics"]
+    ]
+    assert metric_names
+    assert all(name.startswith("Model Calibrated ") for name in metric_names)
 
 
 @pytest.mark.parametrize(
@@ -340,8 +523,10 @@ def test_combined_report_fails_closed_on_incompatible_three_seed_evidence(
         assembly.build_evaluation_report(
             community,
             {},
+            {},
             community_file_sha256="2" * 64,
             system_summary_file_sha256="3" * 64,
+            model_summary_file_sha256="4" * 64,
         )
 
 
@@ -353,8 +538,10 @@ def test_combined_report_rejects_absolute_and_parent_traversal_paths() -> None:
         assembly.build_evaluation_report(
             community,
             unsafe_summary,
+            {},
             community_file_sha256="2" * 64,
             system_summary_file_sha256="3" * 64,
+            model_summary_file_sha256="4" * 64,
         )
 
     unsafe_summary["aggregate_source"] = "reports/../private.json"
@@ -362,8 +549,10 @@ def test_combined_report_rejects_absolute_and_parent_traversal_paths() -> None:
         assembly.build_evaluation_report(
             community,
             unsafe_summary,
+            {},
             community_file_sha256="2" * 64,
             system_summary_file_sha256="3" * 64,
+            model_summary_file_sha256="4" * 64,
         )
 
 
@@ -430,6 +619,7 @@ def test_assemble_rejects_an_allowlisted_name_at_an_unapproved_object_path(
         "training_manifest_path",
         "community_report_path",
         "system_summary_path",
+        "model_summary_path",
         "data_provenance_path",
         "teacher_provenance_path",
     ],

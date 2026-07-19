@@ -1,9 +1,10 @@
 # Release checklist
 
-This checklist records the current community research RC state and the remaining human and
-publication work. It cannot override `scripts/release_gate.py`. Training, blind public-suite
-evaluation, and machine-verifiable final-package checks are complete; production approval, a
-tested private reporting route, human publication review, upload, and tag signing are not complete.
+This checklist records the archived `synthetic-v1.3-rc1` community research RC and its remaining
+human/publication work. It does not describe the failed Qwen v6 run or any future flagship, and it
+cannot override `scripts/release_gate.py`. Historical training, public-suite evaluation, and local
+machine-verifiable package checks are complete; production approval, a tested private reporting
+route, human publication review, upload, and tag signing are not complete.
 
 ## Immutable inputs and isolation
 

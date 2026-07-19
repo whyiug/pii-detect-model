@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_cascade_release_v2.receipt.schema.json",
+  "title": "Path-free community Chinese PII model and cascade release receipt v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "report_type",
+    "contract",
+    "status",
+    "local_candidate_complete",
+    "publication_state",
+    "blocker_ids",
+    "checks",
+    "quality",
+    "identity",
+    "replay_evidence",
+    "release_artifacts",
+    "verification_receipts",
+    "claims",
+    "limitations",
+    "privacy",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-cascade-release-receipt.v2"
+    },
+    "report_type": {
+      "const": "community_cascade_release_v2"
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file_sha256", "contract_sha256"],
+      "properties": {
+        "file_sha256": { "$ref": "#/$defs/sha256" },
+        "contract_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "status": {
+      "enum": [
+        "BLOCKED",
+        "READY_FOR_USER_AUTHORIZATION"
+      ]
+    },
+    "local_candidate_complete": { "type": "boolean" },
+    "publication_state": {
+      "const": "READY_FOR_USER_AUTHORIZATION"
+    },
+    "blocker_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/safeText" }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status"],
+        "properties": {
+          "status": { "enum": ["PASS", "BLOCKED"] },
+          "reason": { "$ref": "#/$defs/safeText" }
+        }
+      }
+    },
+    "quality": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reported_status",
+            "receipt_sha256",
+            "full_system_status",
+            "all_required_replays"
+          ],
+          "properties": {
+            "reported_status": { "const": "PASS" },
+            "receipt_sha256": { "$ref": "#/$defs/sha256" },
+            "full_system_status": { "const": "PASS" },
+            "all_required_replays": { "const": "PASS" }
+          }
+        }
+      ]
+    },
+    "identity": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/identity" }
+      ]
+    },
+    "replay_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_raw", "full_system"],
+      "properties": {
+        "model_raw": { "$ref": "#/$defs/replayTrack" },
+        "full_system": { "$ref": "#/$defs/replayTrack" }
+      }
+    },
+    "release_artifacts": { "$ref": "#/$defs/artifactOutput" },
+    "verification_receipts": { "$ref": "#/$defs/verificationOutput" },
+    "claims": {
+      "const": {
+        "first_chinese_pii_model": false,
+        "global_sota": false,
+        "production_ready": false,
+        "real_world_sota": false,
+        "named_open24_leadership_requires_all_replays": true
+      }
+    },
+    "limitations": {
+      "const": [
+        "public_and_synthetic_only",
+        "public_test_exposed",
+        "not_production_ready",
+        "no_real_world_sota_claim"
+      ]
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contains_paths",
+        "contains_raw_records",
+        "model_weights_read",
+        "gpu_queried_or_used",
+        "network_used"
+      ],
+      "properties": {
+        "contains_paths": { "const": false },
+        "contains_raw_records": { "const": false },
+        "model_weights_read": { "type": "boolean" },
+        "gpu_queried_or_used": { "const": false },
+        "network_used": { "type": "boolean" }
+      }
+    },
+    "receipt_sha256": { "$ref": "#/$defs/sha256" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "BLOCKED" } } },
+      "then": {
+        "properties": {
+          "local_candidate_complete": { "const": false },
+          "blocker_ids": { "minItems": 1 }
+        }
+      },
+      "else": {
+        "properties": {
+          "local_candidate_complete": { "const": true },
+          "blocker_ids": { "maxItems": 0 },
+          "quality": { "type": "object" },
+          "identity": { "type": "object" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    },
+    "safeText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9_.:@+-]+$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "service_id",
+        "training_manifest_sha256",
+        "model_identity_sha256",
+        "calibration_bundle_file_sha256",
+        "service_configuration_sha256",
+        "service_implementation_sha256",
+        "source_manifest_sha256",
+        "quality_receipt_sha256",
+        "internal_unlock_sha256"
+      ],
+      "properties": {
+        "model_id": { "$ref": "#/$defs/safeId" },
+        "service_id": { "$ref": "#/$defs/safeId" },
+        "training_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "model_identity_sha256": { "$ref": "#/$defs/sha256" },
+        "calibration_bundle_file_sha256": { "$ref": "#/$defs/sha256" },
+        "service_configuration_sha256": { "$ref": "#/$defs/sha256" },
+        "service_implementation_sha256": { "$ref": "#/$defs/sha256" },
+        "source_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "quality_receipt_sha256": { "$ref": "#/$defs/sha256" },
+        "internal_unlock_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "replayResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "receipt_sha256"],
+      "properties": {
+        "status": { "const": "EXACT_REPLAY_PASS" },
+        "receipt_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "replayTrack": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "candidate_prediction_full_replay": { "$ref": "#/$defs/replayResult" },
+        "comparator_generation_replay": { "$ref": "#/$defs/replayResult" },
+        "performance_harness_replay": { "$ref": "#/$defs/replayResult" }
+      }
+    },
+    "nullableSha": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/sha256" }
+      ]
+    },
+    "artifactOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "final_model_manifest",
+        "model_card",
+        "model_package_manifest",
+        "service_configuration_manifest",
+        "service_source_manifest",
+        "technical_documentation_manifest",
+        "wheel_manifest",
+        "wheelhouse_manifest",
+        "container_manifest",
+        "sbom",
+        "license_report",
+        "benchmark_report",
+        "public_artifact_scan",
+        "dependency_scan"
+      ],
+      "properties": {
+        "final_model_manifest": { "$ref": "#/$defs/nullableSha" },
+        "model_card": { "$ref": "#/$defs/nullableSha" },
+        "model_package_manifest": { "$ref": "#/$defs/nullableSha" },
+        "service_configuration_manifest": { "$ref": "#/$defs/nullableSha" },
+        "service_source_manifest": { "$ref": "#/$defs/nullableSha" },
+        "technical_documentation_manifest": { "$ref": "#/$defs/nullableSha" },
+        "wheel_manifest": { "$ref": "#/$defs/nullableSha" },
+        "wheelhouse_manifest": { "$ref": "#/$defs/nullableSha" },
+        "container_manifest": { "$ref": "#/$defs/nullableSha" },
+        "sbom": { "$ref": "#/$defs/nullableSha" },
+        "license_report": { "$ref": "#/$defs/nullableSha" },
+        "benchmark_report": { "$ref": "#/$defs/nullableSha" },
+        "public_artifact_scan": { "$ref": "#/$defs/nullableSha" },
+        "dependency_scan": { "$ref": "#/$defs/nullableSha" }
+      }
+    },
+    "verificationOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_tests",
+        "clean_wheel_smoke",
+        "container_smoke",
+        "offline_model_smoke",
+        "offline_service_smoke"
+      ],
+      "properties": {
+        "unit_tests": { "$ref": "#/$defs/nullableSha" },
+        "clean_wheel_smoke": { "$ref": "#/$defs/nullableSha" },
+        "container_smoke": { "$ref": "#/$defs/nullableSha" },
+        "offline_model_smoke": { "$ref": "#/$defs/nullableSha" },
+        "offline_service_smoke": { "$ref": "#/$defs/nullableSha" }
+      }
+    }
+  }
+}

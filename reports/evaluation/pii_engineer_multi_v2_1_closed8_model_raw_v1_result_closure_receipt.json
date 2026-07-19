@@ -1,0 +1,74 @@
+{
+  "aggregate_report": {
+    "canonical_sha256": "d605dbfdc1d95be37e18ab71e817dfce732d5dacceeec1900e87b440bc9ba2b9",
+    "file_sha256": "ecf064cec8ad3346a316f15e7ba6fac5fdbff5def253b9fded25852e8023068d",
+    "path": "reports/baselines/pii_engineer_multi_ner_v2_1_pii_bench_zh.json",
+    "results_canonical_sha256": "27f4d57bbb9cdbbb1bc2f3ab4a5c911fbbd9b4b0f470a3b53cd2c10d79ad1d9e",
+    "status": "BLOCKED"
+  },
+  "artifact_type": "pii_engineer_multi_result_closure_receipt",
+  "checks": {
+    "aggregate_report_file_and_canonical_identity": "PASS",
+    "aggregate_report_privacy_boundary": "PASS",
+    "claim_eligibility": "BLOCKED",
+    "external_source_audit_anchors": "PASS",
+    "fixed_headline_metrics": "PASS",
+    "human_hidden_execution": "BLOCKED",
+    "license_reconciliation": "BLOCKED",
+    "pooled_count_additivity": "PASS",
+    "preregistration_continuity": "PASS",
+    "private_predictions_hash_only": "PASS",
+    "public_benchmark_test_informed_non_blind_disclosure": "PASS",
+    "redistribution": "BLOCKED",
+    "registry_activation": "BLOCKED",
+    "strict_metric_arithmetic": "PASS"
+  },
+  "governance": {
+    "additive_only": true,
+    "flags": {
+      "best_claim_eligible": false,
+      "blind_claim_eligible": false,
+      "claim_eligible": false,
+      "first_claim_eligible": false,
+      "global_best_claim_eligible": false,
+      "human_hidden_execution_authorized": false,
+      "redistribute_weights": false,
+      "registry_activation": false,
+      "release_bundle_included": false,
+      "sota_claim_eligible": false
+    },
+    "legacy_receipt_mutated": false,
+    "overall_status": "BLOCKED",
+    "predecessor_mutated": false,
+    "registry_mutated": false
+  },
+  "hash_contract": "self_hash is SHA-256 of canonical UTF-8 JSON after removing the top-level self_hash field; keys sorted, compact separators, ensure_ascii=false, allow_nan=false",
+  "privacy": {
+    "entity_values_in_receipt": false,
+    "private_paths_in_receipt": false,
+    "raw_text_in_receipt": false,
+    "record_level_predictions_in_receipt": false
+  },
+  "private_prediction_hashes": {
+    "chat": "167ef61e499e0a40a8c139741f0fe9fd5116ebcbb4e5aac5599f5a62f50f4eb5",
+    "files_read": 0,
+    "formal": "b5624dcb5a7e88d912988e71be416eb6b016299800fea20cde9c5e7385032061",
+    "paths_published": false,
+    "records_published": false
+  },
+  "receipt_id": "pii_engineer_multi_v2_1_closed8_model_raw_v1_result_closure_receipt",
+  "recorded_at": "2026-07-16T08:30:23+08:00",
+  "result_closure": {
+    "canonical_sha256": "8f1ffa521c241103df1323769eb996d57ec0ae646937736ff4fbfe3fe670d8fe",
+    "closure_id": "pii_engineer_multi_v2_1_closed8_model_raw_v1_result_closure",
+    "closure_state": "RESULT_CLOSED_NON_ACTIVATING",
+    "file_sha256": "56ccd6e15d41a3727c84f23816906a51fa3700634360aa18b3defa8e29494550",
+    "overall_status": "BLOCKED",
+    "path": "configs/evaluation/pii_engineer_multi_v2_1_closed8_model_raw_v1_result_closure.freeze.json"
+  },
+  "result_closure_state": "RESULT_CLOSED_NON_ACTIVATING",
+  "schema_version": 1,
+  "self_hash": "142e44f67e81e08a5d7a21b2c6ebd2bf65be9983ee3df0e3f81391881bd837e1",
+  "status": "BLOCKED",
+  "timezone": "Asia/Shanghai"
+}

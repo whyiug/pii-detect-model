@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_cascade_release_v2.quality-replay-evidence.schema.json",
+  "title": "Native strict quality replay evidence consumed by community release v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "status",
+    "target",
+    "replay",
+    "privacy",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-quality-strict-replay-evidence.v1"
+    },
+    "receipt_type": {"const": "quality_strict_semantic_replay"},
+    "status": {"const": "PASS"},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_kind", "file_sha256", "canonical_sha256"],
+      "properties": {
+        "artifact_kind": {"const": "quality_result_receipt"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "canonical_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer_file_sha256",
+        "implementation_identity_sha256",
+        "rebuilt_receipt_sha256",
+        "exact_semantic_equality"
+      ],
+      "properties": {
+        "producer_file_sha256": {"$ref": "#/$defs/sha256"},
+        "implementation_identity_sha256": {"$ref": "#/$defs/sha256"},
+        "rebuilt_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "exact_semantic_equality": {"const": true}
+      }
+    },
+    "privacy": {
+      "const": {
+        "contains_paths": false,
+        "contains_raw_text": false,
+        "contains_document_ids": false,
+        "contains_entity_values": false,
+        "aggregate_only": true,
+        "network_used": false
+      }
+    },
+    "receipt_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "activation": {
+    "claim_activation_allowed": false,
+    "historical_generation_2_blocker_changed": false,
+    "human_hidden_execution_allowed": false,
+    "implementation_component_closed": true,
+    "registry_activation_allowed": false,
+    "successor_registry_required": true
+  },
+  "checks": {
+    "draft_2020_12_schema": "PASS",
+    "fixed_statistical_and_comparator_universe_contract": "PASS",
+    "generation_2_predecessor_and_blocker_unchanged": "PASS",
+    "historical_v1_implementation_binding": "PASS",
+    "non_activation_policy": "PASS",
+    "open_24_ordered_taxonomy_binding": "PASS",
+    "v2_three_metric_implementation_and_tests_binding": "PASS"
+  },
+  "claims": {
+    "best": false,
+    "blind": false,
+    "first": false,
+    "global_best": false,
+    "sota": false
+  },
+  "closure_receipt_sha256": "9343fdce818bf96d59d3faf6c3ea184998e9fdb92acb7b42c9a023f107ae1bee",
+  "generated_at": "2026-07-16T05:35:00+08:00",
+  "hash_contract": "closure_receipt_sha256 is SHA-256 of canonical UTF-8 JSON after removing the top-level closure_receipt_sha256 field under the same canonical JSON rules",
+  "preregistration": {
+    "canonical_sha256": "7cede697c0b0fb4b92ea9153490a9f6fd73923d4468a8f984fb6aa8d55b4e09a",
+    "closure_id": "three_metric_paired_bootstrap_v2_preregistration",
+    "closure_state": "IMPLEMENTATION_COMPONENT_CLOSED_NON_ACTIVATING",
+    "file_mode": "0444",
+    "file_sha256": "1a083205fe7b6bcf4a0605ae6c149f6981ba67335f635b4fda0c8a63deffd252",
+    "path": "configs/evaluation/three_metric_paired_bootstrap_v2_preregistration.freeze.json"
+  },
+  "privacy": {
+    "benchmark_rows_read": 0,
+    "gpu_queried_or_used": false,
+    "hidden_gold_read": 0,
+    "metadata_and_source_only": true,
+    "model_weights_loaded": false,
+    "network_used": false,
+    "prediction_files_read": 0
+  },
+  "receipt_id": "three_metric_paired_bootstrap_v2_implementation_closure",
+  "schema_version": 1,
+  "status": "IMPLEMENTATION_COMPONENT_CLOSED_NON_ACTIVATING",
+  "timezone": "Asia/Shanghai",
+  "verification_scope": {
+    "portable_external_freeze_and_receipt_file_hashes_required": true,
+    "portable_git_checkout_replay": "bytes_policy_schema_and_external_two_file_hash_anchors",
+    "strict_local_replay": "bytes_policy_schema_modes_and_original_mtimes"
+  }
+}

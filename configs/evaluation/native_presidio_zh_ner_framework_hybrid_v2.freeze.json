@@ -1,0 +1,403 @@
+{
+  "artifact_type": "native_presidio_zh_ner_framework_hybrid_preregistration",
+  "dataset": {
+    "benchmark_rows_read_during_preregistration": 0,
+    "dataset_id": "wan9yu/pii-bench-zh",
+    "distillation_allowed": false,
+    "evaluation_only": true,
+    "local_path_published": false,
+    "manifest": {
+      "canonical_sha256": "545c990c96f23118ddc097ec0bed1d7f180785ac72e9f2a6ed56eb1ba3ee5e9b",
+      "sha256": "62c03dc8c5ba343a883498cf92d272ab9f240252e92ea06a665022f5ce7df6f1",
+      "size_bytes": 2298
+    },
+    "pii_free_document_fpr": null,
+    "pii_free_eligible_documents": 0,
+    "revision": "c350b94897af668517ff5de237d89f2ce2eaa6f0",
+    "suites": {
+      "chat": {
+        "canonical_sha256": "2d73326a7ea2da9966ba13336db1a791f03d5f18b7982fdc4495cb726c1180a5",
+        "gold_span_count": 7544,
+        "record_count": 3000
+      },
+      "formal": {
+        "canonical_sha256": "bb978137711cc90ae0c16df0645983413f3b34943bf29469e58b795b183a38af",
+        "gold_span_count": 15662,
+        "record_count": 5000
+      }
+    },
+    "threshold_selection_allowed": false,
+    "total_gold_span_count": 23206,
+    "total_record_count": 8000,
+    "training_allowed": false
+  },
+  "execution": {
+    "analyzer_default_score_threshold": 0.0,
+    "device": "cpu",
+    "environment": {
+      "CUDA_VISIBLE_DEVICES": "",
+      "HF_HUB_OFFLINE": "1",
+      "TRANSFORMERS_OFFLINE": "1"
+    },
+    "gpu_queried": false,
+    "gpu_used": false,
+    "max_tokens": 512,
+    "multi_file_transaction_atomic": false,
+    "ner_default_threshold": 0.0,
+    "network_required": false,
+    "offline_required": true,
+    "per_file_no_clobber": true,
+    "prediction_mode": "0600",
+    "public_aggregate_contains_absolute_paths": false,
+    "public_aggregate_contains_entity_values": false,
+    "public_aggregate_contains_raw_text": false,
+    "stride_fraction": 0.25
+  },
+  "generation": {
+    "benchmark_rows_read": 0,
+    "gold_content_read": 0,
+    "gpu_queried": false,
+    "hidden_gold_read": 0,
+    "inference_started": false,
+    "local_paths_published": false,
+    "metadata_only": true,
+    "models_loaded": 0,
+    "network_used": false,
+    "predictions_read": 0
+  },
+  "governance": {
+    "best": false,
+    "blind": false,
+    "claim_activation_allowed": false,
+    "first": false,
+    "global_best": false,
+    "human_hidden_execution_allowed": false,
+    "registry_activation_allowed": false,
+    "sota": false
+  },
+  "implementation": {
+    "external_anchors": {
+      "builder": {
+        "relative_path": "scripts/build_native_presidio_zh_ner_preregistration.py",
+        "sha256": "c8da9fa1aea53724aadd5be3bf4fbf8d274f279e24faa3b153ca98f34f082aff",
+        "size_bytes": 32530
+      },
+      "evaluator": {
+        "relative_path": "scripts/evaluate_native_presidio_zh_ner_baselines.py",
+        "sha256": "c324c35ac4d84b9e1c5eee6df9162871d01583279a7cc5c4b990680e00e6ede6",
+        "size_bytes": 44160
+      },
+      "evaluator_tests": {
+        "relative_path": "tests/unit/test_native_presidio_zh_ner_baselines.py",
+        "sha256": "ddafd72e897622decfbe2b11d620af9f432629bc39c0c7de85451cb59e56ee36",
+        "size_bytes": 13278
+      },
+      "preregistration_tests": {
+        "relative_path": "tests/unit/test_native_presidio_zh_ner_preregistration.py",
+        "sha256": "d8af8639e9d9a8f90619f2cf307fc734fb46687cb8ca58cafdde1ae46d86f77f",
+        "size_bytes": 14931
+      },
+      "schema": {
+        "relative_path": "configs/evaluation/native_presidio_zh_ner_preregistration.schema.json",
+        "sha256": "58711f1f8bfb014c10119ea88d7f5d28cd7b4c0a8b319b86e576d71d61aa0af2",
+        "size_bytes": 23077
+      }
+    },
+    "python_version": "3.12.12",
+    "runtime_lock_files": {
+      "pyproject.toml": {
+        "sha256": "37e3c316e77b7eedab71d4b85226d02b2428e12718c9cc749c2e801e2dad1892",
+        "size_bytes": 2937
+      },
+      "uv.lock": {
+        "sha256": "50497043792d61fee31b533fbe78fbc46448cbefc40f58c0535149f8e5ca4735",
+        "size_bytes": 978477
+      }
+    },
+    "runtime_packages": {
+      "jsonschema": "4.26.0",
+      "presidio-analyzer": "2.2.363",
+      "safetensors": "0.7.0",
+      "tokenizers": "0.22.2",
+      "torch": "2.10.0",
+      "transformers": "4.57.6"
+    },
+    "source_bytes_bound": true,
+    "source_files": {
+      "src/pii_zh/data/schema.py": {
+        "sha256": "b35fc8cef04b77cd21e907f761cbe1be8b0e749d61fb36ec712fee68c411f350",
+        "size_bytes": 20268
+      },
+      "src/pii_zh/data/validators/__init__.py": {
+        "sha256": "5098b2d94f0a24a1ac9701663ecc3a2cbcd04192beb64d7c1f4bd2e8c3e265ad",
+        "size_bytes": 7123
+      },
+      "src/pii_zh/evaluation/__init__.py": {
+        "sha256": "376e0560ce2d22c1faf43e57c68b12a4bd5b049c2ba15c9eb4b76e5cacace5ab",
+        "size_bytes": 1414
+      },
+      "src/pii_zh/evaluation/baseline_reporting.py": {
+        "sha256": "3eae7efa5a7f8dee4f7a9d0528c16a33ca90e1e13a69110e275ccfad5312b8e1",
+        "size_bytes": 7764
+      },
+      "src/pii_zh/evaluation/io.py": {
+        "sha256": "63d23d4418e73e9ebbe0ad0b5fe1a2c5895ba2e3ea38559c964cef6c0882750a",
+        "size_bytes": 12791
+      },
+      "src/pii_zh/evaluation/metrics.py": {
+        "sha256": "1e9623ac4be80bb3bf8218b81c8079c8843b096680f1a2e1de8ce723226ed271",
+        "size_bytes": 23806
+      },
+      "src/pii_zh/inference/bio_token_classifier.py": {
+        "sha256": "8bf5986c81f20ddf3c06b84219f7751350b8e508aea5607b8c245ae18a6c2e64",
+        "size_bytes": 12653
+      },
+      "src/pii_zh/inference/bios_token_classifier.py": {
+        "sha256": "b731b555662b01f9302473d62def7af23996d4d880b88b5d9f168b520d13b5c4",
+        "size_bytes": 14923
+      },
+      "src/pii_zh/models/decoding.py": {
+        "sha256": "c1261569a8af54c6b1ebf46deebc4900658db38f8fa33fdc57d906f1d672cdf1",
+        "size_bytes": 5917
+      },
+      "src/pii_zh/presidio/_compat.py": {
+        "sha256": "0bab0a118a7adb02b4da18c2664a2d5b6fe483f24f32dd3939bd03d92f9cd1c7",
+        "size_bytes": 3165
+      },
+      "src/pii_zh/presidio/bio_token_recognizer.py": {
+        "sha256": "ed06c63f699636ea43d5bcb59334a881396f79dcf8eb189564bcdda268d3b4e8",
+        "size_bytes": 13926
+      },
+      "src/pii_zh/presidio/cn_common_recognizer.py": {
+        "sha256": "de8d3b4952089d6948dc1319e6518e7e359945f4f7a58bbe779800d736597d65",
+        "size_bytes": 2568
+      },
+      "src/pii_zh/presidio/engine.py": {
+        "sha256": "fb29eec8c0963966042c98d347418253114dd7508540ccb19e617a72b5044d0f",
+        "size_bytes": 6543
+      },
+      "src/pii_zh/presidio/native_framework.py": {
+        "sha256": "48bc41fb5e54457e04005c95f22f9183b01a88691030d605e39c8627a255dd62",
+        "size_bytes": 4167
+      },
+      "src/pii_zh/presidio/token_chunker.py": {
+        "sha256": "12bbb03523b62d6b1b82b749678759ae54d7b9998c1cd1caf5aaa807d070bf76",
+        "size_bytes": 10257
+      },
+      "src/pii_zh/rules/__init__.py": {
+        "sha256": "3d985d8e5847b5199ba132a364be68ef50f47eeaac89b85e68db01f92da82316",
+        "size_bytes": 227
+      },
+      "src/pii_zh/rules/cn_common.py": {
+        "sha256": "dbd05c10e662e9a97d3a993b26b95ebcfb29edd5044e1265373f85b7dd57a432",
+        "size_bytes": 14903
+      },
+      "src/pii_zh/taxonomy/__init__.py": {
+        "sha256": "83a787764dd49e00027493ef75e1987e1befaf93cee8cbd686114a6fc1822674",
+        "size_bytes": 566
+      },
+      "src/pii_zh/taxonomy/loader.py": {
+        "sha256": "7a66ad992a58f6f598633e841d3d99f636cdca2de3d5e96c4648c8a1d2ee842c",
+        "size_bytes": 14347
+      },
+      "src/pii_zh/taxonomy/presidio_mapping.yaml": {
+        "sha256": "9b750a50c14d65fd63473dd9b2af9dc617375831e1014dbff13518dd837b6c4a",
+        "size_bytes": 1520
+      },
+      "src/pii_zh/taxonomy/taxonomy.yaml": {
+        "sha256": "8e3db18bb769ade3cb2487ae4d95c7c3863abc36845e99391ce55603e4409c13",
+        "size_bytes": 11044
+      }
+    }
+  },
+  "license": {
+    "cluener_model_card_declared_license": null,
+    "ernie_model_card_declared_license": null,
+    "model_weight_license_resolved": false,
+    "redistribution_allowed": false,
+    "release_bundle_allowed": false
+  },
+  "models": {
+    "cluener": {
+      "exact_layout": true,
+      "files": {
+        "README.md": {
+          "sha256": "a24882ff7dc060a5ec4b0d376d510bfacab57a00973915cc53255f8261f41865",
+          "size_bytes": 4778
+        },
+        "config.json": {
+          "sha256": "a80e368cebeaeb01ed195f068b01a65f5b01b87e8059434710a01f3b97a38598",
+          "size_bytes": 1800
+        },
+        "conversion_receipt.json": {
+          "sha256": "1a387e51fa9be2cc3c507527b154f95a8bdc1f442c0e3fa37b4e89dce77ada70",
+          "size_bytes": 711
+        },
+        "model.safetensors": {
+          "sha256": "0902a7ced1d20dd65a1862f8cd03484495a6b322e59c1d0e294dc66c67723177",
+          "size_bytes": 406834152
+        },
+        "special_tokens_map.json": {
+          "sha256": "303df45a03609e4ead04bc3dc1536d0ab19b5358db685b6f3da123d05ec200e3",
+          "size_bytes": 112
+        },
+        "tokenizer.json": {
+          "sha256": "7dfbf1966ebf99d471c3796e9b457329d2b2182b817e144f1e904b957745c839",
+          "size_bytes": 439124
+        },
+        "tokenizer_config.json": {
+          "sha256": "21b0a2fba3d74b521cdbd631b2936c2c063c856c3a05533fabee04005c02cd23",
+          "size_bytes": 295
+        },
+        "vocab.txt": {
+          "sha256": "45bbac6b341c319adc98a532532882e91a9cefc0329aa57bac9ae761c27b291c",
+          "size_bytes": 109540
+        }
+      },
+      "local_path_published": false,
+      "model_id": "uer/roberta-base-finetuned-cluener2020-chinese",
+      "revision": "cddd8fc233e373855a8c0a7f4b7eb83acb686a2b",
+      "source_to_benchmark": {
+        "address": "ADDRESS",
+        "name": "PERSON_NAME"
+      },
+      "source_to_presidio": {
+        "address": "CN_ADDRESS",
+        "name": "PERSON"
+      },
+      "supported_benchmark_labels": [
+        "ADDRESS",
+        "PERSON_NAME"
+      ],
+      "tag_scheme": "BIOS",
+      "total_size_bytes": 407390512,
+      "unsupported_benchmark_labels_count_as_false_negatives": [
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "EMAIL_ADDRESS",
+        "PASSPORT_NUMBER",
+        "PHONE_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ]
+    },
+    "ernie": {
+      "exact_layout": true,
+      "files": {
+        "README.md": {
+          "sha256": "bc55ab48ccf43660ea6631d34a156d0656b16342fc336eff428cb5ff21c0dd9c",
+          "size_bytes": 2276
+        },
+        "added_tokens.json": {
+          "sha256": "dde4965a25781752ad118fe065b02a8f9127b86edb0da1902fa3a2487b113fed",
+          "size_bytes": 21
+        },
+        "config.json": {
+          "sha256": "a0d5cff7bd198fdb7bc3c474c6f1fa2969a70085158d5073839b65a29a302b42",
+          "size_bytes": 1926
+        },
+        "model.safetensors": {
+          "sha256": "ff1eb75663877384e996e1939a7bcd93a6c1a2a855f977af53386c266dae1326",
+          "size_bytes": 469529812
+        },
+        "special_tokens_map.json": {
+          "sha256": "5d5b662e421ea9fac075174bb0688ee0d9431699900b90662acd44b2a350503a",
+          "size_bytes": 695
+        },
+        "tokenizer.json": {
+          "sha256": "f3d63a058a8cc3eae5411f981a6bc7a15e31ecd05e1098bdfa1d853172931917",
+          "size_bytes": 818093
+        },
+        "tokenizer_config.json": {
+          "sha256": "a656d39765143fa3fad23f8d9454c5203a3cb5bd3ce88804b7fdd4bb8ca791f5",
+          "size_bytes": 1409
+        },
+        "vocab.txt": {
+          "sha256": "79674fbe2f21d5724d49449b72588ac56e313e7f7dfba56b1832a95a05361cb0",
+          "size_bytes": 186805
+        }
+      },
+      "local_path_published": false,
+      "model_id": "gyr66/Ernie-3.0-base-chinese-finetuned-ner",
+      "revision": "3f3c3fa40cf87298586dbbed55fd7ca1988719a8",
+      "source_to_benchmark": {
+        "address": "ADDRESS",
+        "email": "EMAIL_ADDRESS",
+        "mobile": "PHONE_NUMBER",
+        "name": "PERSON_NAME"
+      },
+      "source_to_presidio": {
+        "address": "CN_ADDRESS",
+        "email": "EMAIL_ADDRESS",
+        "mobile": "PHONE_NUMBER",
+        "name": "PERSON"
+      },
+      "supported_benchmark_labels": [
+        "ADDRESS",
+        "EMAIL_ADDRESS",
+        "PERSON_NAME",
+        "PHONE_NUMBER"
+      ],
+      "tag_scheme": "BIO",
+      "total_size_bytes": 470541037,
+      "unsupported_benchmark_labels_count_as_false_negatives": [
+        "BANK_CARD_NUMBER",
+        "CN_RESIDENT_ID",
+        "PASSPORT_NUMBER",
+        "VEHICLE_LICENSE_PLATE"
+      ]
+    }
+  },
+  "protocol": {
+    "benchmark_protocol": "pii_bench_zh_closed_8_v1",
+    "benchmark_to_presidio": {
+      "ADDRESS": "CN_ADDRESS",
+      "BANK_CARD_NUMBER": "BANK_CARD_NUMBER",
+      "CN_RESIDENT_ID": "CN_ID_CARD",
+      "EMAIL_ADDRESS": "EMAIL_ADDRESS",
+      "PASSPORT_NUMBER": "PASSPORT_NUMBER",
+      "PERSON_NAME": "PERSON",
+      "PHONE_NUMBER": "PHONE_NUMBER",
+      "VEHICLE_LICENSE_PLATE": "CN_VEHICLE_LICENSE_PLATE"
+    },
+    "canonical_track": "framework_hybrid",
+    "mapping_sha256": "5a810d94e583be5d0bd44eabc6968bc8759b30da15733daa21433930196a9746",
+    "metric": "strict_exact_start_end_label",
+    "native_framework": {
+      "analyzer": "presidio_analyzer.AnalyzerEngine",
+      "analyzer_default_score_threshold": 0.0,
+      "analyzer_version": "2.2.363",
+      "context_enhancement": false,
+      "max_tokens": 512,
+      "ner_default_threshold": 0.0,
+      "outer_custom_fusion": false,
+      "presidio_owns_duplicate_and_overlap_semantics": true,
+      "registered_ner_recognizer": "BioTokenClassifierRecognizer",
+      "registered_rule_recognizer": "CnCommonRecognizer",
+      "separate_rule_and_ner_registrations": true,
+      "stride_fraction": 0.25
+    },
+    "open_24_evaluated": false,
+    "public_test_exposed": true,
+    "selection_data": "none",
+    "target_labels": [
+      "ADDRESS",
+      "BANK_CARD_NUMBER",
+      "CN_RESIDENT_ID",
+      "EMAIL_ADDRESS",
+      "PASSPORT_NUMBER",
+      "PERSON_NAME",
+      "PHONE_NUMBER",
+      "VEHICLE_LICENSE_PLATE"
+    ],
+    "threshold_tuned_on_benchmark": false,
+    "track_count": 2,
+    "track_ids": [
+      "presidio_cluener_native_framework_hybrid",
+      "presidio_ernie_native_framework_hybrid"
+    ]
+  },
+  "schema_version": 1,
+  "sealed_at": "2026-07-16T09:58:13+08:00",
+  "self_hash": "fa15dda0d51a21a1444d330d88c854f71828163586b9d0ce588f961f8431cf80",
+  "status": "BLOCKED_PUBLIC_TEST_EXPOSED_NON_ACTIVATING"
+}

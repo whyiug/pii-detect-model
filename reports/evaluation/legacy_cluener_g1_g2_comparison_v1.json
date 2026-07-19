@@ -1,0 +1,371 @@
+{
+  "claims": {
+    "best_or_sota": false,
+    "hidden_test": false,
+    "new_service_exceeds_first_version": false,
+    "production_pii": false,
+    "release_allowed": false,
+    "single_ner_model_superiority": false
+  },
+  "closure_id": "legacy_cluener_g1_g2_comparison_v1",
+  "eligibility": {
+    "best_or_sota": false,
+    "hidden_test": false,
+    "limited_legacy_cluener_10_compatibility_regression": false,
+    "model_release": false,
+    "production_pii": false
+  },
+  "exact_comparisons": {
+    "g2_vs_docx_attested_floor": {
+      "baseline": "docx_attested_5050_over_6417",
+      "baseline_f1_denominator": 6417,
+      "baseline_f1_numerator": 5050,
+      "baseline_numerator_times_candidate_denominator": 32461400,
+      "candidate_f1_denominator": 6428,
+      "candidate_f1_numerator": 5056,
+      "candidate_numerator_times_baseline_denominator": 32444352,
+      "integer_cross_multiplication_only": true,
+      "relation": "BELOW",
+      "strictly_above": false
+    },
+    "g2_vs_verified_g1_replay": {
+      "baseline": "verified_g1_surviving_checkout_replay",
+      "baseline_f1_denominator": 6417,
+      "baseline_f1_numerator": 5050,
+      "baseline_numerator_times_candidate_denominator": 32461400,
+      "candidate_f1_denominator": 6428,
+      "candidate_f1_numerator": 5056,
+      "candidate_numerator_times_baseline_denominator": 32444352,
+      "integer_cross_multiplication_only": true,
+      "relation": "BELOW",
+      "strictly_above": false
+    }
+  },
+  "execution": {
+    "device": "cpu",
+    "gpu_queried": false,
+    "gpu_used": false,
+    "model_inference_performed_by_this_closure": false,
+    "network_used": false
+  },
+  "gates": {
+    "best_or_sota": "BLOCKED_NOT_SUPPORTED",
+    "canonical_gold_binding": "PASS",
+    "g1_prediction_and_receipt_replay": "PASS",
+    "g2_prediction_and_receipt_replay": "PASS",
+    "g2_strictly_above_docx_attested_floor": "FAIL",
+    "g2_strictly_above_verified_g1_replay": "FAIL",
+    "limited_compatibility_regression_eligibility": "FAIL",
+    "overall": "COMPATIBILITY_REGRESSION_FAILED",
+    "paired_document_bootstrap_computed": "PASS",
+    "production_pii_release": "BLOCKED_SEPARATE_GATES_REQUIRED"
+  },
+  "implementation": {
+    "source_bindings": {
+      "builder": {
+        "file_sha256": "f74f91e36a1096c9199ec58aa3779d3f0b41e4c0b41b857d2505f2bde82e8305",
+        "repository_relative_path": "scripts/build_legacy_cluener_g1_g2_comparison_closure.py",
+        "size_bytes": 84255
+      },
+      "evaluation_io": {
+        "file_sha256": "63d23d4418e73e9ebbe0ad0b5fe1a2c5895ba2e3ea38559c964cef6c0882750a",
+        "repository_relative_path": "src/pii_zh/evaluation/io.py",
+        "size_bytes": 12791
+      },
+      "paired_bootstrap": {
+        "file_sha256": "af3852bbfe9cf8af98a0343a34bab2f3b5088e53a410f25b026af82564143ae6",
+        "repository_relative_path": "src/pii_zh/evaluation/paired_bootstrap.py",
+        "size_bytes": 9411
+      },
+      "schema": {
+        "file_sha256": "0ef8dcb2058cb3558d371f8481db157ba00505cf853f94863da259bc35d37800",
+        "repository_relative_path": "configs/evaluation/legacy_cluener_g1_g2_comparison_closure.schema.json",
+        "size_bytes": 31061
+      },
+      "tests": {
+        "file_sha256": "4f2303d61528addf931d5ad6ec07bc7e6e75b83704d91d2cb8d976b62d018b63",
+        "repository_relative_path": "tests/unit/test_legacy_cluener_g1_g2_comparison_closure.py",
+        "size_bytes": 21116
+      }
+    },
+    "source_bundle_sha256": "c5c3cca74b27c7af64c8173243aff4f0e31d290fc6c0bb9cd02f1b778c6e7dd0"
+  },
+  "input_bindings": {
+    "canonical_gold": {
+      "file_sha256": "d761b87e3b16c63094500429c5b39be246c04cc4765bfe75b6954aa064a3b234",
+      "mode": "0400",
+      "size_bytes": 338998
+    },
+    "comparison_preregistration": {
+      "file_sha256": "3cf71cb9ad1020732e49467304da4f00c966ad8650a734c3a4e5fb6f95e69f2c",
+      "mode": "0444",
+      "self_hash": "0d47e97a74df8976e22e751d13ae1d453a1f0a35b0d0b0b7c2febd65a733bce7",
+      "size_bytes": 5341
+    },
+    "g1_private_predictions": {
+      "contains_entity_values": false,
+      "contains_raw_text": false,
+      "file_sha256": "7b98046c81f87df35f1ce1241dc221ec3dca6bc2261ba3dae9ac76a07b8a96ad",
+      "mode": "0400",
+      "publicly_published": false,
+      "size_bytes": 342472
+    },
+    "g1_public_receipt": {
+      "file_sha256": "d6880bcf186c382880aa0a388f0c4c0a7cea1c4901cd9ed0a7586dad47832251",
+      "mode": "0444",
+      "size_bytes": 3940
+    },
+    "g2_private_predictions": {
+      "contains_entity_values": false,
+      "contains_raw_text": false,
+      "file_sha256": "5bd8494368076c7337bee238820df1aec0de217f8a0e60dd2a6b9714b02dc9f4",
+      "mode": "0600",
+      "publicly_published": false,
+      "size_bytes": 314784
+    },
+    "g2_public_receipt": {
+      "file_sha256": "1abc09e9fd0e3dfb8125fe0499af9620d7a387682ce5305cf7f127e19782b70a",
+      "mode": "0444",
+      "size_bytes": 9008
+    }
+  },
+  "kind": "legacy_cluener_g1_g2_comparison_closure",
+  "limitations": {
+    "bootstrap_descriptive_only": true,
+    "compatibility_profile_non_default": true,
+    "contains_non_pii_cluener_labels": true,
+    "g1_exact_historical_runtime_attribution_unresolved": true,
+    "not_a_production_pii_metric": true,
+    "not_official_hidden_test": true,
+    "public_dev_test_exposed": true,
+    "separate_pii_hidden_fpr_latency_license_gates_required": true,
+    "single_ner_metric_release_blocking": false
+  },
+  "paired_document_bootstrap": {
+    "confidence": 0.95,
+    "confidence_interval": {
+      "lower": -0.001331198733,
+      "upper": 0.000524068703
+    },
+    "delta_g2_minus_g1": -0.000413300118,
+    "descriptive_only_not_an_additional_pass_gate": true,
+    "documents": 1343,
+    "g1_strict_micro_f1": 0.786972105345,
+    "g2_strict_micro_f1": 0.786558805227,
+    "g2_win_probability": 0.189,
+    "outcomes": {
+      "g1_wins": 811,
+      "g2_wins": 189,
+      "ties": 0
+    },
+    "samples": 1000,
+    "seed": 42,
+    "two_sided_tail_probability_approximation": 0.37962037962,
+    "unit": "document"
+  },
+  "privacy": {
+    "contains_absolute_paths": false,
+    "contains_entity_values": false,
+    "contains_raw_text": false,
+    "private_predictions_published": false
+  },
+  "protocol": {
+    "dataset_id": "legacy_cluener_dev_1343",
+    "document_count": 1343,
+    "gold_span_count": 3072,
+    "hidden": false,
+    "labels": [
+      "address",
+      "book",
+      "company",
+      "game",
+      "government",
+      "movie",
+      "name",
+      "organization",
+      "position",
+      "scene"
+    ],
+    "license_status": "unresolved",
+    "matching": "strict_document_label_start_end",
+    "offsets": "left_closed_right_open",
+    "profile_id": "legacy_cluener_10",
+    "public_dev": true,
+    "test_exposed": true,
+    "track_scope": "compatibility_regression_only"
+  },
+  "recomputed_results": {
+    "g1_surviving_checkout_replay": {
+      "document_count": 1343,
+      "gold_span_count": 3072,
+      "micro": {
+        "f1_denominator": 6417,
+        "f1_numerator": 5050,
+        "fn": 547,
+        "fp": 820,
+        "tp": 2525
+      },
+      "per_label": {
+        "address": {
+          "f1_denominator": 802,
+          "f1_numerator": 524,
+          "fn": 111,
+          "fp": 167,
+          "tp": 262
+        },
+        "book": {
+          "f1_denominator": 302,
+          "f1_numerator": 220,
+          "fn": 44,
+          "fp": 38,
+          "tp": 110
+        },
+        "company": {
+          "f1_denominator": 791,
+          "f1_numerator": 636,
+          "fn": 60,
+          "fp": 95,
+          "tp": 318
+        },
+        "game": {
+          "f1_denominator": 571,
+          "f1_numerator": 440,
+          "fn": 75,
+          "fp": 56,
+          "tp": 220
+        },
+        "government": {
+          "f1_denominator": 514,
+          "f1_numerator": 428,
+          "fn": 33,
+          "fp": 53,
+          "tp": 214
+        },
+        "movie": {
+          "f1_denominator": 312,
+          "f1_numerator": 254,
+          "fn": 24,
+          "fp": 34,
+          "tp": 127
+        },
+        "name": {
+          "f1_denominator": 945,
+          "f1_numerator": 838,
+          "fn": 46,
+          "fp": 61,
+          "tp": 419
+        },
+        "organization": {
+          "f1_denominator": 788,
+          "f1_numerator": 620,
+          "fn": 57,
+          "fp": 111,
+          "tp": 310
+        },
+        "position": {
+          "f1_denominator": 945,
+          "f1_numerator": 744,
+          "fn": 61,
+          "fp": 140,
+          "tp": 372
+        },
+        "scene": {
+          "f1_denominator": 447,
+          "f1_numerator": 346,
+          "fn": 36,
+          "fp": 65,
+          "tp": 173
+        }
+      },
+      "prediction_count": 3345
+    },
+    "g2_candidate_service": {
+      "document_count": 1343,
+      "gold_span_count": 3072,
+      "micro": {
+        "f1_denominator": 6428,
+        "f1_numerator": 5056,
+        "fn": 544,
+        "fp": 828,
+        "tp": 2528
+      },
+      "per_label": {
+        "address": {
+          "f1_denominator": 803,
+          "f1_numerator": 524,
+          "fn": 111,
+          "fp": 168,
+          "tp": 262
+        },
+        "book": {
+          "f1_denominator": 302,
+          "f1_numerator": 220,
+          "fn": 44,
+          "fp": 38,
+          "tp": 110
+        },
+        "company": {
+          "f1_denominator": 792,
+          "f1_numerator": 636,
+          "fn": 60,
+          "fp": 96,
+          "tp": 318
+        },
+        "game": {
+          "f1_denominator": 573,
+          "f1_numerator": 442,
+          "fn": 74,
+          "fp": 57,
+          "tp": 221
+        },
+        "government": {
+          "f1_denominator": 514,
+          "f1_numerator": 428,
+          "fn": 33,
+          "fp": 53,
+          "tp": 214
+        },
+        "movie": {
+          "f1_denominator": 312,
+          "f1_numerator": 254,
+          "fn": 24,
+          "fp": 34,
+          "tp": 127
+        },
+        "name": {
+          "f1_denominator": 948,
+          "f1_numerator": 840,
+          "fn": 45,
+          "fp": 63,
+          "tp": 420
+        },
+        "organization": {
+          "f1_denominator": 790,
+          "f1_numerator": 620,
+          "fn": 57,
+          "fp": 113,
+          "tp": 310
+        },
+        "position": {
+          "f1_denominator": 946,
+          "f1_numerator": 744,
+          "fn": 61,
+          "fp": 141,
+          "tp": 372
+        },
+        "scene": {
+          "f1_denominator": 448,
+          "f1_numerator": 348,
+          "fn": 35,
+          "fp": 65,
+          "tp": 174
+        }
+      },
+      "prediction_count": 3356
+    }
+  },
+  "schema_version": 1,
+  "sealed_at": "2026-07-16T12:02:13+08:00",
+  "self_hash": "3810179acbfda801621fc9840d32b11a4c00f4c32d395e116fa90f9c838a78b1",
+  "status": "CLOSED_COMPATIBILITY_REGRESSION_FAILED_NONACTIVATING"
+}

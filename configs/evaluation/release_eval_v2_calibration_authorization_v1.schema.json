@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/release_eval_v2_calibration_authorization_v1.schema.json",
+  "title": "Frozen release-eval-v2 calibration pre-open authorization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "receipt_type", "status", "amendment", "dataset",
+    "model", "authorization", "privacy", "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "pii-zh.release-eval-v2-calibration-authorization.v1"},
+    "receipt_type": {"const": "release_eval_v2_calibration_authorization"},
+    "status": {"const": "CALIBRATION_MODEL_RAW_AUTHORIZED_NOT_RELEASE"},
+    "amendment": {"$ref": "#/$defs/hashObject4"},
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id", "dataset_version", "dataset_manifest_file_sha256",
+        "dataset_manifest_sha256", "materialization_receipt_file_sha256",
+        "materialization_receipt_sha256", "freeze_receipt_file_sha256",
+        "target_split", "gold_file_sha256", "gold_size_bytes", "gold_document_count"
+      ],
+      "properties": {
+        "dataset_id": {"const": "pii_zh_synthetic_sota_release_eval_v2"},
+        "dataset_version": {"const": "2.0.0"},
+        "dataset_manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "dataset_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "materialization_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "materialization_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "freeze_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "target_split": {"const": "calibration"},
+        "gold_file_sha256": {"$ref": "#/$defs/sha256"},
+        "gold_size_bytes": {"const": 33450063},
+        "gold_document_count": {"const": 10000}
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "training_manifest_file_sha256", "training_manifest_sha256",
+        "model_identity_sha256", "weights_combined_sha256", "output_artifact_sha256"
+      ],
+      "properties": {
+        "training_manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "training_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "model_identity_sha256": {"$ref": "#/$defs/sha256"},
+        "weights_combined_sha256": {"$ref": "#/$defs/sha256"},
+        "output_artifact_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "authorization": {
+      "const": {
+        "allowed_track": "model_raw",
+        "allowed_generator_mode": "model-raw",
+        "calibration_bundle_already_applied": false,
+        "checkpoint_or_model_reselection_allowed": false,
+        "final_metric_claim_allowed": false,
+        "internal_evaluation_content_read_allowed": false
+      }
+    },
+    "privacy": {
+      "const": {
+        "contains_paths": false,
+        "contains_raw_text": false,
+        "contains_entity_values": false,
+        "contains_document_ids": false,
+        "internal_evaluation_opened_hashed_or_decoded": false
+      }
+    },
+    "receipt_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "hashObject4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256", "amendment_sha256", "selection_receipt_file_sha256",
+        "selection_receipt_sha256"
+      ],
+      "properties": {
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "amendment_sha256": {"$ref": "#/$defs/sha256"},
+        "selection_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "selection_receipt_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

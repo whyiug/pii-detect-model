@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Assemble publication-safe, release-bound model evidence.
 
-The command consumes aggregate/self-hashed evaluation artifacts and the selected
-checkpoint.  It never reads dataset rows or prediction JSONL files.  Output is
-deterministic, path-free, and limited to the evidence allowlist consumed by
-``scripts/build_release.py`` (except for the SBOM, which is generated separately).
+The command consumes separate aggregate/self-hashed model-track and system-track
+evaluation artifacts plus the selected checkpoint.  It never reads dataset rows
+or prediction JSONL files.  Output is deterministic, path-free, and limited to
+the evidence allowlist consumed by ``scripts/build_release.py`` (except for the
+SBOM, which is generated separately).
 """
 
 from __future__ import annotations
@@ -33,6 +34,11 @@ from pii_zh.taxonomy import validate_taxonomy_document  # noqa: E402
 _EXPECTED_SEEDS = (13, 42, 97)
 _EXPECTED_SUITES = ("synthetic_test", "pii_bench_formal", "pii_bench_chat")
 _SELECTED_SEED = 42
+_MODEL_ATTRIBUTABLE_TRACKS = frozenset({"model_raw", "model_calibrated"})
+_MODEL_INDEX_PREFIX = {
+    "model_raw": "Model Raw",
+    "model_calibrated": "Model Calibrated",
+}
 _MAXIMUM_INPUT_BYTES = 64 * 1024 * 1024
 _ASSEMBLED_FILES = (
     "calibration.json",
@@ -358,6 +364,45 @@ for _suite in _EXPECTED_SUITES:
         "input_predictions_sha256 output_predictions_sha256"
     )
 
+# ``model-index.yml`` describes the released checkpoint, so its source evidence
+# has a deliberately smaller component surface than the full-system summary.
+# Rules, framework orchestration, fusion, refinement, and cascades are prohibited
+# by the attribution contract below instead of being silently stripped later.
+_MODEL_SUMMARY_SCHEMA: dict[_Path, frozenset[str]] = {
+    (): _fields(
+        "artifact_type attribution canonical_track manifest_sha256 model_identity privacy "
+        "schema_version suite_order suites"
+    ),
+    ("attribution",): _fields(
+        "calibration_applied cascade_applied checkpoint_output decoder_applied framework_applied "
+        "fusion_applied output_stage refinement_applied rules_applied"
+    ),
+    ("model_identity",): _fields(
+        "attention_mode calibration decoder selected_seed training"
+    ),
+    ("model_identity", "calibration"): _fields(
+        "bundle_sha256 calibration_version diagnostics_manifest_sha256"
+    ),
+    ("model_identity", "decoder"): _fields("decoder_id implementation_sha256"),
+    ("model_identity", "training"): _fields("manifest_file_sha256 manifest_sha256"),
+    ("privacy",): _REPORT_PRIVACY_FIELDS,
+    ("suites",): frozenset(_EXPECTED_SUITES),
+}
+for _suite in _EXPECTED_SUITES:
+    _suite_path = ("suites", _suite)
+    _MODEL_SUMMARY_SCHEMA[_suite_path] = _fields("dataset metrics model_output")
+    _MODEL_SUMMARY_SCHEMA[_suite_path + ("dataset",)] = _SUITE_DATASET_FIELDS
+    _MODEL_SUMMARY_SCHEMA[_suite_path + ("metrics",)] = _fields(
+        "document_count pii_free strict_macro_f1 strict_micro"
+    )
+    _MODEL_SUMMARY_SCHEMA[_suite_path + ("metrics", "pii_free")] = _fields(
+        "documents false_positive_documents false_positive_rate"
+    )
+    _MODEL_SUMMARY_SCHEMA[_suite_path + ("metrics", "strict_micro")] = _SPAN_METRIC_FIELDS
+    _MODEL_SUMMARY_SCHEMA[_suite_path + ("model_output",)] = _fields(
+        "evaluation_sha256 predictions_sha256"
+    )
+
 _TRAINING_PRIVACY = {
     "contains_entity_values": False,
     "contains_raw_text": False,
@@ -507,6 +552,12 @@ def _finite_probability(value: object, *, field: str) -> float:
     if not math.isfinite(result) or not 0.0 <= result <= 1.0:
         raise ReleaseEvidenceError(f"{field} must be finite and between zero and one")
     return result
+
+
+def _require_sha256(value: object, *, field: str) -> str:
+    if not isinstance(value, str) or _SHA256.fullmatch(value) is None:
+        raise ReleaseEvidenceError(f"{field} must be a SHA-256 digest")
+    return value
 
 
 def _assert_public_safe(value: object) -> None:
@@ -734,12 +785,171 @@ def _validate_system_summary(
         _finite_probability(pooled.get(metric), field=f"aggregate.strict_micro_pooled.{metric}")
 
 
+def _validate_model_summary_contract(summary: Mapping[str, Any]) -> str:
+    """Validate that an aggregate can be attributed to checkpoint-only output."""
+
+    _assert_structured_fields(
+        summary,
+        schema=_MODEL_SUMMARY_SCHEMA,
+        list_paths=frozenset({("suite_order",)}),
+        description="frozen model evaluation summary",
+    )
+    _assert_privacy_declaration(
+        summary,
+        expected=_REPORT_PRIVACY,
+        description="frozen model evaluation summary",
+    )
+    _verify_self_hash(summary, description="frozen model evaluation summary")
+    if (
+        summary.get("schema_version") != 1
+        or summary.get("artifact_type") != "frozen_model_evaluation_summary"
+    ):
+        raise ReleaseEvidenceError("model-index source is not a frozen model evaluation summary")
+
+    track = summary.get("canonical_track")
+    if not isinstance(track, str) or track not in _MODEL_ATTRIBUTABLE_TRACKS:
+        raise ReleaseEvidenceError(
+            "model-index source track must be model_raw or model_calibrated"
+        )
+    if tuple(summary.get("suite_order", ())) != _EXPECTED_SUITES:
+        raise ReleaseEvidenceError("model evaluation suite order is not frozen")
+    suites = _mapping(summary.get("suites"), field="model_summary.suites")
+    if set(suites) != set(_EXPECTED_SUITES):
+        raise ReleaseEvidenceError("model evaluation suite set is incomplete")
+
+    identity = _mapping(summary.get("model_identity"), field="model_summary.model_identity")
+    if identity.get("selected_seed") != _SELECTED_SEED or identity.get("attention_mode") != "full":
+        raise ReleaseEvidenceError("model evaluation is not bound to selected seed42 Full model")
+    decoder = _mapping(identity.get("decoder"), field="model_identity.decoder")
+    decoder_id = decoder.get("decoder_id")
+    if not isinstance(decoder_id, str) or _SAFE_ID.fullmatch(decoder_id) is None:
+        raise ReleaseEvidenceError("model evaluation decoder_id is not a stable identifier")
+    _require_sha256(
+        decoder.get("implementation_sha256"),
+        field="model_identity.decoder.implementation_sha256",
+    )
+
+    expected_attribution = {
+        "output_stage": track,
+        "checkpoint_output": True,
+        "decoder_applied": True,
+        "calibration_applied": track == "model_calibrated",
+        "rules_applied": False,
+        "framework_applied": False,
+        "cascade_applied": False,
+        "fusion_applied": False,
+        "refinement_applied": False,
+    }
+    attribution = _mapping(summary.get("attribution"), field="model_summary.attribution")
+    if dict(attribution) != expected_attribution:
+        raise ReleaseEvidenceError(
+            "model-index source attribution includes a non-model component or mismatched stage"
+        )
+
+    for suite in _EXPECTED_SUITES:
+        suite_summary = _mapping(suites[suite], field=f"model_summary.suites.{suite}")
+        dataset = _mapping(suite_summary.get("dataset"), field=f"model_summary.{suite}.dataset")
+        if dataset.get("evaluation_only") is not True:
+            raise ReleaseEvidenceError(f"model_summary.{suite}.dataset is not evaluation-only")
+        _require_sha256(dataset.get("gold_sha256"), field=f"model_summary.{suite}.gold_sha256")
+        _require_sha256(
+            dataset.get("manifest_sha256"), field=f"model_summary.{suite}.manifest_sha256"
+        )
+        _require_sha256(
+            dataset.get("manifest_file_sha256"),
+            field=f"model_summary.{suite}.manifest_file_sha256",
+        )
+        record_count = dataset.get("record_count")
+        if isinstance(record_count, bool) or not isinstance(record_count, int) or record_count <= 0:
+            raise ReleaseEvidenceError(f"model_summary.{suite}.record_count must be positive")
+        metrics = _mapping(suite_summary.get("metrics"), field=f"model_summary.{suite}.metrics")
+        if metrics.get("document_count") != record_count:
+            raise ReleaseEvidenceError(
+                f"model_summary.{suite} metric and dataset document counts differ"
+            )
+        strict = _mapping(
+            metrics.get("strict_micro"), field=f"model_summary.{suite}.strict_micro"
+        )
+        for metric in ("precision", "recall", "f1"):
+            _finite_probability(
+                strict.get(metric), field=f"model_summary.{suite}.strict_micro.{metric}"
+            )
+        model_output = _mapping(
+            suite_summary.get("model_output"), field=f"model_summary.{suite}.model_output"
+        )
+        _require_sha256(
+            model_output.get("evaluation_sha256"),
+            field=f"model_summary.{suite}.model_output.evaluation_sha256",
+        )
+        _require_sha256(
+            model_output.get("predictions_sha256"),
+            field=f"model_summary.{suite}.model_output.predictions_sha256",
+        )
+    return track
+
+
+def _validate_model_summary_binding(
+    summary: Mapping[str, Any],
+    *,
+    system_summary: Mapping[str, Any],
+    training: Mapping[str, Any],
+    training_file_sha256: str,
+    calibration: Mapping[str, Any],
+    calibration_file_sha256: str,
+    diagnostics_manifest_sha256: str,
+) -> str:
+    track = _validate_model_summary_contract(summary)
+    identity = _mapping(summary.get("model_identity"), field="model_summary.model_identity")
+    bound_training = _mapping(identity.get("training"), field="model_identity.training")
+    if (
+        bound_training.get("manifest_sha256") != training.get("manifest_sha256")
+        or bound_training.get("manifest_file_sha256") != training_file_sha256
+    ):
+        raise ReleaseEvidenceError("model evaluation/training manifest binding failed")
+
+    model_suites = _mapping(summary.get("suites"), field="model_summary.suites")
+    system_suites = _mapping(system_summary.get("suites"), field="system_summary.suites")
+    for suite in _EXPECTED_SUITES:
+        model_dataset = _mapping(
+            _mapping(model_suites[suite], field=f"model_summary.suites.{suite}").get("dataset"),
+            field=f"model_summary.suites.{suite}.dataset",
+        )
+        system_dataset = _mapping(
+            _mapping(system_suites[suite], field=f"system_summary.suites.{suite}").get("dataset"),
+            field=f"system_summary.suites.{suite}.dataset",
+        )
+        if dict(model_dataset) != dict(system_dataset):
+            raise ReleaseEvidenceError(
+                f"model and system evaluations use different {suite} dataset identities"
+            )
+
+    calibration_identity = identity.get("calibration")
+    if track == "model_raw":
+        if calibration_identity is not None:
+            raise ReleaseEvidenceError("model_raw evidence must not include calibration")
+    else:
+        bound_calibration = _mapping(
+            calibration_identity, field="model_identity.calibration"
+        )
+        if (
+            bound_calibration.get("bundle_sha256") != calibration_file_sha256
+            or bound_calibration.get("calibration_version")
+            != calibration.get("calibration_version")
+            or bound_calibration.get("diagnostics_manifest_sha256")
+            != diagnostics_manifest_sha256
+        ):
+            raise ReleaseEvidenceError("model_calibrated evidence/calibration binding failed")
+    return track
+
+
 def build_evaluation_report(
     community: Mapping[str, Any],
     system_summary: Mapping[str, Any],
+    model_summary: Mapping[str, Any],
     *,
     community_file_sha256: str,
     system_summary_file_sha256: str,
+    model_summary_file_sha256: str,
 ) -> dict[str, Any]:
     """Build the gate-compatible combined aggregate evaluation report."""
 
@@ -762,6 +972,8 @@ def build_evaluation_report(
             "split": "validation",
             "purpose": "preregistered_three_seed_model_and_system_selection",
         },
+        "frozen_model_evaluation": dict(model_summary),
+        "frozen_model_evaluation_file_sha256": model_summary_file_sha256,
         "frozen_system_evaluation": dict(system_summary),
         "frozen_system_evaluation_file_sha256": system_summary_file_sha256,
         "coverage": {
@@ -824,8 +1036,12 @@ def build_threshold_document(
     return result
 
 
-def build_model_index(summary: Mapping[str, Any], *, release_name: str) -> dict[str, Any]:
-    suites = _mapping(summary.get("suites"), field="system_summary.suites")
+def build_model_index(model_summary: Mapping[str, Any], *, release_name: str) -> dict[str, Any]:
+    """Build a model index from an explicitly model-attributable track."""
+
+    track = _validate_model_summary_contract(model_summary)
+    metric_prefix = _MODEL_INDEX_PREFIX[track]
+    suites = _mapping(model_summary.get("suites"), field="model_summary.suites")
     dataset_names = {
         "synthetic_test": "Synthetic v1.3 frozen test",
         "pii_bench_formal": "PII Bench zh formal (frozen)",
@@ -848,17 +1064,17 @@ def build_model_index(summary: Mapping[str, Any], *, release_name: str) -> dict[
                 },
                 "metrics": [
                     {
-                        "name": "System Strict Span Micro F1",
+                        "name": f"{metric_prefix} Strict Span Micro F1",
                         "type": "strict_span_f1",
                         "value": float(strict["f1"]),
                     },
                     {
-                        "name": "System Strict Span Precision",
+                        "name": f"{metric_prefix} Strict Span Precision",
                         "type": "strict_span_precision",
                         "value": float(strict["precision"]),
                     },
                     {
-                        "name": "System Strict Span Recall",
+                        "name": f"{metric_prefix} Strict Span Recall",
                         "type": "strict_span_recall",
                         "value": float(strict["recall"]),
                     },
@@ -877,11 +1093,14 @@ def assemble(
     calibration_diagnostics_path: Path,
     community_report_path: Path,
     system_summary_path: Path,
+    model_summary_path: Path | None = None,
     data_provenance_path: Path,
     teacher_provenance_path: Path,
     output_dir: Path,
     release_name: str,
 ) -> dict[str, str]:
+    if model_summary_path is None:
+        raise ReleaseEvidenceError("frozen model-track evaluation evidence is required")
     output_dir = output_dir.expanduser().absolute()
     cursor = output_dir
     while True:
@@ -1044,6 +1263,18 @@ def assemble(
         calibration=calibration,
         calibration_file_sha256=calibration_file_sha256,
     )
+    model_summary, model_summary_file_sha256, _ = _load_json(
+        model_summary_path, description="frozen model evaluation summary"
+    )
+    _validate_model_summary_binding(
+        model_summary,
+        system_summary=system_summary,
+        training=training,
+        training_file_sha256=training_file_sha256,
+        calibration=calibration,
+        calibration_file_sha256=calibration_file_sha256,
+        diagnostics_manifest_sha256=diagnostics_sha256,
+    )
 
     inputs = _mapping(diagnostics.get("inputs"), field="calibration diagnostics.inputs")
     dataset = _mapping(community.get("dataset"), field="community.dataset")
@@ -1107,11 +1338,13 @@ def assemble(
     evaluation_report = build_evaluation_report(
         community,
         system_summary,
+        model_summary,
         community_file_sha256=community_file_sha256,
         system_summary_file_sha256=system_summary_file_sha256,
+        model_summary_file_sha256=model_summary_file_sha256,
     )
     thresholds = build_threshold_document(calibration, diagnostics)
-    model_index = build_model_index(system_summary, release_name=release_name)
+    model_index = build_model_index(model_summary, release_name=release_name)
     _assert_public_safe(evaluation_report)
     _assert_public_safe(thresholds)
     _assert_public_safe(model_index)
@@ -1146,6 +1379,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--calibration-diagnostics", type=Path, required=True)
     parser.add_argument("--community-report", type=Path, required=True)
     parser.add_argument("--system-summary", type=Path, required=True)
+    parser.add_argument("--model-summary", type=Path, required=True)
     parser.add_argument("--data-provenance", type=Path, required=True)
     parser.add_argument("--teacher-provenance", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -1168,6 +1402,7 @@ def main() -> int:
             calibration_diagnostics_path=args.calibration_diagnostics,
             community_report_path=args.community_report,
             system_summary_path=args.system_summary,
+            model_summary_path=args.model_summary,
             data_provenance_path=args.data_provenance,
             teacher_provenance_path=args.teacher_provenance,
             output_dir=args.output_dir,

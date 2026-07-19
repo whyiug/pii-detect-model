@@ -359,6 +359,16 @@ class CharacterValidationComputer:
             )
             for label in sorted(all_labels)
         }
+        micro_tp, micro_fp, micro_fn = _strict_counts(
+            gold_documents,
+            predicted_documents,
+            allowed_labels=all_labels,
+        )
+        strict_micro_precision, strict_micro_recall, strict_micro_f1 = _prf(
+            micro_tp,
+            micro_fp,
+            micro_fn,
+        )
         macro_scores: list[float] = []
         for label in sorted(all_labels):
             tp, fp, fn = label_counts[label]
@@ -423,6 +433,9 @@ class CharacterValidationComputer:
             + 0.05 * calibration_score
         )
         return {
+            "strict_micro_precision": strict_micro_precision,
+            "strict_micro_recall": strict_micro_recall,
+            "strict_micro_f1": strict_micro_f1,
             "tier0_f2": tier_scores["T0"],
             "tier1_f2": tier_scores["T1"],
             "tier0_min_label_recall": minimum_label_recall["T0"],

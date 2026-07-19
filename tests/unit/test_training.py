@@ -646,6 +646,9 @@ def test_jpt_validation_uses_collated_width_for_different_length_rows() -> None:
         attention_mode="jpt",
     )
     metrics = computer(EvalPrediction(predictions=logits, label_ids=labels))
+    assert metrics["strict_micro_precision"] == pytest.approx(1.0)
+    assert metrics["strict_micro_recall"] == pytest.approx(1.0)
+    assert metrics["strict_micro_f1"] == pytest.approx(1.0)
     assert metrics["strict_macro_f1"] == pytest.approx(1.0)
     assert metrics["tier1_f2"] == pytest.approx(1.0)
     assert metrics["tier1_min_label_recall"] == pytest.approx(1.0)

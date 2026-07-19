@@ -1,0 +1,33 @@
+schema_version: 1
+
+dataset:
+  id: pii_zh_synthetic_sota_v2_resplit
+  version: "2.0.0"
+  license: Apache-2.0
+  language: zh-Hans-CN
+  data_pool: public_release_pool
+
+source:
+  dataset_id: pii_zh_synthetic_sota_v1
+  dataset_version: "1.0.1"
+  manifest_file_sha256: b18ddf2510fbac8f5484ef1e4c7fa7d388453187bc32516c72181e073695544a
+  manifest_canonical_sha256: b1625b2ccab60dacb1e24ed96b7015f0087961b3799d57c58d2cf48c42949f63
+  train_sha256: b6c85dad3ff30c4182515fb8e015b7cde04b9cea12633b5b5c7947110deaf37c
+  validation_sha256: bb33092745c705ebdbf642feb071ab99621a324fbf2ed33ebba13a6a898e3cc0
+  train_records: 80000
+  validation_records: 10000
+
+resplit:
+  strategy: template-and-pii-state-stratified-hash-v1
+  salt: pii-zh-synthetic-sota-v2-resplit-20260718
+  validation_to_train_ratio: 0.80
+  allow_template_group_overlap: true
+  require_document_id_disjoint: true
+  require_entity_value_group_disjoint: true
+  require_source_group_disjoint: true
+
+roles:
+  train: weight_training
+  validation: development_checkpoint_selection_and_calibration_only
+  release_test_eligible: false
+  public_benchmark_read: false

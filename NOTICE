@@ -1,13 +1,13 @@
-pii-zh-qwen synthetic-v1.3-rc1
+pii-zh-qwen 0.2.0rc1 community candidate
 Copyright 2026 pii-zh-qwen contributors
 
-This research release candidate includes software, synthetic-data tooling, evaluation tooling,
-and a Chinese PII token-classification model developed by the pii-zh-qwen contributors.
+This local research release candidate contains a Simplified-Chinese PII token-classification
+model, its reproducibility tooling, and a Presidio/rules/model community cascade integration.
 
-The released model is based on Qwen3-0.6B-Base from the Qwen project.
-Qwen and the Qwen model materials are Copyright 2024 Alibaba Cloud and are made available under
-the Apache License, Version 2.0. The Qwen attribution and license apply independently of the
-pii-zh-qwen project notice.
+Model initialization is bound to `ZJUICSR/AIguard-pii-detection-fast` at revision
+`677a5ebc1600fef61e8973cafd3026be322b3a73`. The upstream model card declares Apache-2.0;
+upstream attribution and license terms apply independently to those materials.
 
 Exact third-party revisions, roles, distribution boundaries, and dependency records for this
-release candidate are documented in THIRD_PARTY_NOTICES.md, `sbom.cdx.json`, and `uv.lock`.
+candidate are documented in THIRD_PARTY_NOTICES.md, the typed SBOM/license artifacts, and
+`uv.lock`. Final human/legal license approval remains a separate publication gate.

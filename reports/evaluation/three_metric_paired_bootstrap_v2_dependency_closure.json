@@ -1,0 +1,59 @@
+{
+  "activation": {
+    "claim_activation_allowed": false,
+    "dependency_closure_closed": true,
+    "formal_evaluation_allowed": false,
+    "formal_statistical_component_activated": false,
+    "historical_generation_2_blocker_changed": false,
+    "human_hidden_execution_allowed": false,
+    "predecessor_v2_mutated": false,
+    "registry_activation_allowed": false
+  },
+  "checks": {
+    "all_eight_runtime_dependency_file_hashes": "PASS",
+    "draft_2020_12_schema": "PASS",
+    "external_audited_generation_source_hashes": "PASS",
+    "fresh_python_b_s_exact_project_local_import_set": "PASS",
+    "generation_2_6_pass_4_blocked_unchanged": "PASS",
+    "non_activation_policy": "PASS",
+    "predecessor_v2_file_and_canonical_hashes": "PASS",
+    "support_and_addendum_source_bindings": "PASS"
+  },
+  "claims": {
+    "best": false,
+    "blind": false,
+    "first": false,
+    "global_best": false,
+    "sota": false
+  },
+  "dependency_closure": {
+    "canonical_sha256": "7a128f289b7ed0d2f7e3e3a635c1f10509a2677df6a4f25099838ec086bb3155",
+    "closure_id": "three_metric_paired_bootstrap_v2_dependency_closure",
+    "closure_state": "DEPENDENCY_CLOSURE_CLOSED_NON_ACTIVATING",
+    "file_mode": "0444",
+    "file_sha256": "37e817e55a5f0e8775de686ad5bfc8a219ec3231d1c7a3a3c577de62debc5eae",
+    "path": "configs/evaluation/three_metric_paired_bootstrap_v2_dependency_closure.freeze.json"
+  },
+  "dependency_closure_receipt_sha256": "fb972648413cd1a58a20ac4f30a6a1e818dc302a12966416bd1cb8d57954de2f",
+  "generated_at": "2026-07-16T06:40:00+08:00",
+  "hash_contract": "dependency_closure_receipt_sha256 is SHA-256 of canonical UTF-8 JSON after removing the top-level dependency_closure_receipt_sha256 field under the same canonical JSON rules",
+  "privacy": {
+    "benchmark_rows_read": 0,
+    "gpu_queried_or_used": false,
+    "hidden_gold_read": 0,
+    "metadata_source_and_import_only": true,
+    "model_weight_files_read": 0,
+    "model_weights_loaded": false,
+    "network_used": false,
+    "prediction_files_read": 0
+  },
+  "receipt_id": "three_metric_paired_bootstrap_v2_dependency_closure_receipt",
+  "schema_version": 1,
+  "status": "DEPENDENCY_CLOSURE_CLOSED_NON_ACTIVATING",
+  "timezone": "Asia/Shanghai",
+  "verification_scope": {
+    "portable_external_freeze_and_receipt_file_hashes_required": true,
+    "portable_git_checkout_replay": "bytes_policy_import_set_schema_and_external_two_file_hash_anchors",
+    "strict_local_replay": "bytes_policy_import_set_schema_modes_and_original_mtimes"
+  }
+}

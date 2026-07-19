@@ -1,0 +1,64 @@
+schema_version: 1
+withdrawal_id: comparator_registry_v1_generation_1_freeze_time_withdrawal
+issued_at: "2026-07-12T09:06:16+08:00"
+timezone: Asia/Shanghai
+withdrawal_sha256: "cc0e4ba05a3735f072a21b519729c41bac85a596322fbf0ee89d77919904d00c"
+
+hash_contract:
+  withdrawal_sha256: >-
+    SHA-256 of canonical UTF-8 JSON for this YAML object after removing the
+    top-level withdrawal_sha256 field; JSON keys are sorted and separators are compact.
+
+withdrawn_registry:
+  path: configs/evaluation/comparator_registry_v1.yaml
+  registry_id: comparator_registry_v1_generation_1
+  registry_self_hash: 37565121cffb708a87812bc2d3a86a8988b54f458c38f12d87055bfb36d4a5f2
+  registry_file_sha256: b82b6492bf5fc3c57a3053f846138924bf61930876d2acf83bec40547de80cfb
+  declared_frozen_at: "2026-07-12T08:39:42+08:00"
+
+contradicting_local_evidence:
+  schema:
+    path: configs/evaluation/comparator_registry_v1.schema.json
+    file_sha256: 2955138a1ffeec6024df97715c67a598dad14182a6446e9a7a6d759f4e8bbf99
+    filesystem_mtime: "2026-07-12T08:46:06.043275500+08:00"
+  argus_report:
+    path: reports/baselines/argus_redact_pii_bench_zh.json
+    file_sha256: 2cd12c69aec08544f99aa6e9af21dbd0bfcfc8701e7620d92213021d24e262bd
+    filesystem_mtime: "2026-07-12T08:46:46.395625583+08:00"
+  registry_file:
+    filesystem_mtime: "2026-07-12T08:49:13.908908410+08:00"
+
+material_preexisting_comparator_omission:
+  status: confirmed
+  repository: OpenMed/OpenMed-PII-Chinese-SnowflakeMed-Large-568M-v1
+  revision: a7f9f4bbc43961ce1a7cdc38ade5545fcfcfbe64
+  upstream_last_modified: "2026-05-28T08:51:35Z"
+  task: Chinese token-classification PII detection
+  license: Apache-2.0
+  selection_evidence: >-
+    The OpenMed Chinese-family model card ranks this checkpoint first within its
+    published family. Discovery and family selection occurred before any local
+    PII Bench execution for this checkpoint.
+  impact: >-
+    The model existed before the claimed generation-1 freeze but was omitted from
+    the comparator search, so generation 1 was materially incomplete even apart
+    from the timestamp contradiction.
+
+decision:
+  status: withdrawn
+  reasons:
+    - >-
+      The declared freeze time predates local creation of evidence that the registry
+      binds. The current bytes therefore cannot substantiate the claimed 08:39 freeze.
+    - >-
+      A material, pre-existing Simplified-Chinese comparator was omitted from the
+      generation-1 search and must be evaluated before a new registry is frozen.
+  silent_timestamp_rewrite: prohibited
+  generation_1_claims_eligible: false
+  superseded_by: comparator_registry_v2_generation_2_pending
+
+hidden_gold_at_withdrawal:
+  status: not_materialized_never_accessed
+  record_count: 0
+  access_count: 0
+  independence_impact: none_but_new_registry_must_be_frozen_before_any_future_access

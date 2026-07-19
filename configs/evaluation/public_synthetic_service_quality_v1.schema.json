@@ -1,0 +1,445 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/public_synthetic_service_quality_v1.schema.json",
+  "title": "Public/synthetic Chinese PII community quality preregistration v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "status",
+    "purpose",
+    "scope",
+    "taxonomy",
+    "model_policy",
+    "benchmark",
+    "tracks",
+    "track_policies",
+    "frozen_inputs",
+    "required_result_bindings",
+    "privacy",
+    "claims",
+    "implementation",
+    "successor_policy",
+    "contract_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.public-synthetic-service-quality-contract.v1"
+    },
+    "contract_id": {
+      "const": "public_synthetic_service_quality_v1"
+    },
+    "status": {
+      "const": "preregistered_pending_frozen_result"
+    },
+    "purpose": {
+      "const": "fail_closed_quality_gate_for_public_and_synthetic_community_research_release"
+    },
+    "scope": {
+      "const": {
+        "allowed_data": [
+          "public_open_source",
+          "synthetic"
+        ],
+        "human_evidence_required": false,
+        "production_evidence": false,
+        "public_test_exposed": true,
+        "real_world_generalization_established": false,
+        "release_class": "community_research_preview"
+      }
+    },
+    "taxonomy": {
+      "const": {
+        "language": "zh-Hans-CN",
+        "label_count": 24,
+        "labels": [
+          "PERSON_NAME",
+          "PHONE_NUMBER",
+          "EMAIL_ADDRESS",
+          "ADDRESS",
+          "DATE_OF_BIRTH",
+          "CN_RESIDENT_ID",
+          "PASSPORT_NUMBER",
+          "DRIVER_LICENSE_NUMBER",
+          "SOCIAL_SECURITY_NUMBER",
+          "BANK_CARD_NUMBER",
+          "BANK_ACCOUNT_NUMBER",
+          "VEHICLE_LICENSE_PLATE",
+          "EMPLOYEE_ID",
+          "STUDENT_ID",
+          "MEDICAL_RECORD_NUMBER",
+          "WECHAT_ID",
+          "QQ_NUMBER",
+          "ALIPAY_ACCOUNT",
+          "USERNAME",
+          "IP_ADDRESS",
+          "MAC_ADDRESS",
+          "DEVICE_ID",
+          "GEO_COORDINATE",
+          "SECRET"
+        ],
+        "strict_span_matching": "document_label_start_end_left_closed_right_open",
+        "taxonomy_version": "1.0.0"
+      }
+    },
+    "model_policy": {
+      "const": {
+        "artifact_class": "24_label_zh_hans_token_classifier",
+        "allowed_attention_modes": [
+          "causal",
+          "full"
+        ],
+        "causal": {
+          "candidate_allowed": true,
+          "loader_pii_release_eligible": false,
+          "release_class": "research_preview_explicit_opt_in_only",
+          "runtime_policy": "explicit_opt_in_causal_research_runtime"
+        },
+        "full": {
+          "candidate_allowed": true,
+          "loader_pii_release_eligible_may_be_true": true,
+          "release_class": "community_research_preview_candidate",
+          "runtime_policy": "standard_full_attention_runtime"
+        },
+        "evidence_requirements": {
+          "full_system_release_blocking": true,
+          "full_system_service_quality_required": true,
+          "model_raw_and_full_system_bind_same_final_model": true,
+          "model_raw_evaluation_required": true
+        },
+        "production_ready": false
+      }
+    },
+    "benchmark": {
+      "const": {
+        "benchmark_id": "public_synthetic_chinese_pii_community_v1",
+        "candidate_or_threshold_selection_on_public_test_must_be_disclosed": true,
+        "comparison_policy": "same_dataset_same_labels_same_metric_same_canonical_track_only",
+        "full_system_must_exceed_prior_system_by_paired_bootstrap": true,
+        "model_raw_and_full_system_must_not_be_pooled": true,
+        "public_test_exposed": true,
+        "result_receipt_is_aggregate_only": true,
+        "sota_scope": "named_public_synthetic_benchmark_and_frozen_comparator_set_only"
+      }
+    },
+    "tracks": {
+      "const": [
+        "model_raw",
+        "full_system"
+      ]
+    },
+    "track_policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_raw",
+        "full_system"
+      ],
+      "properties": {
+        "model_raw": {
+          "$ref": "#/$defs/trackPolicy"
+        },
+        "full_system": {
+          "$ref": "#/$defs/trackPolicy"
+        }
+      }
+    },
+    "frozen_inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparator_registry",
+        "metric_code"
+      ],
+      "properties": {
+        "comparator_registry": {
+          "$ref": "#/$defs/binding"
+        },
+        "metric_code": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
+        }
+      }
+    },
+    "required_result_bindings": {
+      "const": [
+        "final_model_manifest",
+        "model_raw_dataset_manifest",
+        "full_system_dataset_manifest",
+        "pii_free_dataset_manifest",
+        "model_raw_prediction_manifest",
+        "full_system_prediction_manifest",
+        "source_snapshot_manifest",
+        "service_configuration"
+      ]
+    },
+    "privacy": {
+      "const": {
+        "aggregate_receipt_only": true,
+        "gpu_query_allowed": false,
+        "model_weight_read_allowed": false,
+        "network_allowed": false,
+        "record_level_data_read_allowed": false,
+        "result_bindings_are_manifests_not_raw_records": true
+      }
+    },
+    "claims": {
+      "const": {
+        "first_chinese_pii_model": false,
+        "global_sota": false,
+        "production_ready": false,
+        "real_world_sota": false,
+        "permitted_claim": "best_on_named_public_synthetic_benchmark_among_frozen_comparators_if_the_result_receipt_passes_the_paired_bootstrap_gate"
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "validator",
+        "support"
+      ],
+      "properties": {
+        "schema": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/binding"
+            },
+            {
+              "properties": {
+                "logical_id": {
+                  "const": "public_synthetic_service_quality_v1_schema"
+                },
+                "path": {
+                  "const": "configs/evaluation/public_synthetic_service_quality_v1.schema.json"
+                }
+              }
+            }
+          ]
+        },
+        "validator": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/binding"
+            },
+            {
+              "properties": {
+                "logical_id": {
+                  "const": "validate_public_synthetic_service_quality_v1"
+                },
+                "path": {
+                  "const": "scripts/validate_public_synthetic_service_quality_v1.py"
+                }
+              }
+            }
+          ]
+        },
+        "support": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/binding"
+            },
+            {
+              "properties": {
+                "logical_id": {
+                  "const": "community_contract_utils"
+                },
+                "path": {
+                  "const": "scripts/community_contract_utils.py"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "successor_policy": {
+      "const": {
+        "modify_historical_production_contracts": false,
+        "production_gate_may_consume_this_as_human_evidence": false,
+        "result_requires_new_immutable_receipt": true,
+        "result_receipt_may_change_preregistered_thresholds": false
+      }
+    },
+    "contract_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logical_id",
+        "path",
+        "file_sha256"
+      ],
+      "properties": {
+        "logical_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "$ref": "#/$defs/safePath"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strict_micro_f1_min",
+        "strict_macro_f1_min",
+        "minimum_per_label_recall_min",
+        "pii_free_document_fpr_max",
+        "fp_spans_per_1000_characters_max",
+        "pii_character_miss_rate_max",
+        "non_pii_character_false_positive_rate_max",
+        "latency_p95_ms_max",
+        "throughput_documents_per_second_min",
+        "peak_cpu_rss_mb_max",
+        "peak_gpu_memory_mb_max"
+      ],
+      "properties": {
+        "strict_micro_f1_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "strict_macro_f1_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_per_label_recall_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pii_free_document_fpr_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fp_spans_per_1000_characters_max": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pii_character_miss_rate_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "non_pii_character_false_positive_rate_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "latency_p95_ms_max": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "throughput_documents_per_second_min": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_cpu_rss_mb_max": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_gpu_memory_mb_max": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "bootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "comparison_unit",
+        "confidence_level",
+        "resamples_min",
+        "micro_f1_delta_ci_low_min",
+        "macro_f1_delta_ci_low_min",
+        "document_fpr_delta_ci_high_max"
+      ],
+      "properties": {
+        "method": {
+          "const": "paired_document_bootstrap_percentile"
+        },
+        "comparison_unit": {
+          "const": "document"
+        },
+        "confidence_level": {
+          "const": 0.95
+        },
+        "resamples_min": {
+          "type": "integer",
+          "minimum": 10000
+        },
+        "micro_f1_delta_ci_low_min": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "macro_f1_delta_ci_low_min": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "document_fpr_delta_ci_high_max": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        }
+      }
+    },
+    "trackPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonical_track",
+        "release_blocking",
+        "thresholds",
+        "bootstrap"
+      ],
+      "properties": {
+        "canonical_track": {
+          "enum": [
+            "model_raw",
+            "full_system"
+          ]
+        },
+        "release_blocking": {
+          "type": "boolean"
+        },
+        "thresholds": {
+          "$ref": "#/$defs/thresholds"
+        },
+        "bootstrap": {
+          "$ref": "#/$defs/bootstrap"
+        }
+      }
+    }
+  }
+}

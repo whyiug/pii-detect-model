@@ -1,0 +1,14 @@
+# Keep the project-wide policy in pyproject.toml. These narrow exceptions are
+# only for source bytes already content-addressed by frozen experiment or
+# evaluation evidence. tests/release/test_content_addressed_lint_exemptions.py
+# binds every path, rule, SHA-256, and evidence artifact.
+extend = "pyproject.toml"
+
+[lint.per-file-ignores]
+"scripts/audit_targeted_repair_v4_combined_isolation.py" = ["E501", "I001"]
+"scripts/audit_targeted_repair_v4_design.py" = ["E501"]
+"scripts/train_macbert_long_context_v6.py" = ["B007", "E501"]
+"src/pii_zh/data/synthetic/targeted_repair_v4.py" = ["E501"]
+"src/pii_zh/data/synthetic/targeted_repair_v4_freeze.py" = ["E501"]
+"src/pii_zh/inference/postprocessing.py" = ["E501"]
+"src/pii_zh/targeted_repair_v4_closure.py" = ["E501"]

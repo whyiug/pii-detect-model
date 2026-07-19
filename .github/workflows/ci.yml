@@ -22,10 +22,19 @@ jobs:
         run: |
           python -m pip install "uv==0.10.4"
           uv sync --frozen --extra training --extra dev
+      - name: Normalize Git-portable frozen configuration modes
+        shell: bash
+        run: |
+          test -d configs
+          find configs -type f -exec chmod 0444 {} +
       - name: Ruff
         run: uv run ruff check src tests scripts
-      - name: Core and release unit tests
-        run: uv run pytest tests/unit tests/release
+      - name: Current community RC regression closure
+        run: |
+          CUDA_VISIBLE_DEVICES='' \
+          HF_HUB_OFFLINE=1 \
+          TRANSFORMERS_OFFLINE=1 \
+            uv run python -m scripts.run_current_community_rc_tests
       - name: Deterministic CycloneDX smoke
         run: |
           uv run python scripts/generate_sbom.py --output release/ci-sbom.cdx.json
@@ -33,7 +42,7 @@ jobs:
 
   package-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -44,8 +53,58 @@ jobs:
         run: |
           python -m pip install build
           python -m build --wheel
-      - name: Install wheel and verify package data
+      - name: Verify successor wheel contents
         run: |
-          python -m pip install dist/*.whl
-          cd /tmp
-          python -c "from pii_zh.taxonomy import load_taxonomy; assert load_taxonomy().version"
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+
+          wheels = list(Path("dist").glob("*.whl"))
+          assert len(wheels) == 1, f"expected one wheel, found {len(wheels)}"
+          wheel = wheels[0]
+          names = set(zipfile.ZipFile(wheel).namelist())
+          required = {
+              "pii_zh/taxonomy/taxonomy.yaml",
+              "pii_zh/taxonomy/presidio_mapping.yaml",
+              "pii_zh/data/validators/cn_vehicle_plate.py",
+              "pii_zh/rules/cn_common_v6.py",
+              "pii_zh/cascade/service_profiles.py",
+              "pii_zh/cascade/routing.py",
+              "pii_zh/cli.py",
+              "pii_zh/service/app.py",
+          }
+          missing = sorted(required - names)
+          leaked = sorted(
+              name
+              for name in names
+              if name.startswith(("tests/", "reports/", "configs/", "scripts/", "examples/"))
+          )
+          assert not missing, f"missing wheel entries: {missing}"
+          assert not leaked, f"repository-only payloads leaked into wheel: {leaked}"
+          PY
+      - name: Run installed successor service smoke
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          wheels=(dist/*.whl)
+          test "${#wheels[@]}" -eq 1
+          WHEEL="$(realpath "${wheels[0]}")"
+          VENV="${RUNNER_TEMP}/pii-zh-package-smoke"
+          RUNTIME_CWD="${RUNNER_TEMP}/pii-zh-package-smoke-cwd"
+          python -m venv "${VENV}"
+          "${VENV}/bin/python" -c \
+            "from pathlib import Path; text=Path('${VENV}/pyvenv.cfg').read_text(); assert 'include-system-site-packages = false' in text"
+          "${VENV}/bin/python" -m pip install \
+            --no-cache-dir \
+            "${WHEEL}[service,presidio]" \
+            "httpx>=0.27,<1"
+          "${VENV}/bin/python" -m pip check
+          mkdir -p "${RUNTIME_CWD}"
+          cd "${RUNTIME_CWD}"
+          CUDA_VISIBLE_DEVICES='' \
+          HF_HUB_OFFLINE=1 \
+          TRANSFORMERS_OFFLINE=1 \
+          PYTHONPATH='' \
+          PYTHONNOUSERSITE=1 \
+            "${VENV}/bin/python" \
+            "${GITHUB_WORKSPACE}/scripts/run_successor_clean_wheel_smoke.py"

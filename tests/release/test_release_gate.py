@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
+import shutil
 import subprocess
 from pathlib import Path
 from typing import cast
 
-from conftest import ReleaseFixture, rewrite_checksums, run_script, write_json
+from scripts import release_gate
+from tests.release.conftest import ReleaseFixture, rewrite_checksums, run_script, write_json
 
 
 def _gate(
@@ -43,6 +46,24 @@ def _issue_codes(report: Path) -> set[str]:
 def _canonical_hash(value: object) -> str:
     encoded = json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode()).hexdigest()
+
+
+def _artifact_snapshot_hash(root: Path) -> str:
+    entries = []
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root).as_posix()
+        if path.is_dir():
+            entries.append({"path": relative, "type": "directory"})
+        elif path.is_file():
+            entries.append(
+                {
+                    "path": relative,
+                    "type": "file",
+                    "size": path.stat().st_size,
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                }
+            )
+    return _canonical_hash(entries)
 
 
 def _assert_receipt_self_hash(document: dict[str, object]) -> None:
@@ -124,6 +145,7 @@ def test_gate_receipt_v2_binds_package_and_evidence_inputs(
     identity = document["artifact_identity"]
     assert document["schema_version"] == 2
     assert identity == {
+        "artifact_snapshot_sha256": _artifact_snapshot_hash(built_release.artifact),
         "checksums_sha256": hashlib.sha256(
             (built_release.artifact / "checksums.txt").read_bytes()
         ).hexdigest(),
@@ -143,6 +165,57 @@ def test_gate_receipt_v2_binds_package_and_evidence_inputs(
     receipt_gate = next(gate for gate in document["gates"] if gate["name"] == "receipt_identity")
     assert receipt_gate["passed"] is True
     _assert_receipt_self_hash(document)
+
+
+def test_gate_rejects_system_metrics_attributed_to_model_index(
+    built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
+) -> None:
+    model_index_path = built_release.artifact / "model-index.yml"
+    model_index = model_index_path.read_text(encoding="utf-8")
+    assert "Model Raw " in model_index
+    model_index_path.write_text(model_index.replace("Model Raw ", "System "), encoding="utf-8")
+    rewrite_checksums(built_release.artifact)
+
+    report = tmp_path / "gate.json"
+    result = _gate(repository_root, built_release, report)
+
+    assert result.returncode == 1
+    assert "RC_BLOCKED_MODEL_INDEX_ATTRIBUTION" in _issue_codes(report)
+
+
+def test_gate_rejects_unknown_generator_defect_semantics(
+    built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
+) -> None:
+    provenance_path = built_release.artifact / "data_provenance.json"
+    provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+    provenance["lineage"] = {
+        "dataset_id": "unknown-dataset-id",
+        "generator_defect_retired": True,
+    }
+    write_json(provenance_path, provenance)
+    rewrite_checksums(built_release.artifact)
+
+    report = tmp_path / "gate.json"
+    result = _gate(repository_root, built_release, report)
+
+    assert result.returncode == 1
+    assert "RC_BLOCKED_ARTIFACT_LINEAGE" in _issue_codes(report)
+
+
+def test_gate_rejects_non_boolean_release_eligibility(
+    built_release: ReleaseFixture, repository_root: Path, tmp_path: Path
+) -> None:
+    provenance_path = built_release.artifact / "data_provenance.json"
+    provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+    provenance["release_eligible"] = None
+    write_json(provenance_path, provenance)
+    rewrite_checksums(built_release.artifact)
+
+    report = tmp_path / "gate.json"
+    result = _gate(repository_root, built_release, report)
+
+    assert result.returncode == 1
+    assert "RC_BLOCKED_ARTIFACT_LINEAGE" in _issue_codes(report)
 
 
 def test_gate_receipt_identity_changes_with_package_and_scan_content(
@@ -187,6 +260,171 @@ def test_gate_receipt_identity_changes_with_package_and_scan_content(
         scan_changed["artifact_identity"]["dependency_scan_sha256"]
         != package_changed["artifact_identity"]["dependency_scan_sha256"]
     )
+
+
+def test_gate_blocks_a_b_artifact_root_replacement_and_receipt_stays_on_snapshot(
+    built_release: ReleaseFixture,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original = built_release.artifact
+    replacement = tmp_path / "replacement-b"
+    displaced = tmp_path / "displaced-a"
+    shutil.copytree(original, replacement)
+    with (replacement / "README.md").open("a", encoding="utf-8") as stream:
+        stream.write("\nA different, independently checksummed B directory.\n")
+    rewrite_checksums(replacement)
+    original_checksums_sha256 = hashlib.sha256(
+        (original / "checksums.txt").read_bytes()
+    ).hexdigest()
+
+    real_run_gates = release_gate.run_gates
+
+    def swap_root_after_gate_reads(
+        snapshot_args: argparse.Namespace,
+    ) -> list[release_gate.GateResult]:
+        results = real_run_gates(snapshot_args)
+        original.rename(displaced)
+        replacement.rename(original)
+        return results
+
+    monkeypatch.setattr(release_gate, "run_gates", swap_root_after_gate_reads)
+    args = argparse.Namespace(
+        artifact=original,
+        source_registry=built_release.registry,
+        canary_allowlist=None,
+        dependency_scan=built_release.dependency_scan,
+        dependency_exceptions=built_release.dependency_exceptions,
+        v2_contract_sha256=None,
+        v2_selected_receipt_sha256=None,
+        json_output=None,
+    )
+
+    results, identity, execution_error = release_gate.execute_gates(args)
+
+    assert execution_error is False
+    assert identity["checksums_sha256"] == original_checksums_sha256
+    assert identity["artifact_snapshot_sha256"] == _artifact_snapshot_hash(displaced)
+    snapshot_gate = next(
+        result for result in results if result.name == "artifact_snapshot_integrity"
+    )
+    assert snapshot_gate.passed is False
+    assert {issue.code for issue in snapshot_gate.issues} == {
+        "RC_BLOCKED_ARTIFACT_ROOT_REPLACED"
+    }
+
+
+def test_gate_blocks_in_place_source_mutation_without_changing_private_snapshot(
+    built_release: ReleaseFixture,
+    monkeypatch,
+) -> None:
+    original = built_release.artifact
+    original_snapshot_sha256 = _artifact_snapshot_hash(original)
+    original_checksums_sha256 = hashlib.sha256(
+        (original / "checksums.txt").read_bytes()
+    ).hexdigest()
+    real_run_gates = release_gate.run_gates
+
+    def mutate_source_after_gate_reads(
+        snapshot_args: argparse.Namespace,
+    ) -> list[release_gate.GateResult]:
+        results = real_run_gates(snapshot_args)
+        with (original / "README.md").open("a", encoding="utf-8") as stream:
+            stream.write("\nConcurrent in-place source mutation.\n")
+        rewrite_checksums(original)
+        return results
+
+    monkeypatch.setattr(release_gate, "run_gates", mutate_source_after_gate_reads)
+    args = argparse.Namespace(
+        artifact=original,
+        source_registry=built_release.registry,
+        canary_allowlist=None,
+        dependency_scan=built_release.dependency_scan,
+        dependency_exceptions=built_release.dependency_exceptions,
+        v2_contract_sha256=None,
+        v2_selected_receipt_sha256=None,
+        json_output=None,
+    )
+
+    results, identity, execution_error = release_gate.execute_gates(args)
+
+    assert execution_error is False
+    assert identity["checksums_sha256"] == original_checksums_sha256
+    assert identity["artifact_snapshot_sha256"] == original_snapshot_sha256
+    snapshot_gate = next(
+        result for result in results if result.name == "artifact_snapshot_integrity"
+    )
+    assert snapshot_gate.passed is False
+    assert {issue.code for issue in snapshot_gate.issues} == {
+        "RC_BLOCKED_ARTIFACT_SOURCE_MUTATED"
+    }
+
+
+def test_gate_fails_closed_when_source_changes_during_snapshot_construction(
+    built_release: ReleaseFixture,
+    monkeypatch,
+) -> None:
+    original = built_release.artifact
+    real_copy_tree = release_gate._copy_fd_tree
+    mutated = False
+
+    def mutate_after_copy(source_fd: int, destination: Path) -> None:
+        nonlocal mutated
+        real_copy_tree(source_fd, destination)
+        if not mutated:
+            mutated = True
+            with (original / "README.md").open("a", encoding="utf-8") as stream:
+                stream.write("\nMutation during snapshot construction.\n")
+            rewrite_checksums(original)
+
+    monkeypatch.setattr(release_gate, "_copy_fd_tree", mutate_after_copy)
+    args = argparse.Namespace(
+        artifact=original,
+        source_registry=built_release.registry,
+        canary_allowlist=None,
+        dependency_scan=built_release.dependency_scan,
+        dependency_exceptions=built_release.dependency_exceptions,
+        v2_contract_sha256=None,
+        v2_selected_receipt_sha256=None,
+        json_output=None,
+    )
+
+    results, _, execution_error = release_gate.execute_gates(args)
+
+    assert execution_error is True
+    snapshot_gate = next(
+        result for result in results if result.name == "artifact_snapshot_integrity"
+    )
+    assert snapshot_gate.passed is False
+    assert {issue.code for issue in snapshot_gate.issues} == {
+        "RC_BLOCKED_ARTIFACT_SNAPSHOT"
+    }
+
+
+def test_gate_refuses_to_write_receipt_inside_artifact_tree(
+    built_release: ReleaseFixture,
+    repository_root: Path,
+) -> None:
+    unsafe_report = built_release.artifact / "gate-receipt.json"
+
+    result = run_script(
+        repository_root,
+        "release_gate.py",
+        "--artifact",
+        str(built_release.artifact),
+        "--source-registry",
+        str(built_release.registry),
+        "--dependency-scan",
+        str(built_release.dependency_scan),
+        "--dependency-exceptions",
+        str(built_release.dependency_exceptions),
+        "--json-output",
+        str(unsafe_report),
+    )
+
+    assert result.returncode == 2
+    assert "receipt output must be outside" in result.stderr
+    assert not unsafe_report.exists()
 
 
 def test_gate_writes_self_hashed_receipt_for_missing_artifact(

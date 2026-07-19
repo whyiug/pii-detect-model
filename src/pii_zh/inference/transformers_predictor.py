@@ -10,7 +10,11 @@ from typing import Any
 
 try:
     import torch
-    from transformers import Qwen3ForTokenClassification
+    from transformers import (
+        AutoTokenizer,
+        BertForTokenClassification,
+        Qwen3ForTokenClassification,
+    )
 except ImportError as exc:  # pragma: no cover - optional inference dependency
     raise ImportError("Local inference requires torch and transformers.") from exc
 
@@ -45,7 +49,7 @@ def _canonical_hash(value: Any) -> str:
     return hashlib.sha256(encoded.encode()).hexdigest()
 
 
-def _verify_training_artifact_binding(path: Path) -> None:
+def _verify_training_artifact_binding(path: Path) -> dict[str, Any]:
     manifest_path = path / "training_manifest.json"
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -63,8 +67,6 @@ def _verify_training_artifact_binding(path: Path) -> None:
     ):
         raise InferenceSafetyError("training manifest completion/hash check failed")
     recorded = manifest.get("output_artifact")
-    if not isinstance(recorded, dict):
-        raise InferenceSafetyError("training manifest lacks output artifact binding")
     weights = tuple(sorted(path.glob("model*.safetensors")))
     files = {item.name: _sha256_file(item) for item in weights if item.is_file()}
     for name in _BOUND_METADATA_FILES:
@@ -72,16 +74,55 @@ def _verify_training_artifact_binding(path: Path) -> None:
         if candidate.is_file() and not candidate.is_symlink():
             files[name] = _sha256_file(candidate)
     weight_hashes = {name: files[name] for name in sorted(files) if name.endswith(".safetensors")}
-    actual = {
-        "schema_version": 1,
-        "format": "huggingface_safetensors",
-        "files": dict(sorted(files.items())),
-        "weight_files": sorted(weight_hashes),
-        "weights_combined_sha256": _canonical_hash(weight_hashes),
-        "artifact_files_combined_sha256": _canonical_hash(files),
+    if isinstance(recorded, dict):
+        actual = {
+            "schema_version": 1,
+            "format": "huggingface_safetensors",
+            "files": dict(sorted(files.items())),
+            "weight_files": sorted(weight_hashes),
+            "weights_combined_sha256": _canonical_hash(weight_hashes),
+            "artifact_files_combined_sha256": _canonical_hash(files),
+        }
+        if actual != recorded:
+            raise InferenceSafetyError("model files do not match the completed training manifest")
+        return manifest
+
+    if manifest.get("manifest_type") != "experimental_macbert_numeric_o_v5b_training":
+        raise InferenceSafetyError("training manifest lacks a supported output artifact binding")
+    expected_names = {
+        "config.json",
+        "model.safetensors",
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.txt",
     }
-    if actual != recorded:
-        raise InferenceSafetyError("model files do not match the completed training manifest")
+    output_files = manifest.get("output_files")
+    selection = manifest.get("selection")
+    pilot = manifest.get("pilot_preregistration")
+    if (
+        not isinstance(output_files, dict)
+        or set(output_files) != expected_names
+        or any(not isinstance(value, str) for value in output_files.values())
+        or not isinstance(selection, dict)
+        or selection.get("gate_passed") is not True
+        or isinstance(selection.get("selected_evaluation_point"), bool)
+        or not isinstance(selection.get("selected_evaluation_point"), (int, float))
+        or not isinstance(pilot, dict)
+        or pilot.get("status") != "verified_development_only_loss_causal_pilot"
+        or pilot.get("numeric_O_token_weight") != 4.0
+        or manifest.get("release_eligible") is not False
+    ):
+        raise InferenceSafetyError("MacBERT pilot manifest safety contract failed")
+    actual_output_files: dict[str, str] = {}
+    for name in sorted(expected_names):
+        candidate = path / name
+        if candidate.is_symlink() or not candidate.is_file():
+            raise InferenceSafetyError("MacBERT pilot output inventory changed")
+        actual_output_files[name] = _sha256_file(candidate)
+    if actual_output_files != output_files:
+        raise InferenceSafetyError("MacBERT pilot files do not match the completed manifest")
+    return manifest
 
 
 class InferenceSafetyError(RuntimeError):
@@ -119,6 +160,7 @@ class TransformersSpanPredictor:
         device: str | torch.device | None = None,
         micro_batch_size: int = 16,
         ignored_labels: Sequence[str] = (),
+        allowed_labels: Sequence[str] | None = None,
         attention_mode: str = "full",
         jpt_sep_token_id: int | None = None,
     ) -> None:
@@ -140,6 +182,32 @@ class TransformersSpanPredictor:
         self.tokenizer = tokenizer
         self.id2label = _normalize_id2label(config.id2label)
         self.ignored_labels = frozenset(ignored_labels)
+        entity_types = {
+            label.split("-", 1)[1]
+            for label in self.id2label.values()
+            if label != "O" and label[:2] in {"B-", "I-"}
+        }
+        if allowed_labels is None:
+            self.allowed_labels: frozenset[str] | None = None
+            self.allowed_label_ids = tuple(sorted(self.id2label))
+        else:
+            if isinstance(allowed_labels, (str, bytes)):
+                raise TypeError("allowed_labels must be a sequence of entity labels")
+            normalized_allowed = frozenset(allowed_labels)
+            if (
+                not normalized_allowed
+                or any(not isinstance(label, str) or not label for label in normalized_allowed)
+                or not normalized_allowed <= entity_types
+            ):
+                raise ValueError("allowed_labels must be a non-empty subset of model entities")
+            if normalized_allowed & self.ignored_labels:
+                raise ValueError("allowed_labels and ignored_labels must be disjoint")
+            self.allowed_labels = normalized_allowed
+            self.allowed_label_ids = tuple(
+                label_id
+                for label_id, label in sorted(self.id2label.items())
+                if label == "O" or label.split("-", 1)[1] in normalized_allowed
+            )
         self.micro_batch_size = micro_batch_size
         if attention_mode not in {"causal", "full", "jpt"}:
             raise ValueError("attention_mode must be causal, full, or jpt")
@@ -189,8 +257,15 @@ class TransformersSpanPredictor:
         if self.attention_mode == "jpt":
             second_start = source_width + 1
             logits = logits[:, second_start : second_start + source_width]
-        probabilities = torch.softmax(logits, dim=-1)
-        token_scores, label_ids = probabilities.max(dim=-1)
+        allowed = torch.tensor(
+            self.allowed_label_ids,
+            device=logits.device,
+            dtype=torch.long,
+        )
+        protocol_logits = logits.index_select(dim=-1, index=allowed)
+        probabilities = torch.softmax(protocol_logits, dim=-1)
+        token_scores, restricted_ids = probabilities.max(dim=-1)
+        label_ids = allowed[restricted_ids]
         results: list[list[dict[str, Any]]] = []
         for row in range(len(texts)):
             row_offsets: list[tuple[int, int]] = []
@@ -246,6 +321,7 @@ def load_local_predictor(
     dtype: torch.dtype | None = None,
     micro_batch_size: int = 16,
     ignored_labels: Sequence[str] = (),
+    allowed_labels: Sequence[str] | None = None,
 ) -> TransformersSpanPredictor:
     """Load a full-attention release or marked causal/JPT research artifact."""
 
@@ -263,7 +339,7 @@ def load_local_predictor(
         raise InferenceSafetyError(f"unsafe weight files are forbidden: {sorted(forbidden)}")
     if any(path.glob("adapter_*")):
         raise InferenceSafetyError("adapter-only artifacts are forbidden in the model root")
-    _verify_training_artifact_binding(path)
+    training_manifest = _verify_training_artifact_binding(path)
     kwargs: dict[str, Any] = {
         "local_files_only": True,
         "trust_remote_code": False,
@@ -280,6 +356,7 @@ def load_local_predictor(
         raise InferenceSafetyError("model config must be a JSON object")
     attention_mode = config_document.get("pii_attention_mode")
     model_type = config_document.get("model_type")
+    macbert_artifact = False
     if attention_mode == "full" and model_type == "qwen3_bi":
         model = Qwen3BiForTokenClassification.from_pretrained(path, **kwargs)
         if getattr(model.config, "architecture_version", None) != ARCHITECTURE_VERSION:
@@ -288,6 +365,15 @@ def load_local_predictor(
         if config_document.get("pii_release_eligible") is not False:
             raise InferenceSafetyError("research attention artifact has invalid release marker")
         model = Qwen3ForTokenClassification.from_pretrained(path, **kwargs)
+    elif (
+        attention_mode == "checkpoint_native_bidirectional"
+        and model_type == "bert"
+        and config_document.get("architectures") == ["BertForTokenClassification"]
+        and training_manifest.get("manifest_type") == "experimental_macbert_numeric_o_v5b_training"
+    ):
+        attention_mode = "full"
+        macbert_artifact = True
+        model = BertForTokenClassification.from_pretrained(path, **kwargs)
     else:
         raise InferenceSafetyError("model type and PII attention mode are inconsistent")
     jpt_sep_token_id = config_document.get("pii_jpt_sep_token_id")
@@ -295,13 +381,24 @@ def load_local_predictor(
         isinstance(jpt_sep_token_id, bool) or not isinstance(jpt_sep_token_id, int)
     ):
         raise InferenceSafetyError("JPT artifact is missing its separator token id")
-    tokenizer = load_serialized_fast_tokenizer(path, require_boundary=True)
+    if macbert_artifact:
+        tokenizer = AutoTokenizer.from_pretrained(
+            path,
+            local_files_only=True,
+            trust_remote_code=False,
+            use_fast=True,
+        )
+        if not getattr(tokenizer, "is_fast", False):
+            raise InferenceSafetyError("MacBERT artifact requires a fast tokenizer")
+    else:
+        tokenizer = load_serialized_fast_tokenizer(path, require_boundary=True)
     return TransformersSpanPredictor(
         model,
         tokenizer,
         device=device,
         micro_batch_size=micro_batch_size,
         ignored_labels=ignored_labels,
+        allowed_labels=allowed_labels,
         attention_mode=attention_mode,
         jpt_sep_token_id=jpt_sep_token_id,
     )

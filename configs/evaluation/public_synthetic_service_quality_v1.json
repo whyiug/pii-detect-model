@@ -1,0 +1,216 @@
+{
+  "schema_version": "pii-zh.public-synthetic-service-quality-contract.v1",
+  "contract_id": "public_synthetic_service_quality_v1",
+  "status": "preregistered_pending_frozen_result",
+  "purpose": "fail_closed_quality_gate_for_public_and_synthetic_community_research_release",
+  "scope": {
+    "allowed_data": [
+      "public_open_source",
+      "synthetic"
+    ],
+    "human_evidence_required": false,
+    "production_evidence": false,
+    "public_test_exposed": true,
+    "real_world_generalization_established": false,
+    "release_class": "community_research_preview"
+  },
+  "taxonomy": {
+    "language": "zh-Hans-CN",
+    "label_count": 24,
+    "labels": [
+      "PERSON_NAME",
+      "PHONE_NUMBER",
+      "EMAIL_ADDRESS",
+      "ADDRESS",
+      "DATE_OF_BIRTH",
+      "CN_RESIDENT_ID",
+      "PASSPORT_NUMBER",
+      "DRIVER_LICENSE_NUMBER",
+      "SOCIAL_SECURITY_NUMBER",
+      "BANK_CARD_NUMBER",
+      "BANK_ACCOUNT_NUMBER",
+      "VEHICLE_LICENSE_PLATE",
+      "EMPLOYEE_ID",
+      "STUDENT_ID",
+      "MEDICAL_RECORD_NUMBER",
+      "WECHAT_ID",
+      "QQ_NUMBER",
+      "ALIPAY_ACCOUNT",
+      "USERNAME",
+      "IP_ADDRESS",
+      "MAC_ADDRESS",
+      "DEVICE_ID",
+      "GEO_COORDINATE",
+      "SECRET"
+    ],
+    "strict_span_matching": "document_label_start_end_left_closed_right_open",
+    "taxonomy_version": "1.0.0"
+  },
+  "model_policy": {
+    "artifact_class": "24_label_zh_hans_token_classifier",
+    "allowed_attention_modes": [
+      "causal",
+      "full"
+    ],
+    "causal": {
+      "candidate_allowed": true,
+      "loader_pii_release_eligible": false,
+      "release_class": "research_preview_explicit_opt_in_only",
+      "runtime_policy": "explicit_opt_in_causal_research_runtime"
+    },
+    "full": {
+      "candidate_allowed": true,
+      "loader_pii_release_eligible_may_be_true": true,
+      "release_class": "community_research_preview_candidate",
+      "runtime_policy": "standard_full_attention_runtime"
+    },
+    "evidence_requirements": {
+      "full_system_release_blocking": true,
+      "full_system_service_quality_required": true,
+      "model_raw_and_full_system_bind_same_final_model": true,
+      "model_raw_evaluation_required": true
+    },
+    "production_ready": false
+  },
+  "benchmark": {
+    "benchmark_id": "public_synthetic_chinese_pii_community_v1",
+    "candidate_or_threshold_selection_on_public_test_must_be_disclosed": true,
+    "comparison_policy": "same_dataset_same_labels_same_metric_same_canonical_track_only",
+    "full_system_must_exceed_prior_system_by_paired_bootstrap": true,
+    "model_raw_and_full_system_must_not_be_pooled": true,
+    "public_test_exposed": true,
+    "result_receipt_is_aggregate_only": true,
+    "sota_scope": "named_public_synthetic_benchmark_and_frozen_comparator_set_only"
+  },
+  "tracks": [
+    "model_raw",
+    "full_system"
+  ],
+  "track_policies": {
+    "model_raw": {
+      "canonical_track": "model_raw",
+      "release_blocking": false,
+      "thresholds": {
+        "strict_micro_f1_min": 0.74,
+        "strict_macro_f1_min": 0.7,
+        "minimum_per_label_recall_min": 0.2,
+        "pii_free_document_fpr_max": 0.1,
+        "fp_spans_per_1000_characters_max": 1.0,
+        "pii_character_miss_rate_max": 0.3,
+        "non_pii_character_false_positive_rate_max": 0.01,
+        "latency_p95_ms_max": 250.0,
+        "throughput_documents_per_second_min": 5.0,
+        "peak_cpu_rss_mb_max": 8192.0,
+        "peak_gpu_memory_mb_max": 24576.0
+      },
+      "bootstrap": {
+        "method": "paired_document_bootstrap_percentile",
+        "comparison_unit": "document",
+        "confidence_level": 0.95,
+        "resamples_min": 10000,
+        "micro_f1_delta_ci_low_min": -0.01,
+        "macro_f1_delta_ci_low_min": -0.01,
+        "document_fpr_delta_ci_high_max": 0.01
+      }
+    },
+    "full_system": {
+      "canonical_track": "full_system",
+      "release_blocking": true,
+      "thresholds": {
+        "strict_micro_f1_min": 0.79,
+        "strict_macro_f1_min": 0.65,
+        "minimum_per_label_recall_min": 0.3,
+        "pii_free_document_fpr_max": 0.05,
+        "fp_spans_per_1000_characters_max": 0.5,
+        "pii_character_miss_rate_max": 0.2,
+        "non_pii_character_false_positive_rate_max": 0.005,
+        "latency_p95_ms_max": 500.0,
+        "throughput_documents_per_second_min": 2.0,
+        "peak_cpu_rss_mb_max": 12288.0,
+        "peak_gpu_memory_mb_max": 24576.0
+      },
+      "bootstrap": {
+        "method": "paired_document_bootstrap_percentile",
+        "comparison_unit": "document",
+        "confidence_level": 0.95,
+        "resamples_min": 10000,
+        "micro_f1_delta_ci_low_min": 0.0,
+        "macro_f1_delta_ci_low_min": -0.01,
+        "document_fpr_delta_ci_high_max": 0.005
+      }
+    }
+  },
+  "frozen_inputs": {
+    "comparator_registry": {
+      "logical_id": "comparator_registry_v1_generation_1",
+      "path": "configs/evaluation/comparator_registry_v1.yaml",
+      "file_sha256": "b82b6492bf5fc3c57a3053f846138924bf61930876d2acf83bec40547de80cfb"
+    },
+    "metric_code": [
+      {
+        "logical_id": "strict_span_metrics",
+        "path": "src/pii_zh/evaluation/metrics.py",
+        "file_sha256": "1e9623ac4be80bb3bf8218b81c8079c8843b096680f1a2e1de8ce723226ed271"
+      },
+      {
+        "logical_id": "paired_document_bootstrap",
+        "path": "src/pii_zh/evaluation/paired_bootstrap.py",
+        "file_sha256": "af3852bbfe9cf8af98a0343a34bab2f3b5088e53a410f25b026af82564143ae6"
+      },
+      {
+        "logical_id": "service_quality_suite",
+        "path": "src/pii_zh/evaluation/service_quality_suite.py",
+        "file_sha256": "613b0022ff813be5923d14d63d13ec7c4fbf62a12eaaad23b19772d02adf2b7b"
+      }
+    ]
+  },
+  "required_result_bindings": [
+    "final_model_manifest",
+    "model_raw_dataset_manifest",
+    "full_system_dataset_manifest",
+    "pii_free_dataset_manifest",
+    "model_raw_prediction_manifest",
+    "full_system_prediction_manifest",
+    "source_snapshot_manifest",
+    "service_configuration"
+  ],
+  "privacy": {
+    "aggregate_receipt_only": true,
+    "gpu_query_allowed": false,
+    "model_weight_read_allowed": false,
+    "network_allowed": false,
+    "record_level_data_read_allowed": false,
+    "result_bindings_are_manifests_not_raw_records": true
+  },
+  "claims": {
+    "first_chinese_pii_model": false,
+    "global_sota": false,
+    "production_ready": false,
+    "real_world_sota": false,
+    "permitted_claim": "best_on_named_public_synthetic_benchmark_among_frozen_comparators_if_the_result_receipt_passes_the_paired_bootstrap_gate"
+  },
+  "implementation": {
+    "schema": {
+      "logical_id": "public_synthetic_service_quality_v1_schema",
+      "path": "configs/evaluation/public_synthetic_service_quality_v1.schema.json",
+      "file_sha256": "676cb8179c94ce54f279d3dc31ea98f55f53e908533e020d24542f2c6ed2f1e6"
+    },
+    "validator": {
+      "logical_id": "validate_public_synthetic_service_quality_v1",
+      "path": "scripts/validate_public_synthetic_service_quality_v1.py",
+      "file_sha256": "5653bffa3fb8d745b5058ae21f8eb59b2ab93ac13bf405515e2ed52705b0e70e"
+    },
+    "support": {
+      "logical_id": "community_contract_utils",
+      "path": "scripts/community_contract_utils.py",
+      "file_sha256": "695d476c072b4e077766a625b4cee3c0ccc03f6d2debf779ab3fd59939a84e1b"
+    }
+  },
+  "successor_policy": {
+    "modify_historical_production_contracts": false,
+    "production_gate_may_consume_this_as_human_evidence": false,
+    "result_requires_new_immutable_receipt": true,
+    "result_receipt_may_change_preregistered_thresholds": false
+  },
+  "contract_sha256": "0179f470ee5f07ffa0d0b417c2f1fa34769ee624e1b9fa32dee1b212b8498e5e"
+}

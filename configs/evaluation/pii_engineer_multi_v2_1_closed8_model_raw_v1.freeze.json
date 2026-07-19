@@ -1,0 +1,451 @@
+{
+  "artifact_type": "pii_engineer_multi_model_raw_preregistration",
+  "dataset": {
+    "benchmark_rows_read_during_preregistration": 0,
+    "dataset_id": "wan9yu/pii-bench-zh",
+    "distillation_allowed": false,
+    "evaluation_only": true,
+    "manifest": {
+      "canonical_sha256": "545c990c96f23118ddc097ec0bed1d7f180785ac72e9f2a6ed56eb1ba3ee5e9b",
+      "sha256": "62c03dc8c5ba343a883498cf92d272ab9f240252e92ea06a665022f5ce7df6f1",
+      "size_bytes": 2298
+    },
+    "pii_free_document_fpr": null,
+    "pii_free_eligible_documents": 0,
+    "revision": "c350b94897af668517ff5de237d89f2ce2eaa6f0",
+    "suites": {
+      "chat": {
+        "gold_span_count": 7544,
+        "record_count": 3000,
+        "sha256": "2d73326a7ea2da9966ba13336db1a791f03d5f18b7982fdc4495cb726c1180a5"
+      },
+      "formal": {
+        "gold_span_count": 15662,
+        "record_count": 5000,
+        "sha256": "bb978137711cc90ae0c16df0645983413f3b34943bf29469e58b795b183a38af"
+      }
+    },
+    "threshold_selection_allowed": false,
+    "total_gold_span_count": 23206,
+    "total_record_count": 8000,
+    "training_allowed": false
+  },
+  "generation": {
+    "atomic_no_clobber_publish": true,
+    "benchmark_rows_read": 0,
+    "external_source_audit": {
+      "builder": {
+        "path": "scripts/build_pii_engineer_multi_preregistration.py",
+        "sha256": "523bbb9b6344068b8bf5ddc6fbe2abcce8c79e3e8d166dac4e0330ab50cdeafa",
+        "size_bytes": 57987
+      },
+      "evaluator": {
+        "path": "scripts/evaluate_pii_engineer_multi_baseline.py",
+        "sha256": "ebd34e2cafbcd4cbac797d2645bc3fd780c959d44a9b37c141a3ec9a00cfcaa4",
+        "size_bytes": 69240
+      },
+      "schema": {
+        "path": "configs/evaluation/pii_engineer_multi_preregistration.schema.json",
+        "sha256": "850cd115bdfd8d1f24ba2326ae6f6d90c1bfd091bba588df10783255e999779d",
+        "size_bytes": 27294
+      },
+      "tests": {
+        "path": "tests/unit/test_pii_engineer_multi_preregistration.py",
+        "sha256": "f2c1d0b8d65f38633c4378ee510e507aae0b555e2957cda30b7dc42462b03ac8",
+        "size_bytes": 31964
+      }
+    },
+    "gpu_used": false,
+    "hidden_gold_read": 0,
+    "input_metadata_attestation": {
+      "contract": "SHA-256 of canonical JSON with domain pii-engineer-multi-preregistration-input-metadata-v1 and logical_identifier-sorted entries containing logical_identifier, four-digit octal mode, decimal-string mtime_ns, size_bytes, and sha256; strict replay recomputes it, portable replay preserves the value anchored by externally supplied freeze hashes",
+      "entry_count": 34,
+      "sha256": "e42cebc2b06109c98335102059b266d174702305682bf5b026169956670198f4"
+    },
+    "network_access": false,
+    "portable_replay_supported": true,
+    "predictions_read": 0,
+    "published_mode": "0444",
+    "strict_replay_supported": true
+  },
+  "governance": {
+    "entity_values_serialized_to_freeze": false,
+    "execution_scope": "fixed_public_synthetic_diagnostic_only",
+    "flags": {
+      "best_claim_eligible": false,
+      "blind_claim_eligible": false,
+      "claim_eligible": false,
+      "first_claim_eligible": false,
+      "formal_statistical_component_passed": false,
+      "global_best_claim_eligible": false,
+      "human_hidden_execution_authorized": false,
+      "redistribute_weights": false,
+      "registry_activation": false,
+      "release_runner_binary": false,
+      "sota_claim_eligible": false
+    },
+    "hidden_gold_read": 0,
+    "local_paths_serialized_to_freeze": false,
+    "overall_status": "BLOCKED",
+    "predictions_read_during_preregistration": 0,
+    "public_benchmark_already_seen": true,
+    "raw_text_serialized_to_freeze": false,
+    "record_level_predictions_public": false,
+    "same_protocol_technical_reproduction_preregistered": true,
+    "selection_data": "none",
+    "successor_registry_required": true
+  },
+  "hash_contract": "self_hash is SHA-256 of canonical UTF-8 JSON after removing the top-level self_hash field; keys sorted, compact separators, ensure_ascii=false, allow_nan=false",
+  "implementation": {
+    "build_toolchain": {
+      "cargo": {
+        "commit_date": "2024-12-31",
+        "commit_hash": "d73d2caf9e41a39daf2a8d6ce60ec80bf354d2a7",
+        "host": "x86_64-unknown-linux-gnu",
+        "sha256": "87e9ff02f95ea17d877e7c4eeb0f365f50fe3827f5afec132131ff3b8031a57e",
+        "size_bytes": 35341752,
+        "version": "1.85.1"
+      },
+      "declared_version_drift_disclosed": true,
+      "frozen_release_binary_is_primary_execution_anchor": true,
+      "full_toolchain_distribution_content_addressed": false,
+      "runner_declared_rust_version": "1.85",
+      "rustc": {
+        "commit_date": "2025-03-15",
+        "commit_hash": "4eb161250e340c8f48f66e2b929ef4a5bed7c181",
+        "host": "x86_64-unknown-linux-gnu",
+        "llvm_version": "19.1.7",
+        "sha256": "f8d033fd72e878ec60493788c8bffec2e6c154dcab6f0cb4c145af8ada26a7ed",
+        "size_bytes": 643384,
+        "version": "1.85.1"
+      },
+      "upstream_workspace_declared_rust_version": "1.78"
+    },
+    "cargo_lock": {
+      "ort_checksum": "52afb44b6b0cffa9bf45e4d37e5a4935b0334a51570658e279e9e3e6cf324aa5",
+      "ort_registry_source": "registry+https://github.com/rust-lang/crates.io-index",
+      "ort_sys_checksum": "c41d7757331aef2d04b9cb09b45583a59217628beaf91895b7e76187b6e8c088",
+      "ort_sys_direct_exact_pin": true,
+      "ort_sys_registry_source": "registry+https://github.com/rust-lang/crates.io-index",
+      "ort_sys_version": "2.0.0-rc.9",
+      "ort_version": "2.0.0-rc.9",
+      "upstream_core_commit": "4ff53986a53351b3a516872a557832b44b166628"
+    },
+    "evaluator": {
+      "path": "scripts/evaluate_pii_engineer_multi_baseline.py",
+      "sha256": "ebd34e2cafbcd4cbac797d2645bc3fd780c959d44a9b37c141a3ec9a00cfcaa4",
+      "size_bytes": 69240
+    },
+    "evaluator_sha256": "ebd34e2cafbcd4cbac797d2645bc3fd780c959d44a9b37c141a3ec9a00cfcaa4",
+    "runner": {
+      "binary": {
+        "mode": "0555",
+        "sha256": "a4866b34372948d8739cda6ea38bb6a856c4c39055d03d560d9a07fbe7c6b0a4",
+        "size_bytes": 6241200
+      },
+      "source_files": {
+        "tools/pii_engineer_multi_raw_runner/Cargo.lock": {
+          "sha256": "d4881a10f68b8b2f80fd4e9da843a7a6e033bd4d446288370f148627ab808912",
+          "size_bytes": 23291
+        },
+        "tools/pii_engineer_multi_raw_runner/Cargo.toml": {
+          "sha256": "99dea29b3fdf57f77ea5d3f1b3eabf9d6517f9bab87166910c7d301c4c669071",
+          "size_bytes": 637
+        },
+        "tools/pii_engineer_multi_raw_runner/README.md": {
+          "sha256": "862b766a20212fb5c683d37a15b28c609e9f2d8564936f80984ddb9c209aec5b",
+          "size_bytes": 5201
+        },
+        "tools/pii_engineer_multi_raw_runner/src/main.rs": {
+          "sha256": "437d7ab0cfad725d204fc574523abbdb6b1bf56210490dafd2da8f4eabb646b4",
+          "size_bytes": 15684
+        }
+      },
+      "transport": "persistent_jsonl_over_stdio"
+    },
+    "runner_binary_sha256": "a4866b34372948d8739cda6ea38bb6a856c4c39055d03d560d9a07fbe7c6b0a4"
+  },
+  "license": {
+    "model_card_body_declaration": "AGPL-3.0",
+    "model_card_frontmatter_declaration": "Apache-2.0",
+    "model_card_sha256": "e8e93bfa97e61b38402a77f6f7b11d00f3365b6d92045eaf82623a0e3c058cf1",
+    "model_weight_scope_reconciled": false,
+    "redistribution_allowed_by_project": false,
+    "release_bundle_included": false,
+    "source_license_sha256": "7f81616cf63610b56c1fae0400b5338553f8b0e45dadcbcc24db0d825c69375a",
+    "source_repository_declaration": "Apache-2.0",
+    "status": "conflicting_upstream_declarations_pending_review"
+  },
+  "model": {
+    "architecture": {
+      "architecture": "gliner2-full",
+      "hidden_size": 768,
+      "max_width": 24,
+      "model_version": "v2.1"
+    },
+    "exact_layout_files": [
+      "README.md",
+      "config.json",
+      "gliner_config.json",
+      "onnx/classifier.onnx",
+      "onnx/count_embed.onnx",
+      "onnx/count_pred.onnx",
+      "onnx/encoder_int8.onnx",
+      "onnx/span_rep.onnx",
+      "tokenizer.json",
+      "tokenizer_config.json"
+    ],
+    "local_path_published": false,
+    "model_card": {
+      "sha256": "e8e93bfa97e61b38402a77f6f7b11d00f3365b6d92045eaf82623a0e3c058cf1",
+      "size_bytes": 4120
+    },
+    "model_id": "pii-engineer/PII-Engineer-Multi-NER-v2.1",
+    "revision": "8ce12a2da5c333483ca2bd9a85def9d60609f244",
+    "runtime_config_alias": {
+      "bytes_identical": true,
+      "regular_non_symlink": true,
+      "source": "config.json",
+      "target": "gliner_config.json"
+    },
+    "runtime_download_size_bytes": 670123007,
+    "runtime_files": {
+      "config.json": {
+        "sha256": "23057cc82fb7943a81582ba645c0928722841fa01a64dd3859aea83239c0a5fe",
+        "size_bytes": 665
+      },
+      "onnx/classifier.onnx": {
+        "sha256": "121ef33a7de8218f82399894c2b09b2f3d91144ca539616ebba5d63e16c4cc01",
+        "size_bytes": 4731923
+      },
+      "onnx/count_embed.onnx": {
+        "sha256": "8eec7e663be53ae9f3733311b4958dd0c89584aad8e8984a8693e23c25ccaae8",
+        "size_bytes": 42669056
+      },
+      "onnx/count_pred.onnx": {
+        "sha256": "4b9de5557fbf786dee5144e71650bb422d15e9ae02e6802286591af13d91fe1d",
+        "size_bytes": 4848553
+      },
+      "onnx/encoder_int8.onnx": {
+        "sha256": "5f52e0ec887799cd25ed490de11a5a44d6070dfa97c060e1cd32ff61e5cce044",
+        "size_bytes": 535410041
+      },
+      "onnx/span_rep.onnx": {
+        "sha256": "cbae9ee3ddb04f6268004523dc0a43167b28bbb08af4b6bb53e9e17a3b513c62",
+        "size_bytes": 66124778
+      },
+      "tokenizer.json": {
+        "sha256": "a1c7ccb287623cccb7c03150953b6d2a09dd95122933393c9151c3a60095c97e",
+        "size_bytes": 16337353
+      },
+      "tokenizer_config.json": {
+        "sha256": "c9ee5e7be08c94d50e2dbe2a15939911dec1da22aaa46cb306107ad93b6ec37c",
+        "size_bytes": 638
+      }
+    }
+  },
+  "protocol": {
+    "benchmark_threshold_tuning": false,
+    "calibration": false,
+    "chinese_ner_companion_used": false,
+    "closed_8_target_labels": [
+      "ADDRESS",
+      "BANK_CARD_NUMBER",
+      "CN_RESIDENT_ID",
+      "EMAIL_ADDRESS",
+      "PASSPORT_NUMBER",
+      "PERSON_NAME",
+      "PHONE_NUMBER",
+      "VEHICLE_LICENSE_PLATE"
+    ],
+    "core_candidate_threshold": {
+      "decimal": 0.01,
+      "f32_bits_hex": "0x3c23d70a",
+      "operator": ">"
+    },
+    "decode_order": [
+      "fixed_dynamic_schema_prompt",
+      "official_core_score_gt_0_01",
+      "official_core_cross_label_greedy_non_overlap",
+      "official_server_default_per_label_thresholds",
+      "utf8_byte_to_unicode_codepoint_offsets"
+    ],
+    "excluded_source_labels_before_prompt": [
+      "date_of_birth",
+      "bank_account_number"
+    ],
+    "full_pipeline_used": false,
+    "http_service_used": false,
+    "label_descriptions_used": false,
+    "mapping_sha256": "91b96c1a86406322595bddb274a84c1a732d2d805b77510bce34aa08efe00a2e",
+    "metric": "strict_exact_start_end_label",
+    "per_source_label_thresholds": {
+      "email_address": {
+        "decimal": 0.3,
+        "f32_bits_hex": "0x3e99999a",
+        "operator": ">="
+      },
+      "government_id": {
+        "decimal": 0.2,
+        "f32_bits_hex": "0x3e4ccccd",
+        "operator": ">="
+      },
+      "license_plate": {
+        "decimal": 0.25,
+        "f32_bits_hex": "0x3e800000",
+        "operator": ">="
+      },
+      "passport_number": {
+        "decimal": 0.25,
+        "f32_bits_hex": "0x3e800000",
+        "operator": ">="
+      },
+      "person_name": {
+        "decimal": 0.25,
+        "f32_bits_hex": "0x3e800000",
+        "operator": ">="
+      },
+      "phone_number": {
+        "decimal": 0.3,
+        "f32_bits_hex": "0x3e99999a",
+        "operator": ">="
+      },
+      "street_address": {
+        "decimal": 0.25,
+        "f32_bits_hex": "0x3e800000",
+        "operator": ">="
+      }
+    },
+    "post_truncation_tail_word_embeddings": "zero_filled_and_still_scored_by_upstream_core",
+    "prompt_source_labels_in_order": [
+      "person_name",
+      "phone_number",
+      "government_id",
+      "street_address",
+      "email_address",
+      "passport_number",
+      "license_plate"
+    ],
+    "protocol_id": "pii_bench_zh_closed_8_v1",
+    "required_scopes": [
+      "formal",
+      "chat",
+      "pooled"
+    ],
+    "rules_used": false,
+    "source_to_target": {
+      "email_address": "EMAIL_ADDRESS",
+      "government_id": "CN_RESIDENT_ID",
+      "license_plate": "VEHICLE_LICENSE_PLATE",
+      "passport_number": "PASSPORT_NUMBER",
+      "person_name": "PERSON_NAME",
+      "phone_number": "PHONE_NUMBER",
+      "street_address": "ADDRESS"
+    },
+    "tokenizer_sequence_max_length": 512,
+    "tokenizer_truncation_direction": "right",
+    "tokenizer_truncation_scope": "dynamic_schema_prompt_plus_text_total_sequence",
+    "tokenizer_truncation_strategy": "longest_first",
+    "tokenizer_truncation_stride": 0,
+    "track": "model_raw",
+    "unsupported_target_labels": [
+      "BANK_CARD_NUMBER"
+    ],
+    "unsupported_target_labels_count_as_false_negatives": true,
+    "validators_used": false,
+    "windowing": false
+  },
+  "runtime": {
+    "archive": {
+      "mode": "0444",
+      "sha256": "aa70d48b22e264b82e83f63245b51ddc9a47ae4a3a66903efaff1ba68b7b5930",
+      "size_bytes": 6184676
+    },
+    "dylib": {
+      "mode": "0555",
+      "sha256": "6097fe8cedc8b5b3c8e107e9c2acf04eb50f58f0f045e3d7c5c50ead38112c72",
+      "size_bytes": 16551224
+    },
+    "environment": {
+      "allowlist_only": true,
+      "cuda_visible_devices": "",
+      "hf_hub_offline": "1",
+      "ld_library_path_inherited": false,
+      "ld_preload_inherited": false,
+      "nvidia_visible_devices": "void",
+      "omp_num_threads": 4,
+      "ort_inter_threads": 1,
+      "ort_intra_threads": 4,
+      "proxy_environment_inherited": false,
+      "rayon_num_threads": 4,
+      "transformers_offline": "1"
+    },
+    "execution_provider": "cpu",
+    "gpu_used": false,
+    "network_required_during_evaluation": false,
+    "onnxruntime_version": "1.20.0",
+    "ort_crate_version": "2.0.0-rc.9",
+    "ort_sys_version": "2.0.0-rc.9"
+  },
+  "schema_version": 1,
+  "sealed_at": "2026-07-16T08:07:07+08:00",
+  "self_hash": "f28da6464b0feb4184d111838c7ccd1b446d2c43ede0638397ff5b321439d651",
+  "source": {
+    "checkout_clean": true,
+    "commit": "4ff53986a53351b3a516872a557832b44b166628",
+    "files": {
+      "Cargo.lock": {
+        "sha256": "6f30f5265453028f9debaf50bba67a31e76f4d019d5c586b47b4c7a04eee647b",
+        "size_bytes": 73666
+      },
+      "Cargo.toml": {
+        "sha256": "305b3513dc1a2aa3556444a388f04ce2b6bfe17de7ec4689612a298da19d4ea9",
+        "size_bytes": 878
+      },
+      "LICENSE": {
+        "sha256": "7f81616cf63610b56c1fae0400b5338553f8b0e45dadcbcc24db0d825c69375a",
+        "size_bytes": 10763
+      },
+      "crates/pii-engineer-core/Cargo.toml": {
+        "sha256": "68ff4966eefd5dd7fed7aa1f8beb4d251309a803a1615c5f42ffe8832e1588dd",
+        "size_bytes": 415
+      },
+      "crates/pii-engineer-core/src/gliner/mod.rs": {
+        "sha256": "78d55021d75ddc53742905d1d9b809bc40ae2e7ad7b40903407282baa63d81f9",
+        "size_bytes": 11726
+      },
+      "crates/pii-engineer-core/src/gliner/shared.rs": {
+        "sha256": "1c4c3a990122aaf707cecfc902a89b5754968cd79fa9e838daa9026f8b73cdf8",
+        "size_bytes": 14569
+      },
+      "crates/pii-engineer-core/src/gliner/v2_full.rs": {
+        "sha256": "85e8582bcd5e9b4b9635cd37e12e76f1534fd25676bf208823ac3acb09ab1c4f",
+        "size_bytes": 12598
+      },
+      "crates/pii-engineer-server/src/config.rs": {
+        "sha256": "61cd89a46c675cee297fafbf7e6f5dbd2ebec0b4807b73547a434d43d5d4303d",
+        "size_bytes": 3139
+      },
+      "crates/pii-engineer-server/src/download.rs": {
+        "sha256": "29d98ef04e95cc1822a8e72ea04b5a945b28b0539f93d74f2b541de2a6bf48fa",
+        "size_bytes": 3181
+      },
+      "crates/pii-engineer-server/src/routes.rs": {
+        "sha256": "00565282482c37f4d84ea0661810372ec8f4cfe71d95f489c3a2d81a0c185383",
+        "size_bytes": 10190
+      }
+    },
+    "local_path_published": false,
+    "repository": "https://github.com/gantz-ai/pii.engineer",
+    "tree": "59858e7a227401d76a7f78189267c62c010a692f"
+  },
+  "status": "BLOCKED_PUBLIC_DIAGNOSTIC_ONLY_PREREGISTERED",
+  "trust_boundary": {
+    "builder_cannot_defend_against_its_own_replacement": true,
+    "first_publication_requires_external_builder_schema_tests_evaluator_hashes": true,
+    "frozen_runner_binary_is_content_addressed": true,
+    "full_rust_toolchain_distribution_content_addressed": false,
+    "portable_replay_ignores_checkout_modes_and_mtimes_but_not_bytes": true,
+    "technical_result_cannot_resolve_license_or_activate_claims": true
+  }
+}

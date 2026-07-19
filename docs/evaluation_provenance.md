@@ -9,13 +9,14 @@ ASCII JSON with compact separators. Reports also record the SHA-256 of each exac
 
 The raw and canonical SHA-256 values, expected record counts, and expected span counts are fixed in
 `scripts/prepare_evaluation_data.py`. Verify the already-prepared files and generate the read-only
-dataset manifest without rewriting either benchmark:
+dataset manifest without rewriting either benchmark. Set `$DATA_ROOT` to the external dataset root
+before running the command:
 
 ```bash
 python scripts/prepare_evaluation_data.py \
-  --formal /data1/datasets/pii-detect-model/evaluation_only/pii_bench_zh/raw/pii_bench_zh.jsonl \
-  --chat /data1/datasets/pii-detect-model/evaluation_only/pii_bench_zh/raw/pii_bench_zh_chat.jsonl \
-  --output-dir /data1/datasets/pii-detect-model/evaluation_only/pii_bench_zh/canonical \
+  --formal "${DATA_ROOT}/evaluation_only/pii_bench_zh/raw/pii_bench_zh.jsonl" \
+  --chat "${DATA_ROOT}/evaluation_only/pii_bench_zh/raw/pii_bench_zh_chat.jsonl" \
+  --output-dir "${DATA_ROOT}/evaluation_only/pii_bench_zh/canonical" \
   --verify-existing \
   --prepared-at 2026-07-11T05:35:50Z
 ```
@@ -48,7 +49,7 @@ identity contract:
 ```bash
 python scripts/create_prediction_manifest.py \
   --predictions /path/to/formal.predictions.jsonl \
-  --dataset-manifest /data1/datasets/pii-detect-model/evaluation_only/pii_bench_zh/canonical/pii_bench_zh.dataset_manifest.json \
+  --dataset-manifest "${DATA_ROOT}/evaluation_only/pii_bench_zh/canonical/pii_bench_zh.dataset_manifest.json" \
   --model-training-manifest /path/to/training_manifest.json \
   --prediction-id qwen3-bi-seed13-formal-v1 \
   --output /path/to/formal.prediction_manifest.json

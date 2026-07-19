@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_cascade_release_v2.verification-receipt.schema.json",
+  "title": "Fixed-harness community release verification receipt v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "check_id",
+    "status",
+    "scope",
+    "release",
+    "subjects",
+    "execution",
+    "assertions",
+    "privacy",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-verification-receipt.v2"
+    },
+    "check_id": {
+      "enum": [
+        "unit_tests",
+        "clean_wheel_smoke",
+        "container_smoke",
+        "offline_model_smoke",
+        "offline_service_smoke"
+      ]
+    },
+    "status": {
+      "const": "PASS"
+    },
+    "scope": {
+      "const": "local_non_production"
+    },
+    "release": {
+      "const": {
+        "display_name": "pii-zh-qwen3-0.6b-24class",
+        "package_version": "0.2.0rc1",
+        "publication_state": "unpublished_local_candidate"
+      }
+    },
+    "subjects": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/$defs/safeId"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/fileBinding"
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "harness_id",
+        "semantic_argv_sha256",
+        "producer_file_sha256",
+        "schema_file_sha256",
+        "harness_file_sha256",
+        "implementation_identity_sha256",
+        "return_code",
+        "stdout_sha256",
+        "stderr_sha256",
+        "redacted_log_sha256"
+      ],
+      "properties": {
+        "harness_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "semantic_argv_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "producer_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "schema_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "harness_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "regression_input_manifest_file_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "regression_input_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "implementation_identity_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "return_code": {
+          "const": 0
+        },
+        "stdout_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "stderr_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "redacted_log_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "assertions": {
+      "const": {
+        "caller_supplied_command": false,
+        "caller_supplied_pass_or_hash": false,
+        "external_network_requested_by_harness": false,
+        "formal_record_level_data_opened": false,
+        "gpu_required": false,
+        "synthetic_smoke_input_only": true
+      }
+    },
+    "privacy": {
+      "const": {
+        "contains_local_paths": false,
+        "contains_raw_records": false,
+        "contains_synthetic_fixture_text": false,
+        "contains_secrets": false,
+        "contains_unredacted_logs": false
+      }
+    },
+    "receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "check_id": {
+            "const": "unit_tests"
+          }
+        },
+        "required": [
+          "check_id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "required": [
+              "regression_input_manifest_file_count",
+              "regression_input_manifest_sha256"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "execution": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "regression_input_manifest_file_count"
+                  ]
+                },
+                {
+                  "required": [
+                    "regression_input_manifest_sha256"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    },
+    "fileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "size_bytes",
+        "canonical_sha256"
+      ],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "canonical_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

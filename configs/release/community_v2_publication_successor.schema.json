@@ -1,0 +1,698 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_v2_publication_successor.schema.json",
+  "title": "Community v2 publication successor manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "package_version",
+    "publication_state",
+    "publication_authorization_source",
+    "source_package",
+    "source_control",
+    "publication_targets",
+    "remote_revisions",
+    "approval_evidence",
+    "candidate_lineage_contract",
+    "stale_publication_marker_scan",
+    "payload_files",
+    "payload_inventory_sha256",
+    "excluded_source_files",
+    "superseded_source_files",
+    "checksum_policy",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-v2-publication-successor-manifest.v1"
+    },
+    "package_version": {
+      "const": "0.2.0rc1"
+    },
+    "publication_state": {
+      "const": "staged_not_uploaded"
+    },
+    "publication_authorization_source": {
+      "const": "external_receipts"
+    },
+    "source_package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "inventory",
+        "inventory_sha256",
+        "checksums_file_sha256",
+        "verified_file_count"
+      ],
+      "properties": {
+        "format": {
+          "const": "immutable_checksum_closed_model_package"
+        },
+        "inventory": {
+          "$ref": "#/$defs/sourceInventory"
+        },
+        "inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "checksums_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verified_file_count": {
+          "type": "integer",
+          "minimum": 6
+        }
+      }
+    },
+    "source_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "git_source_commit"
+      ],
+      "properties": {
+        "git_source_commit": {
+          "type": "string",
+          "oneOf": [
+            {
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          ]
+        }
+      }
+    },
+    "publication_targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "github_repository",
+        "hugging_face_repository"
+      ],
+      "properties": {
+        "github_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "hugging_face_repository": {
+          "$ref": "#/$defs/repoId"
+        }
+      }
+    },
+    "remote_revisions": {
+      "const": {
+        "github_commit": null,
+        "hugging_face_commit": null
+      }
+    },
+    "approval_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "final_local_receipt",
+        "human_license_approval",
+        "tested_private_security_channel"
+      ],
+      "properties": {
+        "final_local_receipt": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/receiptBinding"
+            },
+            {
+              "type": "object",
+              "required": [
+                "local_candidate_complete"
+              ],
+              "properties": {
+                "path": {
+                  "const": "community_v2_final_local_receipt.json"
+                },
+                "local_candidate_complete": {
+                  "const": true
+                }
+              }
+            }
+          ]
+        },
+        "human_license_approval": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/receiptBinding"
+            },
+            {
+              "type": "object",
+              "required": [
+                "approved"
+              ],
+              "properties": {
+                "path": {
+                  "const": "human_license_approval_receipt.json"
+                },
+                "approved": {
+                  "const": true
+                }
+              }
+            }
+          ]
+        },
+        "tested_private_security_channel": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/receiptBinding"
+            },
+            {
+              "type": "object",
+              "required": [
+                "tested"
+              ],
+              "properties": {
+                "path": {
+                  "const": "tested_private_security_channel_receipt.json"
+                },
+                "tested": {
+                  "const": true
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "candidate_lineage_contract": {
+      "$ref": "#/$defs/candidateLineageContract"
+    },
+    "stale_publication_marker_scan": {
+      "$ref": "#/$defs/stalePublicationMarkerScan"
+    },
+    "payload_files": {
+      "type": "object",
+      "minProperties": 9,
+      "propertyNames": {
+        "$ref": "#/$defs/safePath"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/outputFileBinding"
+      },
+      "required": [
+        "README.md",
+        "SECURITY.md",
+        "LICENSE",
+        "NOTICE",
+        "THIRD_PARTY_NOTICES.md",
+        "model.safetensors",
+        "community_v2_final_local_receipt.json",
+        "human_license_approval_receipt.json",
+        "tested_private_security_channel_receipt.json"
+      ]
+    },
+    "payload_inventory_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "excluded_source_files": {
+      "const": [
+        "community_v2_preauthorization.json"
+      ]
+    },
+    "superseded_source_files": {
+      "const": [
+        "NOTICE",
+        "README.md",
+        "SECURITY.md",
+        "THIRD_PARTY_NOTICES.md"
+      ]
+    },
+    "checksum_policy": {
+      "const": {
+        "algorithm": "sha256",
+        "manifest_covers_payload_only": true,
+        "checksums_covers_manifest_and_payload": true,
+        "checksums_self_entry": false
+      }
+    },
+    "manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repoId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "safePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/+@ -]*$"
+    },
+    "sourceFileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "sourceInventory": {
+      "type": "object",
+      "minProperties": 6,
+      "propertyNames": {
+        "$ref": "#/$defs/safePath"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/sourceFileBinding"
+      }
+    },
+    "outputFileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "size_bytes",
+        "provenance",
+        "transfer_method",
+        "output_type"
+      ],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "provenance": {
+          "enum": [
+            "source_package",
+            "source_package_model_weights",
+            "caller_publication_model_card",
+            "caller_current_security",
+            "caller_publication_notice",
+            "caller_publication_third_party_notices",
+            "final_local_receipt",
+            "human_license_approval_receipt",
+            "tested_private_security_channel_receipt"
+          ]
+        },
+        "transfer_method": {
+          "enum": [
+            "copy",
+            "hardlink"
+          ]
+        },
+        "output_type": {
+          "const": "regular_file"
+        }
+      }
+    },
+    "receiptBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "file_sha256",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/safePath"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "local_candidate_complete": {
+          "type": "boolean"
+        },
+        "approved": {
+          "type": "boolean"
+        },
+        "tested": {
+          "type": "boolean"
+        }
+      }
+    },
+    "candidateLineageFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "contract"
+      ],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "contract": {}
+      }
+    },
+    "candidateLineageContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "interpretation",
+        "byte_preserved",
+        "authorization_does_not_mutate_runtime_contract",
+        "files"
+      ],
+      "properties": {
+        "interpretation": {
+          "const": "immutable_candidate_lineage_not_current_remote_publication_state"
+        },
+        "byte_preserved": {
+          "const": true
+        },
+        "authorization_does_not_mutate_runtime_contract": {
+          "const": true
+        },
+        "files": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "config.json",
+            "training_manifest.json",
+            "configuration_qwen3_bi.py",
+            "modeling_qwen3_bi.py"
+          ],
+          "properties": {
+            "config.json": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/candidateLineageFile"
+                },
+                {
+                  "properties": {
+                    "contract": {
+                      "const": {
+                        "pii_release_eligible": false,
+                        "pii_lineage.release_eligible": false,
+                        "pii_training_status": "completed_candidate_not_benchmark_evaluated"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "training_manifest.json": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/candidateLineageFile"
+                },
+                {
+                  "properties": {
+                    "contract": {
+                      "const": {
+                        "release_eligible": false,
+                        "initialization.release_eligible": false
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "configuration_qwen3_bi.py": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/candidateLineageFile"
+                },
+                {
+                  "properties": {
+                    "contract": {
+                      "const": "requires_explicit_pii_release_eligible_false"
+                    }
+                  }
+                }
+              ]
+            },
+            "modeling_qwen3_bi.py": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/candidateLineageFile"
+                },
+                {
+                  "properties": {
+                    "contract": {
+                      "const": "accepts_only_pii_release_eligible_false"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "stalePublicationMarkerScan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "status",
+        "scanned_files",
+        "false_only_contract_files",
+        "superseded_publication_files",
+        "validated_replacement_files",
+        "removed_source_files",
+        "binary_files_not_text_scanned",
+        "tokenizer_vocabulary_contextual_scan"
+      ],
+      "properties": {
+        "profile": {
+          "const": "retained_nonbinary_publication_metadata_v1"
+        },
+        "status": {
+          "const": "PASS"
+        },
+        "scanned_files": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/safePath"
+          }
+        },
+        "false_only_contract_files": {
+          "const": [
+            "config.json",
+            "configuration_qwen3_bi.py",
+            "modeling_qwen3_bi.py",
+            "training_manifest.json"
+          ]
+        },
+        "superseded_publication_files": {
+          "const": [
+            "NOTICE",
+            "README.md",
+            "SECURITY.md",
+            "THIRD_PARTY_NOTICES.md"
+          ]
+        },
+        "validated_replacement_files": {
+          "const": [
+            "NOTICE",
+            "README.md",
+            "SECURITY.md",
+            "THIRD_PARTY_NOTICES.md"
+          ]
+        },
+        "removed_source_files": {
+          "const": [
+            "community_v2_preauthorization.json"
+          ]
+        },
+        "binary_files_not_text_scanned": {
+          "const": [
+            "model.safetensors"
+          ]
+        },
+        "tokenizer_vocabulary_contextual_scan": {
+          "type": "boolean"
+        }
+      }
+    },
+    "humanIdentity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192,
+      "pattern": "^[^\\r\\n\\u0000]+$"
+    },
+    "publicationTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_version",
+        "github_repository",
+        "hugging_face_repository"
+      ],
+      "properties": {
+        "package_version": {
+          "const": "0.2.0rc1"
+        },
+        "github_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "hugging_face_repository": {
+          "$ref": "#/$defs/repoId"
+        }
+      }
+    },
+    "humanLicenseApprovalReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "target",
+        "decision",
+        "reviewed_files",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "pii-zh.community-v2-human-license-approval-receipt.v1"
+        },
+        "target": {
+          "$ref": "#/$defs/publicationTarget"
+        },
+        "decision": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "approved",
+            "approved_by",
+            "approved_at",
+            "scope",
+            "exceptions"
+          ],
+          "properties": {
+            "approved": {
+              "const": true
+            },
+            "approved_by": {
+              "$ref": "#/$defs/humanIdentity"
+            },
+            "approved_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "scope": {
+              "const": "public_github_and_hugging_face_distribution"
+            },
+            "exceptions": {
+              "type": "array",
+              "maxItems": 32,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            }
+          }
+        },
+        "reviewed_files": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "LICENSE",
+            "NOTICE",
+            "THIRD_PARTY_NOTICES.md"
+          ],
+          "properties": {
+            "LICENSE": {
+              "$ref": "#/$defs/sha256"
+            },
+            "NOTICE": {
+              "$ref": "#/$defs/sha256"
+            },
+            "THIRD_PARTY_NOTICES.md": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "testedPrivateSecurityChannelReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "target",
+        "channel_test",
+        "security_file_sha256",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "pii-zh.community-v2-tested-private-security-channel-receipt.v1"
+        },
+        "target": {
+          "$ref": "#/$defs/publicationTarget"
+        },
+        "channel_test": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tested",
+            "tested_by",
+            "tested_at",
+            "provider",
+            "test_case_id",
+            "outcome",
+            "contains_real_sensitive_data"
+          ],
+          "properties": {
+            "tested": {
+              "const": true
+            },
+            "tested_by": {
+              "$ref": "#/$defs/humanIdentity"
+            },
+            "tested_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "provider": {
+              "const": "github_private_vulnerability_reporting"
+            },
+            "test_case_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 192,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+            },
+            "outcome": {
+              "const": "accepted_private_test_report"
+            },
+            "contains_real_sensitive_data": {
+              "const": false
+            }
+          }
+        },
+        "security_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

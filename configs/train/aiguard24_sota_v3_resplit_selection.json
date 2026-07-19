@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "protocol_id": "aiguard24_synthetic_sota_v3_resplit_dev_selection",
+  "status": "frozen_after_full_v2_seed42_validation_before_resplit_v3_training",
+  "frozen_at": "2026-07-18T00:35:23Z",
+  "purpose": "Select exactly one validation-informed 24-class full-attention candidate for post-selection calibration; this protocol cannot make the candidate release-ready.",
+  "freeze_assertions": {
+    "v3_training_started_before_freeze": false,
+    "v3_candidate_result_observed_before_freeze": false,
+    "protocol_changes_based_on_v3_results": false,
+    "public_benchmark_artifacts_read_before_freeze": false
+  },
+  "design_history": {
+    "predecessor_protocol_id": "aiguard24_synthetic_sota_v2_full_dev_selection",
+    "predecessor_protocol_file_sha256": "b5fa78557ef0e729709d2cf8913cd7e7d5a8b4a52a5ffa4f06d6eaed20480af4",
+    "observed_predecessor_evidence": "full_attention_seed42_best_checkpoint_validation_and_validation_raw_prediction_diagnostic_only",
+    "observed_predecessor_validation": {
+      "eval_risk_weighted_score": 0.667375,
+      "eval_strict_micro_f1": 0.628755,
+      "eval_strict_macro_f1": 0.74154,
+      "eval_pii_free_precision": 0.0,
+      "eval_calibration_recall_eligible": 0.0
+    },
+    "change_hypothesis": "The v2 train/validation template-family gap caused label and boundary failures. Deterministically promote most old validation families into training while retaining a development-only split, keep the v2 optimizer and LoRA settings so this run isolates the data-coverage change, and use two epochs because v2 selected epoch one and a shorter run reduces shared-GPU occupancy.",
+    "validation_informed_data_change": true,
+    "optimizer_or_lora_change_from_v2": false,
+    "epoch_change_from_v2": "3.0_to_2.0_after_v2_epoch1_was_selected",
+    "public_benchmark_read_for_change": false,
+    "release_test_evidence_used_for_change": false
+  },
+  "source_model": {
+    "id": "ZJUICSR/AIguard-pii-detection-fast",
+    "revision": "677a5ebc1600fef61e8973cafd3026be322b3a73",
+    "license": "Apache-2.0"
+  },
+  "dataset": {
+    "id": "pii_zh_synthetic_sota_v2_resplit",
+    "version": "2.0.0",
+    "manifest_type": "development_training_dataset",
+    "manifest_file_sha256": "3f0c348a29efa6e7c83d17261e589f1762151cca3898d78f3b5ed2a1553a8748",
+    "manifest_sha256": "a57f0719a9d225ee72a614e73e0b84f61be243e9fb4dfe6a56074015a8285186",
+    "train_sha256": "19ad4684923dc9d05e72efb50e1444a5f02c538c0107e388503f685ab5dab01b",
+    "validation_sha256": "cc0c248aeba4ae53048a9bd0bda4c19c751a5eb4eff59bb4a885e5b05bf0949f",
+    "train_records": 87995,
+    "validation_records": 2005,
+    "train_pii_free_records": 39600,
+    "validation_pii_free_records": 900,
+    "synthetic_only": true,
+    "public_weight_training_allowed": true,
+    "release_test_eligible": false,
+    "validation_role": "development_checkpoint_selection_and_calibration_only",
+    "split_isolation_policy": "template-overlap-development-v1",
+    "required_cross_split_collisions": {
+      "document_id": 0,
+      "entity_value_group": 0,
+      "source_group": 0
+    },
+    "template_group_overlap_count": 17
+  },
+  "candidate_seeds": [
+    13,
+    42,
+    97
+  ],
+  "fixed_recipe": {
+    "attention_mode": "full",
+    "fine_tuning": "lora_merged",
+    "epochs": 2.0,
+    "max_steps": -1,
+    "max_length": 512,
+    "per_device_train_batch_size": 64,
+    "per_device_eval_batch_size": 128,
+    "gradient_accumulation_steps": 1,
+    "learning_rate": 0.00002,
+    "classifier_learning_rate": 0.0002,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.05,
+    "lora_rank": 32,
+    "lora_alpha": 64,
+    "lora_dropout": 0.05,
+    "lora_target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "class_weighting": false,
+    "document_sampling": false,
+    "gradient_checkpointing": true,
+    "bf16": true,
+    "initialization_strategy": "aiguard24_projection_then_attention_conversion_v1",
+    "checkpoint_selection_split": "validation",
+    "checkpoint_selection_metric": "risk_weighted_score",
+    "min_pii_free_ratio": 0.4,
+    "split_isolation_policy": "template-overlap-development-v1"
+  },
+  "within_seed_checkpoint_selection": {
+    "primary_metric": "eval_risk_weighted_score",
+    "direction": "maximize",
+    "performed_by_transformers_load_best_model_at_end": true
+  },
+  "cross_seed_selection": {
+    "candidate_quality_guardrails": [],
+    "reason_no_raw_guardrail": "Raw development thresholds are not a release gate and must not eliminate every candidate before post-selection calibration.",
+    "order": [
+      {
+        "metric": "eval_risk_weighted_score",
+        "direction": "maximize"
+      },
+      {
+        "metric": "eval_strict_micro_f1",
+        "direction": "maximize"
+      },
+      {
+        "metric": "eval_strict_macro_f1",
+        "direction": "maximize"
+      },
+      {
+        "metric": "eval_pii_free_precision",
+        "direction": "maximize"
+      },
+      {
+        "metric": "seed",
+        "direction": "minimize"
+      }
+    ],
+    "output_status": "SELECTED_FOR_CALIBRATION_NOT_RELEASE",
+    "release_eligibility_after_selection": false,
+    "selection_must_not_be_revisited_after_calibration_or_evaluation": true
+  },
+  "post_selection_evaluation": {
+    "dataset_id": "pii_zh_synthetic_sota_release_eval_v1",
+    "dataset_version": "1.0.0",
+    "manifest_file_sha256": "aa4817080097681688948104e867ebb510be463fb87d23f9f9e3f786f58dfa7b",
+    "manifest_sha256": "f0500a5c0672b5285c8d95782d9491b6b5dd3df6a14977e6ade3f53bbd7130ca",
+    "calibration": {
+      "sha256": "70f7eac06f2ee77a90b4029cd4f2e5caad97a00daa4f38b2870f60b79fe6ed72",
+      "records": 10000,
+      "may_read_only_after_cross_seed_selection_receipt": true,
+      "gradient_training_allowed": false,
+      "checkpoint_or_model_selection_allowed": false,
+      "threshold_tuning_allowed": true,
+      "temperature_scaling_allowed": true,
+      "fusion_calibration_allowed": true,
+      "final_metric_claim_allowed": false
+    },
+    "internal_evaluation": {
+      "sha256": "5dbda1f7e4ab749e4a008f24a8d08d5202660c69226a7e4da33f4794b1acb3a7",
+      "records": 10000,
+      "may_read_only_after_model_and_calibration_artifacts_are_frozen": true,
+      "one_shot_final_evaluation": true,
+      "gradient_training_allowed": false,
+      "checkpoint_or_model_selection_allowed": false,
+      "threshold_tuning_allowed": false,
+      "temperature_scaling_allowed": false,
+      "fusion_calibration_allowed": false,
+      "final_metric_claim_allowed": true,
+      "result_informed_model_or_threshold_change_allowed": false
+    }
+  },
+  "public_benchmark_policy": {
+    "dataset_id": "wan9yu/pii-bench-zh",
+    "read_for_training": false,
+    "read_for_validation": false,
+    "read_for_checkpoint_selection": false,
+    "read_for_threshold_tuning": false,
+    "run_at_most_once_after_cross_seed_selection_and_calibration_freeze": true,
+    "descriptive_only": true,
+    "selection_or_tuning_allowed_from_result": false
+  },
+  "claims_policy": {
+    "synthetic_open_community_research_only": true,
+    "selected_candidate_is_release_ready": false,
+    "production_ready": false,
+    "human_hidden_evaluation": false,
+    "real_world_sota": false,
+    "global_first_claim_allowed": false
+  }
+}

@@ -8,6 +8,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from pii_zh.cascade.context import ContextCandidate, ContextDecision, ContextOutcome
+
 from ._compat import RecognizerResult, result_metadata
 
 
@@ -142,6 +144,45 @@ class ChinesePhraseContextEnhancer:
             previous_end = previous_start - 1
         return ""
 
+    def enhance_candidate(
+        self,
+        text: str,
+        candidate: ContextCandidate,
+    ) -> ContextDecision:
+        """Return a score-only decision for the shared cascade stage."""
+
+        if not isinstance(text, str):
+            raise TypeError("text must be a string")
+        if not isinstance(candidate, ContextCandidate):
+            raise TypeError("candidate must be a ContextCandidate")
+        if candidate.end > len(text):
+            raise ValueError("context candidate lies outside text")
+        left, right = self._field_window(text, candidate.start, candidate.end)
+        context = text[left:right] + self._table_header(text, candidate.start)
+        positive = self._positive_tries.get(candidate.entity_type)
+        negative = self._negative_tries.get(candidate.entity_type)
+        positive_matches = positive.find(context) if positive is not None else ()
+        negative_matches = negative.find(context) if negative is not None else ()
+        delta = (self.positive_delta if positive_matches else 0.0) - (
+            self.negative_delta if negative_matches else 0.0
+        )
+        updated_score = min(1.0, max(0.0, candidate.score + delta))
+        outcome: ContextOutcome
+        if positive_matches and negative_matches:
+            outcome = "mixed"
+        elif positive_matches:
+            outcome = "positive"
+        elif negative_matches:
+            outcome = "negative"
+        else:
+            outcome = "no_match"
+        return ContextDecision(
+            score=updated_score,
+            outcome=outcome,
+            positive_match_count=len(positive_matches),
+            negative_match_count=len(negative_matches),
+        )
+
     def enhance(self, text: str, results: Sequence[RecognizerResult]) -> list[RecognizerResult]:
         if not isinstance(text, str):
             raise TypeError("text must be a string")
@@ -157,33 +198,34 @@ class ChinesePhraseContextEnhancer:
                 clone.recognition_metadata = metadata
                 enhanced.append(clone)
                 continue
-            left, right = self._field_window(text, start, end)
-            context = text[left:right] + self._table_header(text, start)
-            entity_type = str(result.entity_type)
-            positive = self._positive_tries.get(entity_type)
-            negative = self._negative_tries.get(entity_type)
-            positive_matches = positive.find(context) if positive is not None else ()
-            negative_matches = negative.find(context) if negative is not None else ()
-            delta = (self.positive_delta if positive_matches else 0.0) - (
-                self.negative_delta if negative_matches else 0.0
-            )
             original_score = float(result.score)
-            updated_score = min(1.0, max(0.0, original_score + delta))
-            clone.score = updated_score
-            decision = {
+            context_decision = self.enhance_candidate(
+                text,
+                ContextCandidate(
+                    entity_type=str(result.entity_type),
+                    start=start,
+                    end=end,
+                    score=original_score,
+                ),
+            )
+            clone.score = context_decision.score
+            safe_details = {
                 "stage": "chinese_phrase_context",
-                "positive_matches": list(positive_matches),
-                "negative_matches": list(negative_matches),
-                "score_delta": delta,
+                "outcome": context_decision.outcome,
+                "positive_match_count": context_decision.positive_match_count,
+                "negative_match_count": context_decision.negative_match_count,
+                "score_delta": context_decision.score - original_score,
                 "score_before": original_score,
-                "score_after": updated_score,
+                "score_after": context_decision.score,
             }
             process = metadata.get("decision_process", [])
-            if not isinstance(process, list):
-                process = [process]
-            metadata["decision_process"] = [*process, decision]
-            metadata["context_enhancement"] = decision
-            metadata["is_score_enhanced_by_context"] = delta != 0.0
+            if not isinstance(process, (list, tuple)) or any(
+                not isinstance(step, str) for step in process
+            ):
+                process = []
+            metadata["decision_process"] = [*process, context_decision.decision_step]
+            metadata["context_enhancement"] = safe_details
+            metadata["is_score_enhanced_by_context"] = context_decision.score != original_score
             clone.recognition_metadata = metadata
             enhanced.append(clone)
         return enhanced

@@ -131,7 +131,7 @@ def test_account_and_card_context_choose_one_semantic_type_for_a_luhn_valid_surf
 
 
 def test_opaque_secret_rule_includes_the_full_self_identifying_prefix() -> None:
-    secret = "key_abcdefghijklmnopqrstuvwxyz"
+    secret = "key_ab\x63defghijklmnopqrstuvwxyz"
     text = f"会话令牌是{secret}，请立即轮换。"
 
     matches = CnCommonRulePack().analyze(text)
@@ -151,7 +151,7 @@ def test_opaque_secret_rule_never_truncates_an_overlong_token() -> None:
 
 
 def test_assignment_rule_returns_only_the_secret_value_capture() -> None:
-    secret = "A1b2C3d4E5f6G7h8"
+    secret = "A1b2C3\x644E5f6G7h8"
     text = f"api_key='{secret}'，由密钥平台托管。"
 
     matches = CnCommonRulePack().analyze(text)

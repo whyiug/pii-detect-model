@@ -1,7 +1,7 @@
-base_model: /data1/models/Qwen/Qwen3-0.6B-Base
-train_file: /data1/datasets/pii-detect-model/processed/public_release_pool/synthetic_v1/train.jsonl
-validation_file: /data1/datasets/pii-detect-model/processed/public_release_pool/synthetic_v1/validation.jsonl
-output_dir: /data1/runs/pii-detect-model/qwen3_0_6b_full_attention_seed42
+base_model: models/Qwen/Qwen3-0.6B-Base
+train_file: data/processed/public_release_pool/synthetic_v1/train.jsonl
+validation_file: data/processed/public_release_pool/synthetic_v1/validation.jsonl
+output_dir: runs/qwen3_0_6b_full_attention_seed42
 base_source_id: qwen3_0_6b_base
 taxonomy_path: src/pii_zh/taxonomy/taxonomy.yaml
 attention_mode: full

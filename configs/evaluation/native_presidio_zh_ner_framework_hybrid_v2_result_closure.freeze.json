@@ -1,0 +1,315 @@
+{
+  "aggregate_report": {
+    "canonical_sha256": "a4308adf743046d6195b943b50c60bd7a5f4d0dfe5450d51ff8f0834aee0cf69",
+    "evaluator_implementation_sha256": "c324c35ac4d84b9e1c5eee6df9162871d01583279a7cc5c4b990680e00e6ede6",
+    "file_sha256": "dbf55c58f8841e6fc4ee7ab050f576b9fe58c05dc0914b5bbc6b35ee8a1a720c",
+    "mutated": false,
+    "path": "reports/baselines/native_presidio_zh_ner_framework_hybrid_v2.json",
+    "public_test_exposed": true,
+    "report_type": "native_presidio_zh_ner_framework_hybrid_evaluation",
+    "results_canonical_sha256": "83137b1ae62903b48d5f877e0583e49ba4671b9e080d194fc5dcdd0a73823ee0",
+    "size_bytes": 26635,
+    "status": "BLOCKED_PUBLIC_TEST_EXPOSED",
+    "track_count": 2,
+    "track_kind": "framework_hybrid"
+  },
+  "artifact_type": "native_presidio_zh_ner_result_closure",
+  "closure_id": "native_presidio_zh_ner_framework_hybrid_v2_result_closure",
+  "closure_state": "RESULT_CLOSED_NON_ACTIVATING",
+  "evidence_classification": {
+    "benchmark_exposure": "fixed_public_synthetic_measurement",
+    "blind_evaluation": false,
+    "interpretation": "descriptive_same_protocol_technical_reproduction_only",
+    "pii_free_document_fpr": null,
+    "programmatically_synthetic": true,
+    "public_test_exposed": true,
+    "selection_data": "none",
+    "threshold_tuned_on_benchmark": false
+  },
+  "generation": {
+    "aggregate_reports_read": 1,
+    "benchmark_rows_read": 0,
+    "gpu_queried": false,
+    "gpu_used": false,
+    "hidden_gold_read": 0,
+    "model_weights_read": 0,
+    "mutated_input_artifacts": false,
+    "network_used": false,
+    "prediction_files_read": 0,
+    "preregistrations_read": 1,
+    "private_run_receipts_read": 1
+  },
+  "governance": {
+    "best": false,
+    "blind": false,
+    "claim_activation_allowed": false,
+    "first": false,
+    "global_best": false,
+    "human_hidden_execution_allowed": false,
+    "overall_status": "BLOCKED",
+    "redistribution_allowed": false,
+    "registry_activation_allowed": false,
+    "release_bundle_allowed": false,
+    "sota": false
+  },
+  "hash_contract": "self_hash is SHA-256 of canonical UTF-8 JSON after removing the top-level self_hash field; keys sorted, compact separators, ensure_ascii=false, allow_nan=false",
+  "license": {
+    "model_weight_license_resolved": false,
+    "redistribution_allowed": false,
+    "release_bundle_allowed": false,
+    "technical_result_resolves_license": false
+  },
+  "overall_status": "BLOCKED_PUBLIC_TEST_EXPOSED",
+  "predecessor_preregistration": {
+    "artifact_type": "native_presidio_zh_ner_framework_hybrid_preregistration",
+    "canonical_sha256": "fa15dda0d51a21a1444d330d88c854f71828163586b9d0ce588f961f8431cf80",
+    "file_sha256": "979a3d832acc0c7f2f5f1368e2a8ea22b04a1486096ad2aa9347c9c2116f87e5",
+    "mutated": false,
+    "path": "configs/evaluation/native_presidio_zh_ner_framework_hybrid_v2.freeze.json",
+    "size_bytes": 14289,
+    "status": "BLOCKED_PUBLIC_TEST_EXPOSED_NON_ACTIVATING"
+  },
+  "privacy": {
+    "benchmark_rows_read": 0,
+    "contains_absolute_paths": false,
+    "contains_entity_values": false,
+    "contains_raw_text": false,
+    "prediction_files_read": 0,
+    "private_run_receipt_path_serialized": false,
+    "private_run_receipts_read": 1,
+    "record_level_predictions_public": false
+  },
+  "private_evidence": {
+    "prediction_manifest": {
+      "domain": "native-presidio-private-prediction-manifest-v1",
+      "entries": [
+        {
+          "documents": 3000,
+          "mode": "0600",
+          "model": "cluener",
+          "relative_path": "cluener/chat.predictions.jsonl",
+          "sha256": "bb818c30483d77e89b36c5c439d97829ed0e2b09e7cb8fed80c21ee0c791ee5b",
+          "suite": "chat"
+        },
+        {
+          "documents": 5000,
+          "mode": "0600",
+          "model": "cluener",
+          "relative_path": "cluener/formal.predictions.jsonl",
+          "sha256": "a29949e27ef9cc96f259a4dc0b0363b0c0bd4ae246f9dfc094b83be903e1c681",
+          "suite": "formal"
+        },
+        {
+          "documents": 3000,
+          "mode": "0600",
+          "model": "ernie",
+          "relative_path": "ernie/chat.predictions.jsonl",
+          "sha256": "a936054d752974ea676e4b599ae45168e0c6bd8328ccea78bfe272d0cb1076b6",
+          "suite": "chat"
+        },
+        {
+          "documents": 5000,
+          "mode": "0600",
+          "model": "ernie",
+          "relative_path": "ernie/formal.predictions.jsonl",
+          "sha256": "9074a89c878cc0e627e693af4682e04f8d5f53e842e4f4a919d7ebd53601b921",
+          "suite": "formal"
+        }
+      ],
+      "entry_count": 4,
+      "prediction_files_read_by_closure": 0,
+      "record_level_predictions_public": false,
+      "sha256": "01dd100cf4015d2535276cbdf7dbd99af08ee035243f87b5e3e32dc304fdad34"
+    },
+    "private_evidence_manifest": {
+      "domain": "native-presidio-private-evidence-manifest-v1",
+      "sha256": "a4541d408c6f3d6b1c65f45092ebe44f009cb202e326f313cbf72e2b5c04fa30"
+    },
+    "run_receipt": {
+      "canonical_sha256": "b33728e075d2a7977b4c7b80f3e5f4c348be9b33c20319cd1c64e2bd36a076b5",
+      "file_sha256": "2838361cd9fafac7b117effe28206f04b9f6e2ae70b218b20c62782c08473d2b",
+      "mode": "0600",
+      "path_serialized": false,
+      "record_level_content_present": false,
+      "size_bytes": 1926
+    }
+  },
+  "publication": {
+    "crash_can_leave_matching_orphan_closure": true,
+    "matching_orphan_closure_resume_allowed": true,
+    "multi_file_transaction_atomic": false,
+    "ordered_members": [
+      "result_closure",
+      "receipt"
+    ],
+    "per_file_no_clobber": true,
+    "receipt_last": true
+  },
+  "schema_version": 1,
+  "sealed_at": "2026-07-16T10:15:58+08:00",
+  "self_hash": "595e612b4a51f7abc20d906094d17b14d68dafcef9aa7a6fe6ed9d263cfac49c",
+  "source_audit": {
+    "builder": {
+      "path": "scripts/build_native_presidio_zh_ner_result_closure.py",
+      "sha256": "986b0b961d65c23a406cafce63d031bd8f6d417dc7b60e762fee393a0c4f2dd4",
+      "size_bytes": 77215
+    },
+    "bundle_domain": "native-presidio-result-closure-source-bundle-v1",
+    "bundle_sha256": "8e6f0236bac48b1ec2e92bf363cd8cc7a2cfd919676d9fb7f4c72ab0f7e6e2fe",
+    "schema": {
+      "path": "configs/evaluation/native_presidio_zh_ner_result_closure.schema.json",
+      "sha256": "8ce9a7757a1bc1115d8b1736242f32323f80c6e52b3d04a113b8c9c34214b253",
+      "size_bytes": 20572
+    },
+    "tests": {
+      "path": "tests/unit/test_native_presidio_zh_ner_result_closure.py",
+      "sha256": "1973fa1981b289fcdac012757b07582e57ef291dfa1df9921a6bfaa4d8907ae0",
+      "size_bytes": 31669
+    }
+  },
+  "timezone": "Asia/Shanghai",
+  "verified_headlines": {
+    "cluener": {
+      "chat": {
+        "documents": 3000,
+        "gold_spans": 7544,
+        "predicted_spans": 6956,
+        "strict_macro": {
+          "f1": 0.83997016,
+          "f2": 0.82061946,
+          "label_count": 8,
+          "precision": 0.9786881,
+          "recall": 0.81233511
+        },
+        "strict_micro": {
+          "f1": 0.93613793,
+          "f2": 0.91390176,
+          "fn": 757,
+          "fp": 169,
+          "precision": 0.97570443,
+          "predicted": 6956,
+          "recall": 0.89965536,
+          "support": 7544,
+          "tp": 6787
+        }
+      },
+      "formal": {
+        "documents": 5000,
+        "gold_spans": 15662,
+        "predicted_spans": 14655,
+        "strict_macro": {
+          "f1": 0.8732109,
+          "f2": 0.85740623,
+          "label_count": 8,
+          "precision": 0.99480956,
+          "recall": 0.84962946
+        },
+        "strict_micro": {
+          "f1": 0.95273279,
+          "f2": 0.9341164,
+          "fn": 1220,
+          "fp": 213,
+          "precision": 0.98546571,
+          "predicted": 14655,
+          "recall": 0.92210446,
+          "support": 15662,
+          "tp": 14442
+        }
+      },
+      "pooled": {
+        "documents": 8000,
+        "gold_spans": 23206,
+        "predicted_spans": 21611,
+        "strict_macro": {
+          "f1": 0.86673384,
+          "f2": 0.84794046,
+          "label_count": 8,
+          "precision": 0.9917565,
+          "recall": 0.83821057
+        },
+        "strict_micro": {
+          "f1": 0.94736372,
+          "f2": 0.92755713,
+          "fn": 1977,
+          "fp": 382,
+          "precision": 0.98232382,
+          "predicted": 21611,
+          "recall": 0.91480652,
+          "support": 23206,
+          "tp": 21229
+        }
+      }
+    },
+    "ernie": {
+      "chat": {
+        "documents": 3000,
+        "gold_spans": 7544,
+        "predicted_spans": 8001,
+        "strict_macro": {
+          "f1": 0.78701966,
+          "f2": 0.79799998,
+          "label_count": 8,
+          "precision": 0.88940222,
+          "recall": 0.81586959
+        },
+        "strict_micro": {
+          "f1": 0.87925378,
+          "f2": 0.89504152,
+          "fn": 710,
+          "fp": 1167,
+          "precision": 0.85414323,
+          "predicted": 8001,
+          "recall": 0.90588547,
+          "support": 7544,
+          "tp": 6834
+        }
+      },
+      "formal": {
+        "documents": 5000,
+        "gold_spans": 15662,
+        "predicted_spans": 16915,
+        "strict_macro": {
+          "f1": 0.84294878,
+          "f2": 0.84855938,
+          "label_count": 8,
+          "precision": 0.93413346,
+          "recall": 0.85673868
+        },
+        "strict_micro": {
+          "f1": 0.9051785,
+          "f2": 0.92656134,
+          "fn": 918,
+          "fp": 2171,
+          "precision": 0.87165238,
+          "predicted": 16915,
+          "recall": 0.9413868,
+          "support": 15662,
+          "tp": 14744
+        }
+      },
+      "pooled": {
+        "documents": 8000,
+        "gold_spans": 23206,
+        "predicted_spans": 24916,
+        "strict_macro": {
+          "f1": 0.83138344,
+          "f2": 0.83588583,
+          "label_count": 8,
+          "precision": 0.9237219,
+          "recall": 0.84361802
+        },
+        "strict_micro": {
+          "f1": 0.89680396,
+          "f2": 0.91634109,
+          "fn": 1628,
+          "fp": 3338,
+          "precision": 0.86602986,
+          "predicted": 24916,
+          "recall": 0.92984573,
+          "support": 23206,
+          "tp": 21578
+        }
+      }
+    }
+  }
+}

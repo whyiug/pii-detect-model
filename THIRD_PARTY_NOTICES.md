@@ -1,9 +1,24 @@
-# Third-Party Notices — synthetic-v1.3-rc1
+# Third-Party Notices — pii-zh-qwen 0.2.0rc1 community candidate
 
-This notice records the sources admitted to, evaluated with, or otherwise relevant to the
-`synthetic-v1.3-rc1` research release candidate.
+This notice records the sources admitted to, evaluated with, or otherwise relevant to the current
+community candidate and its repository history. It is an attribution inventory, not a substitute
+for the pending human/legal release review.
 
-## Qwen3-0.6B-Base
+## AIguard PII detection model
+
+- Source: `ZJUICSR/AIguard-pii-detection-fast`
+- Revision: `677a5ebc1600fef61e8973cafd3026be322b3a73`
+- Upstream-declared license: Apache-2.0
+- Release role: fixed initialization checkpoint for the current community token classifier
+
+The current training manifest binds the upstream `config.json`, `model.safetensors`,
+`tokenizer.json`, and `tokenizer_config.json` by SHA-256. It records a strict backbone copy, an
+outside-label row copy, and 12 verified source-to-target classification-head projections. The
+resulting candidate changes attention from causal to full bidirectional attention and trains the
+24-entity, 49-token-label taxonomy. The upstream checkpoint is not redistributed as a separate
+artifact; the Hugging Face candidate contains the resulting merged weights.
+
+## Historical Qwen3-0.6B-Base research candidate
 
 - Source: `Qwen/Qwen3-0.6B-Base`
 - Revision: `da87bfb608c14b7cf20ba1ce41287e8de496c0cd`
@@ -11,8 +26,9 @@ This notice records the sources admitted to, evaluated with, or otherwise releva
 - Attribution: Qwen; Copyright 2024 Alibaba Cloud
 - Release role: base checkpoint for the fine-tuned token-classification model
 
-The release checkpoint is derived from this base. The upstream Qwen license and attribution
-remain applicable to the Qwen materials.
+The archived `synthetic-v1.3-rc1` checkpoint was derived from this base. It is not the current
+AIguard24 seed-97 candidate. The upstream Qwen license and attribution remain applicable to the
+historical Qwen-derived materials.
 
 ## Qwen3-8B template candidate generator
 
@@ -59,7 +75,9 @@ environment resolution is recorded in `uv.lock`. Those records are authoritative
 names and resolved versions. Runtime and development dependencies are not vendored into this
 repository or the model checkpoint.
 
-## Excluded inputs
+## Excluded inputs and review boundary
 
 No external API output and no customer or internal production data were used to train, calibrate,
-or evaluate this release candidate.
+or evaluate this release candidate. The current typed license report remains
+`COMPLETE_HUMAN_APPROVAL_PENDING`; publication must not infer automated or legal clearance from
+this mechanical notice.

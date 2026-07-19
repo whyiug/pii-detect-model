@@ -1,0 +1,430 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_cascade_release_v2.schema.json",
+  "title": "Path-free community Chinese PII model and cascade release contract v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "status",
+    "purpose",
+    "scope",
+    "quality_gate",
+    "candidate_identity",
+    "replay_evidence",
+    "release_artifacts",
+    "verification_receipts",
+    "publication",
+    "claims",
+    "privacy",
+    "implementation",
+    "historical_policy",
+    "contract_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-cascade-release-contract.v2"
+    },
+    "contract_id": {
+      "const": "community_cascade_release_v2"
+    },
+    "status": {
+      "enum": [
+        "blocked_pending_replays_and_artifacts",
+        "candidate_complete_pending_user_authorization"
+      ]
+    },
+    "purpose": {
+      "const": "fail_closed_release_gate_for_open24_quality_and_independent_replays"
+    },
+    "scope": {
+      "const": {
+        "allowed_data": [
+          "public_open_source",
+          "synthetic"
+        ],
+        "community_release": true,
+        "human_evidence_required": false,
+        "production_ready": false,
+        "public_test_exposed": true,
+        "real_world_sota": false
+      }
+    },
+    "quality_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_receipt",
+        "strict_replay_receipt",
+        "required_schema_version",
+        "required_status",
+        "reported_pass_is_not_replay_proof"
+      ],
+      "properties": {
+        "result_receipt": {
+          "$ref": "#/$defs/nullableSelfBinding"
+        },
+        "strict_replay_receipt": {
+          "$ref": "#/$defs/nullableReplayBinding"
+        },
+        "required_schema_version": {
+          "const": "pii-zh.public-synthetic-service-quality-result.v2"
+        },
+        "required_status": {
+          "const": "PASS"
+        },
+        "reported_pass_is_not_replay_proof": {
+          "const": true
+        }
+      }
+    },
+    "candidate_identity": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/candidateIdentity"
+        }
+      ]
+    },
+    "replay_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_raw",
+        "full_system"
+      ],
+      "properties": {
+        "model_raw": {
+          "$ref": "#/$defs/trackReplayInventory"
+        },
+        "full_system": {
+          "$ref": "#/$defs/trackReplayInventory"
+        }
+      }
+    },
+    "release_artifacts": {
+      "$ref": "#/$defs/artifactInventory"
+    },
+    "verification_receipts": {
+      "$ref": "#/$defs/verificationInventory"
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "github",
+        "hugging_face",
+        "publication_requires_same_turn_user_authorization"
+      ],
+      "properties": {
+        "github": {
+          "$ref": "#/$defs/publicationTarget"
+        },
+        "hugging_face": {
+          "$ref": "#/$defs/publicationTarget"
+        },
+        "publication_requires_same_turn_user_authorization": {
+          "const": true
+        }
+      }
+    },
+    "claims": {
+      "const": {
+        "first_chinese_pii_model": false,
+        "global_sota": false,
+        "production_ready": false,
+        "real_world_sota": false,
+        "named_open24_leadership_requires_all_replays": true
+      }
+    },
+    "privacy": {
+      "const": {
+        "contract_contains_paths": false,
+        "release_receipt_contains_paths": false,
+        "record_level_data_read_allowed": false,
+        "model_weight_read_allowed": true,
+        "network_allowed": false,
+        "gpu_query_or_use_allowed": false,
+        "publication_allowed_without_authorization": false
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_schema",
+        "release_receipt_schema",
+        "replay_receipt_schema",
+        "source_identity_schema",
+        "source_identity_predecessor_schema",
+        "artifact_evidence_schema",
+        "verification_receipt_schema",
+        "quality_replay_evidence_schema",
+        "candidate_replay_evidence_schema",
+        "comparator_replay_evidence_schema",
+        "validator",
+        "support",
+        "evidence_producer",
+        "artifact_producer",
+        "verification_producer",
+        "contract_builder",
+        "model_package_builder",
+        "public_artifact_scanner",
+        "performance_harness_module",
+        "performance_harness_cli",
+        "quality_producer",
+        "quality_result_schema",
+        "quality_registry_schema",
+        "candidate_provenance_schema",
+        "candidate_provenance_module",
+        "candidate_provenance_cli",
+        "comparator_provenance_schema",
+        "stage_gate_module",
+        "stage_gate_cli",
+        "calibration_authorization_schema",
+        "internal_unlock_schema"
+      ],
+      "properties": {
+        "contract_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "release_receipt_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "replay_receipt_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "source_identity_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "source_identity_predecessor_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "artifact_evidence_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "verification_receipt_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "quality_replay_evidence_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "candidate_replay_evidence_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "comparator_replay_evidence_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "validator": { "$ref": "#/$defs/exactImplementationBinding" },
+        "support": { "$ref": "#/$defs/exactImplementationBinding" },
+        "evidence_producer": { "$ref": "#/$defs/exactImplementationBinding" },
+        "artifact_producer": { "$ref": "#/$defs/exactImplementationBinding" },
+        "verification_producer": { "$ref": "#/$defs/exactImplementationBinding" },
+        "contract_builder": { "$ref": "#/$defs/exactImplementationBinding" },
+        "model_package_builder": { "$ref": "#/$defs/exactImplementationBinding" },
+        "public_artifact_scanner": { "$ref": "#/$defs/exactImplementationBinding" },
+        "performance_harness_module": { "$ref": "#/$defs/exactImplementationBinding" },
+        "performance_harness_cli": { "$ref": "#/$defs/exactImplementationBinding" },
+        "quality_producer": { "$ref": "#/$defs/exactImplementationBinding" },
+        "quality_result_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "quality_registry_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "candidate_provenance_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "candidate_provenance_module": { "$ref": "#/$defs/exactImplementationBinding" },
+        "candidate_provenance_cli": { "$ref": "#/$defs/exactImplementationBinding" },
+        "comparator_provenance_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "stage_gate_module": { "$ref": "#/$defs/exactImplementationBinding" },
+        "stage_gate_cli": { "$ref": "#/$defs/exactImplementationBinding" },
+        "calibration_authorization_schema": { "$ref": "#/$defs/exactImplementationBinding" },
+        "internal_unlock_schema": { "$ref": "#/$defs/exactImplementationBinding" }
+      }
+    },
+    "historical_policy": {
+      "const": {
+        "historical_v1_is_immutable": true,
+        "production_gates_inherit_this_pass": false,
+        "community_pass_is_not_real_world_evidence": true
+      }
+    },
+    "contract_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    },
+    "hashBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logical_id",
+        "file_sha256"
+      ],
+      "properties": {
+        "logical_id": { "$ref": "#/$defs/safeId" },
+        "file_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "selfBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logical_id",
+        "file_sha256",
+        "canonical_sha256"
+      ],
+      "properties": {
+        "logical_id": { "$ref": "#/$defs/safeId" },
+        "file_sha256": { "$ref": "#/$defs/sha256" },
+        "canonical_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "replayBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logical_id",
+        "file_sha256",
+        "canonical_sha256",
+        "implementation_file_sha256",
+        "implementation_identity_sha256"
+      ],
+      "properties": {
+        "logical_id": { "$ref": "#/$defs/safeId" },
+        "file_sha256": { "$ref": "#/$defs/sha256" },
+        "canonical_sha256": { "$ref": "#/$defs/sha256" },
+        "implementation_file_sha256": { "$ref": "#/$defs/sha256" },
+        "implementation_identity_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "nullableHashBinding": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/hashBinding" }
+      ]
+    },
+    "nullableSelfBinding": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/selfBinding" }
+      ]
+    },
+    "nullableReplayBinding": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/replayBinding" }
+      ]
+    },
+    "exactImplementationBinding": {
+      "$ref": "#/$defs/hashBinding"
+    },
+    "candidateIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "service_id",
+        "training_manifest_sha256",
+        "model_identity_sha256",
+        "calibration_bundle_file_sha256",
+        "service_configuration_sha256",
+        "service_implementation_sha256",
+        "source_manifest_sha256",
+        "internal_unlock_sha256",
+        "final_model_manifest",
+        "service_configuration_manifest",
+        "calibration_bundle",
+        "service_source_manifest",
+        "internal_preopen_unlock"
+      ],
+      "properties": {
+        "model_id": { "$ref": "#/$defs/safeId" },
+        "service_id": { "$ref": "#/$defs/safeId" },
+        "training_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "model_identity_sha256": { "$ref": "#/$defs/sha256" },
+        "calibration_bundle_file_sha256": { "$ref": "#/$defs/sha256" },
+        "service_configuration_sha256": { "$ref": "#/$defs/sha256" },
+        "service_implementation_sha256": { "$ref": "#/$defs/sha256" },
+        "source_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "internal_unlock_sha256": { "$ref": "#/$defs/sha256" },
+        "final_model_manifest": { "$ref": "#/$defs/selfBinding" },
+        "service_configuration_manifest": { "$ref": "#/$defs/selfBinding" },
+        "calibration_bundle": { "$ref": "#/$defs/hashBinding" },
+        "service_source_manifest": { "$ref": "#/$defs/selfBinding" },
+        "internal_preopen_unlock": { "$ref": "#/$defs/selfBinding" }
+      }
+    },
+    "trackReplayInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_prediction_full_replay",
+        "comparator_generation_replay",
+        "performance_harness_replay"
+      ],
+      "properties": {
+        "candidate_prediction_full_replay": { "$ref": "#/$defs/nullableReplayBinding" },
+        "comparator_generation_replay": { "$ref": "#/$defs/nullableReplayBinding" },
+        "performance_harness_replay": { "$ref": "#/$defs/nullableReplayBinding" }
+      }
+    },
+    "artifactInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "final_model_manifest",
+        "model_card",
+        "model_package_manifest",
+        "service_configuration_manifest",
+        "service_source_manifest",
+        "technical_documentation_manifest",
+        "wheel_manifest",
+        "wheelhouse_manifest",
+        "container_manifest",
+        "sbom",
+        "license_report",
+        "benchmark_report",
+        "public_artifact_scan",
+        "dependency_scan"
+      ],
+      "properties": {
+        "final_model_manifest": { "$ref": "#/$defs/nullableHashBinding" },
+        "model_card": { "$ref": "#/$defs/nullableHashBinding" },
+        "model_package_manifest": { "$ref": "#/$defs/nullableHashBinding" },
+        "service_configuration_manifest": { "$ref": "#/$defs/nullableHashBinding" },
+        "service_source_manifest": { "$ref": "#/$defs/nullableHashBinding" },
+        "technical_documentation_manifest": { "$ref": "#/$defs/nullableHashBinding" },
+        "wheel_manifest": { "$ref": "#/$defs/nullableHashBinding" },
+        "wheelhouse_manifest": { "$ref": "#/$defs/nullableHashBinding" },
+        "container_manifest": { "$ref": "#/$defs/nullableHashBinding" },
+        "sbom": { "$ref": "#/$defs/nullableHashBinding" },
+        "license_report": { "$ref": "#/$defs/nullableHashBinding" },
+        "benchmark_report": { "$ref": "#/$defs/nullableHashBinding" },
+        "public_artifact_scan": { "$ref": "#/$defs/nullableHashBinding" },
+        "dependency_scan": { "$ref": "#/$defs/nullableHashBinding" }
+      }
+    },
+    "verificationInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_tests",
+        "clean_wheel_smoke",
+        "container_smoke",
+        "offline_model_smoke",
+        "offline_service_smoke"
+      ],
+      "properties": {
+        "unit_tests": { "$ref": "#/$defs/nullableHashBinding" },
+        "clean_wheel_smoke": { "$ref": "#/$defs/nullableHashBinding" },
+        "container_smoke": { "$ref": "#/$defs/nullableHashBinding" },
+        "offline_model_smoke": { "$ref": "#/$defs/nullableHashBinding" },
+        "offline_service_smoke": { "$ref": "#/$defs/nullableHashBinding" }
+      }
+    },
+    "publicationTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "authorized",
+        "published",
+        "publication_receipt"
+      ],
+      "properties": {
+        "target_id": { "type": "null" },
+        "authorized": { "const": false },
+        "published": { "const": false },
+        "publication_receipt": { "type": "null" }
+      }
+    }
+  }
+}

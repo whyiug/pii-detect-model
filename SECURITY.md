@@ -2,7 +2,7 @@
 
 ## Supported version
 
-`synthetic-v1.3-rc1` is a research release candidate. Once a tested private route is established,
+`pii-zh-qwen 0.2.0rc1` is a community research release candidate. Once a tested private route is established,
 reports concerning software security, model behavior, data provenance, privacy, or supply-chain
 integrity will be in scope for this version. This release candidate is not presented as a
 production security warranty or service-level commitment.
@@ -12,13 +12,13 @@ production security warranty or service-level commitment.
 Do not disclose a suspected vulnerability, leaked personal datum, model-memorization case,
 unsafe remote-code behavior, or supply-chain issue in a public issue, discussion, or post.
 
-No tested private reporting route exists for this local RC package yet. Public upload is therefore
-withheld. Before publication, an authorized maintainer must create the intended repository, enable
+No tested private reporting route exists for this local RC package yet. Public upload remains
+blocked. Before publication, an authorized maintainer must create the intended repository, enable
 and test GitHub private vulnerability reporting, and update this file with the verified route. If
 you received this package through an existing trusted private channel, use that same channel only
 to request a secure reporting route; do not include vulnerability details in the initial request.
 
-Identify `synthetic-v1.3-rc1` and give only a short impact category. Do not attach sensitive data,
+Identify `pii-zh-qwen 0.2.0rc1` and give only a short impact category. Do not attach sensitive data,
 real PII, secrets, frozen evaluation rows, exploit details, or reproduction archives to the first
 message.
 

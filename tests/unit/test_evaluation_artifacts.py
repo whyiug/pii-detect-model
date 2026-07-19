@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from scripts import predict as predict_cli
 
 from pii_zh.evaluation import (
     EvaluationDataError,
@@ -117,6 +118,93 @@ def test_model_prediction_manifest_binds_loaded_model_seed_and_attention(tmp_pat
     assert str(tmp_path) not in json.dumps(manifest)
 
 
+def test_model_prediction_manifest_binds_inference_protocol_and_limitations(
+    tmp_path: Path,
+) -> None:
+    predictions = tmp_path / "predictions.jsonl"
+    predictions.write_text('{"doc_id":"doc","spans":[]}\n', encoding="utf-8")
+    dataset_path = tmp_path / "dataset.json"
+    _write_manifest(dataset_path, {"manifest_type": "evaluation_dataset"})
+    label_schema_sha256 = canonical_json_hash({"O": 0})
+    training_path = tmp_path / "training.json"
+    _write_manifest(
+        training_path,
+        {
+            "status": "completed",
+            "seed": 13,
+            "attention_mode": "full",
+            "label_schema_sha256": label_schema_sha256,
+            "output_artifact": {
+                "files": {
+                    "config.json": "1" * 64,
+                    "model.safetensors": "2" * 64,
+                }
+            },
+        },
+    )
+    implementation = {
+        name: str(index) * 64
+        for index, name in enumerate(
+            (
+                "bio_decoder",
+                "cross_window_deduplication",
+                "predict_cli",
+                "qwen_recognizer",
+                "token_chunker",
+                "transformers_predictor",
+            ),
+            start=1,
+        )
+    }
+
+    manifest = build_model_prediction_manifest(
+        predictions_path=predictions,
+        dataset_manifest_path=dataset_path,
+        model_training_manifest_path=training_path,
+        prediction_document_count=1,
+        attention_mode="full",
+        model_identity={
+            "model_type": "qwen3_bi",
+            "config_sha256": "1" * 64,
+            "weights_sha256": "2" * 64,
+            "label_schema_sha256": label_schema_sha256,
+        },
+    )
+    manifest = predict_cli._bind_evidence_manifest(
+        manifest,
+        inference_configuration={
+            "allowed_labels": ["ADDRESS", "PERSON_NAME"],
+            "calibration": {"mode": "none"},
+            "document_batch_size": 8,
+            "max_tokens": 270,
+            "stride_fraction": 0.25,
+            "threshold": 0.0,
+            "window_batch_size": 4,
+        },
+        inference_implementation=implementation,
+        evidence_policy={
+            "evidence_class": "test_informed_posthoc",
+            "test_informed": True,
+            "posthoc": True,
+            "confirmatory": False,
+            "supports_release_claim": False,
+        },
+    )
+
+    assert manifest["inference_configuration"]["allowed_labels"] == [
+        "ADDRESS",
+        "PERSON_NAME",
+    ]
+    assert manifest["inference_configuration"]["attention_mode"] == "full"
+    assert (
+        manifest["inference_configuration"]["model_identity_sha256"]
+        == manifest["model_identity"]["identity_sha256"]
+    )
+    assert manifest["inference_implementation"] == implementation
+    assert manifest["evidence_policy"]["confirmatory"] is False
+    assert manifest["evidence_policy"]["supports_release_claim"] is False
+
+
 @pytest.mark.parametrize(
     ("field", "digest", "message"),
     [
@@ -193,6 +281,73 @@ def test_model_predict_cli_requires_all_three_provenance_arguments(tmp_path: Pat
     assert "must be supplied together" in completed.stderr
 
 
+def test_model_predict_cli_requires_manifest_for_evidence_class(tmp_path: Path) -> None:
+    repository_root = Path(__file__).resolve().parents[2]
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(repository_root / "scripts/predict.py"),
+            "--model",
+            str(tmp_path / "model"),
+            "--input",
+            str(tmp_path / "input.jsonl"),
+            "--output",
+            str(tmp_path / "predictions.jsonl"),
+            "--evidence-class",
+            "test_informed_posthoc",
+        ],
+        cwd=repository_root,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert completed.returncode == 2
+    assert "requires the complete prediction manifest chain" in completed.stderr
+
+
+@pytest.mark.parametrize("collision", ["existing", "input", "model_member"])
+def test_model_predict_cli_refuses_output_overwrite_and_input_collisions(
+    tmp_path: Path, collision: str
+) -> None:
+    repository_root = Path(__file__).resolve().parents[2]
+    model = tmp_path / "model"
+    model.mkdir()
+    input_path = tmp_path / "input.jsonl"
+    input_path.write_text("", encoding="utf-8")
+    if collision == "existing":
+        output = tmp_path / "existing.jsonl"
+        output.write_text("sentinel", encoding="utf-8")
+    elif collision == "input":
+        output = input_path
+    else:
+        output = model / "new-output.jsonl"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(repository_root / "scripts/predict.py"),
+            "--model",
+            str(model),
+            "--input",
+            str(input_path),
+            "--output",
+            str(output),
+            "--device",
+            "cpu",
+        ],
+        cwd=repository_root,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert completed.returncode == 2
+    assert any(
+        marker in completed.stderr for marker in ("overwrite", "collid", "model")
+    )
+
+
 def _evaluation_report(subset: str, dataset_manifest_sha256: str) -> dict[str, object]:
     micro = {
         "tp": 1,
@@ -209,7 +364,16 @@ def _evaluation_report(subset: str, dataset_manifest_sha256: str) -> dict[str, o
     return {
         "document_count": 1,
         "span_count": {"gold": 1, "predicted": 1},
-        "strict": {"micro": micro},
+        "strict": {
+            "micro": micro,
+            "macro": {
+                "label_count": 8,
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0,
+                "f2": 1.0,
+            },
+        },
         "relaxed": {"micro": micro},
         "character": {"micro": micro},
         "pii_free": {

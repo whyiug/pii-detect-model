@@ -1,4 +1,57 @@
+# Model-only results only. Full-system/cascade scores belong to their named system receipts and
+# must not be attributed to downloadable weights. Every listed suite is synthetic or public-test
+# exposed; none is human-hidden or production evidence.
 model-index:
+- name: pii-zh-qwen3-0.6b-24class-0.2.0rc1
+  results:
+  - task:
+      name: Token Classification
+      type: token-classification
+    dataset:
+      name: Synthetic Open-24 frozen release evaluation
+      type: synthetic_open24
+      split: test
+    metrics:
+    - name: Strict Span Micro F1
+      type: strict_span_f1
+      value: 0.9866543562
+    - name: Strict Span Precision
+      type: strict_span_precision
+      value: 0.9826130569
+    - name: Strict Span Recall
+      type: strict_span_recall
+      value: 0.9907290350
+    - name: PII-free Document FPR
+      type: pii_free_document_fpr
+      value: 0.0
+  - task:
+      name: Token Classification
+      type: token-classification
+    dataset:
+      name: PII Bench ZH formal (public-test-exposed posthoc)
+      type: pii_bench_formal
+      split: test
+    metrics:
+    - name: Strict Span Micro F1
+      type: strict_span_f1
+      value: 0.59921050
+    - name: Strict Span Macro F1
+      type: strict_span_macro_f1
+      value: 0.57994984
+  - task:
+      name: Token Classification
+      type: token-classification
+    dataset:
+      name: PII Bench ZH chat (public-test-exposed posthoc)
+      type: pii_bench_chat
+      split: test
+    metrics:
+    - name: Strict Span Micro F1
+      type: strict_span_f1
+      value: 0.47628738
+    - name: Strict Span Macro F1
+      type: strict_span_macro_f1
+      value: 0.41874684
 - name: zh-pii-qwen3-0.6b-bi-synthetic-v1.3-rc1
   results:
   - task:
@@ -9,15 +62,15 @@ model-index:
       type: synthetic_test
       split: test
     metrics:
-    - name: System Strict Span Micro F1
+    - name: Model Raw Strict Span Micro F1
       type: strict_span_f1
-      value: 0.9071716858118597
-    - name: System Strict Span Precision
+      value: 0.57396812
+    - name: Model Raw Strict Span Precision
       type: strict_span_precision
-      value: 0.9203149606299212
-    - name: System Strict Span Recall
+      value: 0.43076215
+    - name: Model Raw Strict Span Recall
       type: strict_span_recall
-      value: 0.8943985307621671
+      value: 0.85981022
   - task:
       name: Token Classification
       type: token-classification
@@ -26,15 +79,15 @@ model-index:
       type: pii_bench_formal
       split: test
     metrics:
-    - name: System Strict Span Micro F1
+    - name: Model Raw Strict Span Micro F1
       type: strict_span_f1
-      value: 0.8265343091080356
-    - name: System Strict Span Precision
+      value: 0.45720158
+    - name: Model Raw Strict Span Precision
       type: strict_span_precision
-      value: 0.9553601340033501
-    - name: System Strict Span Recall
+      value: 0.36044927
+    - name: Model Raw Strict Span Recall
       type: strict_span_recall
-      value: 0.7283233303537224
+      value: 0.62495211
   - task:
       name: Token Classification
       type: token-classification
@@ -43,12 +96,12 @@ model-index:
       type: pii_bench_chat
       split: test
     metrics:
-    - name: System Strict Span Micro F1
+    - name: Model Raw Strict Span Micro F1
       type: strict_span_f1
-      value: 0.7406154341872081
-    - name: System Strict Span Precision
+      value: 0.28733323
+    - name: Model Raw Strict Span Precision
       type: strict_span_precision
-      value: 0.9439425051334702
-    - name: System Strict Span Recall
+      value: 0.20617070
+    - name: Model Raw Strict Span Recall
       type: strict_span_recall
-      value: 0.6093584305408272
+      value: 0.47388653

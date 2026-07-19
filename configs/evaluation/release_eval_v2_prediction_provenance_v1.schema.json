@@ -1,0 +1,371 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/release_eval_v2_prediction_provenance_v1.schema.json",
+  "title": "Frozen release-eval-v2 candidate prediction provenance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_type",
+    "role",
+    "track",
+    "prediction_semantics",
+    "dataset",
+    "prediction",
+    "model",
+    "selection",
+    "calibration",
+    "service",
+    "upstream_model_raw",
+    "generation",
+    "provenance_implementation",
+    "privacy",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "pii-zh.release-eval-v2-prediction-provenance.v1"},
+    "manifest_type": {"const": "release_eval_v2_prediction_provenance"},
+    "role": {"const": "project_candidate"},
+    "track": {"enum": ["model_raw", "model_calibrated", "full_system"]},
+    "prediction_semantics": {
+      "enum": [
+        "raw_model_scores_pre_service",
+        "community_model_only_calibrated_output_no_rules",
+        "community_cascade_final_output"
+      ]
+    },
+    "dataset": {"$ref": "#/$defs/dataset"},
+    "prediction": {"$ref": "#/$defs/prediction"},
+    "model": {"$ref": "#/$defs/model"},
+    "selection": {"$ref": "#/$defs/selection"},
+    "calibration": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/calibration"}]},
+    "service": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/service"}]},
+    "upstream_model_raw": {
+      "anyOf": [{"type": "null"}, {"$ref": "#/$defs/upstreamModelRaw"}]
+    },
+    "generation": {"$ref": "#/$defs/generation"},
+    "provenance_implementation": {"$ref": "#/$defs/provenanceImplementation"},
+    "privacy": {"$ref": "#/$defs/privacy"},
+    "manifest_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"track": {"const": "model_raw"}}},
+      "then": {
+        "properties": {
+          "prediction_semantics": {"const": "raw_model_scores_pre_service"},
+          "service": {"type": "null"},
+          "upstream_model_raw": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"track": {"const": "model_calibrated"}}},
+      "then": {
+        "properties": {
+          "prediction_semantics": {
+            "const": "community_model_only_calibrated_output_no_rules"
+          },
+          "calibration": {"$ref": "#/$defs/calibration"},
+          "service": {"$ref": "#/$defs/service"},
+          "upstream_model_raw": {"$ref": "#/$defs/upstreamModelRaw"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"track": {"const": "full_system"}}},
+      "then": {
+        "properties": {
+          "prediction_semantics": {"const": "community_cascade_final_output"},
+          "calibration": {"$ref": "#/$defs/calibration"},
+          "service": {"$ref": "#/$defs/service"},
+          "upstream_model_raw": {"$ref": "#/$defs/upstreamModelRaw"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "dataset": {
+            "properties": {"target_split": {"const": "calibration"}}
+          }
+        }
+      },
+      "then": {"properties": {"calibration": {"type": "null"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "dataset": {
+            "properties": {"target_split": {"const": "internal_evaluation"}}
+          }
+        }
+      },
+      "then": {"properties": {"calibration": {"$ref": "#/$defs/calibration"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id", "dataset_version", "dataset_manifest_file_sha256",
+        "dataset_manifest_sha256", "materialization_receipt_file_sha256",
+        "materialization_receipt_sha256", "freeze_receipt_file_sha256",
+        "generation_salt_sha256", "target_split", "gold_file_sha256",
+        "gold_size_bytes", "gold_document_count", "evaluation_only",
+        "calibration_gold_file_sha256", "calibration_document_count"
+      ],
+      "properties": {
+        "dataset_id": {"const": "pii_zh_synthetic_sota_release_eval_v2"},
+        "dataset_version": {"const": "2.0.0"},
+        "dataset_manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "dataset_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "materialization_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "materialization_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "freeze_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "generation_salt_sha256": {"$ref": "#/$defs/sha256"},
+        "target_split": {"enum": ["calibration", "internal_evaluation"]},
+        "gold_file_sha256": {"$ref": "#/$defs/sha256"},
+        "gold_size_bytes": {"type": "integer", "minimum": 1},
+        "gold_document_count": {"type": "integer", "minimum": 1},
+        "evaluation_only": {"const": true},
+        "calibration_gold_file_sha256": {"$ref": "#/$defs/sha256"},
+        "calibration_document_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256", "size_bytes", "document_count", "raw_text_free_contract"
+      ],
+      "properties": {
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 1},
+        "document_count": {"type": "integer", "minimum": 1},
+        "raw_text_free_contract": {"const": true}
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "training_manifest_file_sha256", "training_manifest_sha256",
+        "training_manifest_schema_version", "training_manifest_type", "seed",
+        "attention_mode", "model_type", "architecture_version", "taxonomy_version",
+        "label_count", "label_schema_sha256", "config_file_sha256",
+        "weight_file_count", "weight_file_sha256", "weights_combined_sha256",
+        "artifact_files_combined_sha256", "output_artifact_sha256", "identity_sha256"
+      ],
+      "properties": {
+        "training_manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "training_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "training_manifest_schema_version": {"const": 4},
+        "training_manifest_type": {"const": "aiguard24_community_training_v1"},
+        "seed": {"type": "integer"},
+        "attention_mode": {"const": "full"},
+        "model_type": {"const": "qwen3_bi"},
+        "architecture_version": {"const": "qwen3_bi_token_cls_v1"},
+        "taxonomy_version": {"$ref": "#/$defs/safeId"},
+        "label_count": {"const": 49},
+        "label_schema_sha256": {"$ref": "#/$defs/sha256"},
+        "config_file_sha256": {"$ref": "#/$defs/sha256"},
+        "weight_file_count": {"const": 1},
+        "weight_file_sha256": {
+          "type": "array", "minItems": 1, "maxItems": 1,
+          "items": {"$ref": "#/$defs/sha256"}
+        },
+        "weights_combined_sha256": {"$ref": "#/$defs/sha256"},
+        "artifact_files_combined_sha256": {"$ref": "#/$defs/sha256"},
+        "output_artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "identity_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selection_receipt_file_sha256", "selection_receipt_sha256", "status",
+        "selected_seed", "selected_training_manifest_sha256",
+        "selected_training_manifest_file_sha256", "selected_weights_combined_sha256",
+        "selected_output_artifact_sha256", "supersession_freeze_file_sha256",
+        "supersession", "amendment_file_sha256", "amendment_sha256",
+        "amendment_status", "amendment_strict_replay"
+      ],
+      "properties": {
+        "selection_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "selection_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "status": {"const": "SELECTED_FOR_CALIBRATION_NOT_RELEASE"},
+        "selected_seed": {"type": "integer"},
+        "selected_training_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "selected_training_manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "selected_weights_combined_sha256": {"$ref": "#/$defs/sha256"},
+        "selected_output_artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "supersession_freeze_file_sha256": {"$ref": "#/$defs/sha256"},
+        "supersession": {"const": "release_eval_v1_withdrawn_and_replaced_by_v2"},
+        "amendment_file_sha256": {"$ref": "#/$defs/sha256"},
+        "amendment_sha256": {"$ref": "#/$defs/sha256"},
+        "amendment_status": {"const": "V2_CALIBRATION_NEXT_NOT_RELEASE"},
+        "amendment_strict_replay": {"const": true}
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundle_file_sha256", "diagnostics_file_sha256",
+        "diagnostics_manifest_sha256", "calibration_version",
+        "model_training_manifest_sha256", "fit_gold_file_sha256",
+        "fit_predictions_file_sha256", "fit_document_count",
+        "fit_prediction_manifest_file_sha256", "fit_prediction_manifest_sha256"
+      ],
+      "properties": {
+        "bundle_file_sha256": {"$ref": "#/$defs/sha256"},
+        "diagnostics_file_sha256": {"$ref": "#/$defs/sha256"},
+        "diagnostics_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "calibration_version": {"$ref": "#/$defs/safeId"},
+        "model_training_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "fit_gold_file_sha256": {"$ref": "#/$defs/sha256"},
+        "fit_predictions_file_sha256": {"$ref": "#/$defs/sha256"},
+        "fit_document_count": {"type": "integer", "minimum": 1},
+        "fit_prediction_manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "fit_prediction_manifest_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "digestMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"$ref": "#/$defs/safeId"},
+      "additionalProperties": {"$ref": "#/$defs/sha256"}
+    },
+    "validators": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["validator_count", "validators", "configuration_sha256"],
+      "properties": {
+        "validator_count": {"type": "integer", "minimum": 1},
+        "validators": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["callable_id", "source_file_sha256"],
+            "properties": {
+              "callable_id": {"$ref": "#/$defs/safeId"},
+              "source_file_sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        },
+        "configuration_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleset_id", "rule_source", "rule_count", "definitions_sha256",
+        "source_file_sha256", "implementation_sha256"
+      ],
+      "properties": {
+        "ruleset_id": {"const": "cn_common_v6"},
+        "rule_source": {"const": "rule:cn_common_v6"},
+        "rule_count": {"type": "integer", "minimum": 1},
+        "definitions_sha256": {"$ref": "#/$defs/sha256"},
+        "source_file_sha256": {"$ref": "#/$defs/digestMap"},
+        "implementation_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id", "mode", "configuration_sha256", "routes_sha256",
+        "route_count", "validators", "rules", "implementation_source_sha256",
+        "implementation_sha256", "model_identity_sha256",
+        "calibration_bundle_file_sha256", "calibration_diagnostics_manifest_sha256",
+        "rules_enabled"
+      ],
+      "properties": {
+        "profile_id": {"const": "community-model-cascade-v1"},
+        "mode": {"enum": ["model-only", "cascade"]},
+        "configuration_sha256": {"$ref": "#/$defs/sha256"},
+        "routes_sha256": {"$ref": "#/$defs/sha256"},
+        "route_count": {"const": 24},
+        "validators": {"$ref": "#/$defs/validators"},
+        "rules": {"$ref": "#/$defs/rules"},
+        "rules_enabled": {"type": "boolean"},
+        "implementation_source_sha256": {"$ref": "#/$defs/digestMap"},
+        "implementation_sha256": {"$ref": "#/$defs/sha256"},
+        "model_identity_sha256": {"$ref": "#/$defs/sha256"},
+        "calibration_bundle_file_sha256": {"$ref": "#/$defs/sha256"},
+        "calibration_diagnostics_manifest_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "upstreamModelRaw": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_file_sha256", "manifest_sha256", "predictions_file_sha256"],
+      "properties": {
+        "manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "predictions_file_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_file_sha256", "receipt_sha256", "generator_implementation_sha256",
+        "mode", "scope_id", "runtime_configuration_sha256",
+        "stage_gate_target_split", "stage_gate_file_sha256", "stage_gate_sha256"
+      ],
+      "properties": {
+        "receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+        "receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "generator_implementation_sha256": {"$ref": "#/$defs/sha256"},
+        "mode": {"enum": ["model_raw", "model-only", "cascade"]},
+        "scope_id": {"const": "open24"},
+        "runtime_configuration_sha256": {"$ref": "#/$defs/sha256"},
+        "stage_gate_target_split": {"enum": ["calibration", "internal_evaluation"]},
+        "stage_gate_file_sha256": {"$ref": "#/$defs/sha256"},
+        "stage_gate_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "provenanceImplementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module_file_sha256", "schema_file_sha256", "cli_file_sha256",
+        "implementation_sha256"
+      ],
+      "properties": {
+        "module_file_sha256": {"$ref": "#/$defs/sha256"},
+        "schema_file_sha256": {"$ref": "#/$defs/sha256"},
+        "cli_file_sha256": {"$ref": "#/$defs/sha256"},
+        "implementation_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contains_paths", "contains_raw_text", "contains_entity_values",
+        "contains_document_ids", "aggregate_only"
+      ],
+      "properties": {
+        "contains_paths": {"const": false},
+        "contains_raw_text": {"const": false},
+        "contains_entity_values": {"const": false},
+        "contains_document_ids": {"const": false},
+        "aggregate_only": {"const": true}
+      }
+    }
+  }
+}

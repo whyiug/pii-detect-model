@@ -1,0 +1,10 @@
+"""External trust anchor for the targeted-repair-v4 experiment receipt."""
+
+EXPERIMENT_RECEIPT_FILE_SHA256 = (
+    "c36a6ef0654d5c497e94c4a2ddf4a377006b028df567f912109203a08213d869"
+)
+EXPERIMENT_RECEIPT_LOGICAL_SHA256 = (
+    "7a0caccaa1892e9c498b5d36bb239c0adcd2164e0ba43f66fd56ef804e86d88c"
+)
+
+__all__ = ["EXPERIMENT_RECEIPT_FILE_SHA256", "EXPERIMENT_RECEIPT_LOGICAL_SHA256"]

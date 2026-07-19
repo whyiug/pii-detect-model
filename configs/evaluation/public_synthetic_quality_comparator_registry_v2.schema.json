@@ -1,0 +1,297 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/public_synthetic_quality_comparator_registry_v2.schema.json",
+  "title": "Frozen same-protocol Open-24 public/synthetic comparator registry v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_id",
+    "status",
+    "scope",
+    "benchmark",
+    "final_model_manifest_sha256",
+    "service_configuration_manifest_sha256",
+    "tracks",
+    "claims",
+    "registry_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.public-synthetic-quality-comparator-registry.v2"
+    },
+    "registry_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    },
+    "status": {
+      "const": "frozen_same_protocol_open24_inputs"
+    },
+    "scope": {
+      "const": {
+        "allowed_data": [
+          "public_open_source",
+          "synthetic"
+        ],
+        "input_provenance_verified_by_this_builder": false,
+        "input_manifest_chain_verified": true,
+        "prediction_origin_replay_verified_by_this_builder": false,
+        "performance_measurement_replay_verified_by_this_builder": false,
+        "production_evidence": false,
+        "public_test_exposed": true,
+        "real_world_generalization_established": false
+      }
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "language",
+        "taxonomy_version",
+        "label_count",
+        "ordered_labels",
+        "strict_span_matching",
+        "pii_free_policy",
+        "gold_sha256",
+        "gold_split",
+        "dataset_id",
+        "dataset_version",
+        "dataset_manifest_file_sha256",
+        "dataset_manifest_sha256",
+        "materialization_receipt_file_sha256",
+        "materialization_receipt_sha256",
+        "freeze_receipt_file_sha256"
+      ],
+      "properties": {
+        "protocol_id": {
+          "const": "public_synthetic_chinese_pii_open24_v2"
+        },
+        "language": {
+          "const": "zh-Hans-CN"
+        },
+        "taxonomy_version": {
+          "const": "1.0.0"
+        },
+        "label_count": {
+          "const": 24
+        },
+        "ordered_labels": {
+          "$ref": "#/$defs/labels"
+        },
+        "strict_span_matching": {
+          "const": "document_label_start_end_left_closed_right_open"
+        },
+        "pii_free_policy": {
+          "const": "explicit_synthetic_or_open24_empty_gold_partition"
+        },
+        "gold_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gold_split": {
+          "const": "internal_evaluation"
+        },
+        "dataset_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "dataset_version": {
+          "$ref": "#/$defs/safeId"
+        },
+        "dataset_manifest_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dataset_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "materialization_receipt_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "materialization_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "freeze_receipt_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "final_model_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "service_configuration_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "tracks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_raw",
+        "full_system"
+      ],
+      "properties": {
+        "model_raw": {
+          "$ref": "#/$defs/modelRawTrack"
+        },
+        "full_system": {
+          "$ref": "#/$defs/fullSystemTrack"
+        }
+      }
+    },
+    "claims": {
+      "const": {
+        "first_chinese_pii_model": false,
+        "global_sota": false,
+        "production_ready": false,
+        "real_world_sota": false,
+        "registry_alone_activates_claims": false
+      }
+    },
+    "registry_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    },
+    "labels": {
+      "const": [
+        "PERSON_NAME",
+        "PHONE_NUMBER",
+        "EMAIL_ADDRESS",
+        "ADDRESS",
+        "DATE_OF_BIRTH",
+        "CN_RESIDENT_ID",
+        "PASSPORT_NUMBER",
+        "DRIVER_LICENSE_NUMBER",
+        "SOCIAL_SECURITY_NUMBER",
+        "BANK_CARD_NUMBER",
+        "BANK_ACCOUNT_NUMBER",
+        "VEHICLE_LICENSE_PLATE",
+        "EMPLOYEE_ID",
+        "STUDENT_ID",
+        "MEDICAL_RECORD_NUMBER",
+        "WECHAT_ID",
+        "QQ_NUMBER",
+        "ALIPAY_ACCOUNT",
+        "USERNAME",
+        "IP_ADDRESS",
+        "MAC_ADDRESS",
+        "DEVICE_ID",
+        "GEO_COORDINATE",
+        "SECRET"
+      ]
+    },
+    "track": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonical_track",
+        "candidate_id",
+        "comparator_id",
+        "candidate_predictions_sha256",
+        "candidate_prediction_manifest_file_sha256",
+        "candidate_prediction_manifest_sha256",
+        "comparator_predictions_sha256",
+        "comparator_prediction_manifest_file_sha256",
+        "comparator_prediction_manifest_sha256",
+        "performance_manifest_sha256",
+        "candidate_prediction_full_replay_required",
+        "comparator_generation_replay_required",
+        "performance_harness_replay_required",
+        "same_gold",
+        "same_ordered_labels",
+        "same_strict_metric",
+        "candidate_is_comparator"
+      ],
+      "properties": {
+        "canonical_track": {
+          "enum": [
+            "model_raw",
+            "full_system"
+          ]
+        },
+        "candidate_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "comparator_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "candidate_predictions_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_prediction_manifest_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_prediction_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "comparator_predictions_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "comparator_prediction_manifest_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "comparator_prediction_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "performance_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_prediction_full_replay_required": {
+          "const": true
+        },
+        "comparator_generation_replay_required": {
+          "const": true
+        },
+        "performance_harness_replay_required": {
+          "const": true
+        },
+        "same_gold": {
+          "const": true
+        },
+        "same_ordered_labels": {
+          "const": true
+        },
+        "same_strict_metric": {
+          "const": true
+        },
+        "candidate_is_comparator": {
+          "const": false
+        }
+      }
+    },
+    "modelRawTrack": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/track"
+        },
+        {
+          "properties": {
+            "canonical_track": {
+              "const": "model_raw"
+            }
+          }
+        }
+      ]
+    },
+    "fullSystemTrack": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/track"
+        },
+        {
+          "properties": {
+            "canonical_track": {
+              "const": "full_system"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -10,7 +10,7 @@ help:
 	@$(PYTHON) -c "print('Targets: test, test-release, lint, package-smoke, sbom, build-release, release-gate, docker-train, docker-inference')"
 
 test:
-	$(PYTHON) -m pytest tests/unit tests/release
+	PYTHONPATH=src $(PYTHON) -m scripts.run_current_community_rc_tests
 
 test-release:
 	$(PYTHON) -m pytest tests/release
@@ -21,7 +21,7 @@ lint:
 package-smoke:
 	rm -rf release/package-smoke
 	$(PYTHON) -m pip wheel . --no-deps --wheel-dir release/package-smoke
-	$(PYTHON) -c "import zipfile; from pathlib import Path; wheel=next(Path('release/package-smoke').glob('*.whl')); names=zipfile.ZipFile(wheel).namelist(); assert 'pii_zh/taxonomy/taxonomy.yaml' in names; assert 'pii_zh/taxonomy/presidio_mapping.yaml' in names"
+	$(PYTHON) -c "import zipfile; from pathlib import Path; wheels=list(Path('release/package-smoke').glob('*.whl')); assert len(wheels)==1, f'expected one wheel, found {len(wheels)}'; names=set(zipfile.ZipFile(wheels[0]).namelist()); required={'pii_zh/taxonomy/taxonomy.yaml','pii_zh/taxonomy/presidio_mapping.yaml','pii_zh/data/validators/cn_vehicle_plate.py','pii_zh/rules/cn_common_v6.py','pii_zh/cascade/service_profiles.py','pii_zh/cascade/routing.py','pii_zh/cli.py','pii_zh/service/app.py'}; missing=sorted(required-names); leaked=sorted(name for name in names if name.startswith(('tests/','reports/','configs/','scripts/','examples/'))); assert not missing, f'missing wheel entries: {missing}'; assert not leaked, f'repository-only payloads leaked into wheel: {leaked}'"
 
 sbom:
 	$(PYTHON) scripts/generate_sbom.py --lockfile uv.lock --pyproject pyproject.toml --output release/sbom.cdx.json
@@ -40,4 +40,3 @@ docker-train:
 
 docker-inference:
 	docker build -f docker/inference.Dockerfile -t pii-zh-qwen-inference:local .
-

@@ -118,6 +118,44 @@ def test_predict_rules_cli_emits_v5_account_semantics_and_path_free_manifest(
     assert manifest_path.stat().st_mode & 0o777 == 0o444
 
 
+def test_predict_rules_cli_restricts_outputs_to_closed_protocol(tmp_path: Path) -> None:
+    prefix = "622202123456789"
+    number = prefix + luhn_check_digit(prefix)
+    source = tmp_path / "input.jsonl"
+    output = tmp_path / "rules.jsonl"
+    write_jsonl(
+        [
+            _synthetic_record(doc_id="account-fixture", text=f"收款账户：{number}"),
+            _synthetic_record(doc_id="card-fixture", text=f"银行卡号：{number}"),
+        ],
+        source,
+    )
+    repository_root = Path(__file__).resolve().parents[3]
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(repository_root / "scripts/predict_rules.py"),
+            "--input",
+            str(source),
+            "--output",
+            str(output),
+            "--allowed-label",
+            "BANK_CARD_NUMBER",
+        ],
+        cwd=repository_root,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    records = load_prediction_jsonl(output)
+    assert records[0].spans == ()
+    assert [span.label for span in records[1].spans] == ["BANK_CARD_NUMBER"]
+
+
 def test_refinement_cli_suppresses_business_dob_and_keeps_path_text_free_audit(
     tmp_path: Path,
 ) -> None:

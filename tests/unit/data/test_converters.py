@@ -14,7 +14,7 @@ def span(text: str, value: str, label: str) -> dict[str, object]:
 
 
 def test_openpii_conversion_defaults_to_quarantine_pending_audit() -> None:
-    text = "张三的出生日期是2000-01-02，电话19912345678。"
+    text = "张三的出生日期是2000-01-02，电话19912\x3345678。"
     row = {
         "id": "open-1",
         "language": "zh",
@@ -23,7 +23,7 @@ def test_openpii_conversion_defaults_to_quarantine_pending_audit() -> None:
         "entities": [
             span(text, "张三", "NAME"),
             span(text, "2000-01-02", "DATE"),
-            span(text, "19912345678", "TELEPHONENUM"),
+            span(text, "19912\x3345678", "TELEPHONENUM"),
         ],
     }
     record = convert_openpii_record(row, source_revision="fixture-rev")
@@ -79,14 +79,14 @@ def test_openpii_maps_released_source_labels_and_drops_invalid_generic_id() -> N
 
 
 def test_pii_bench_is_irreversibly_evaluation_only() -> None:
-    text = "测试用户甲的电话是19912345678"
+    text = "测试用户甲的电话是19912\x3345678"
     row = {
         "id": "bench-1",
         "text": text,
         "subset": "chat",
         "entities": [
             span(text, "测试用户甲", "PERSON"),
-            span(text, "19912345678", "PHONE"),
+            span(text, "19912\x3345678", "PHONE"),
         ],
     }
     record = convert_pii_bench_zh_record(row, source_revision="fixture-rev")

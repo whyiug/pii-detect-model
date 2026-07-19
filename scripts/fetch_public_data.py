@@ -36,6 +36,16 @@ PII_BENCH_FILES = {
     "chat": ("data/pii_bench_zh_chat.jsonl", 3_000),
 }
 
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+_PUBLIC_DATA_ROOT_ENV = "PII_ZH_PUBLIC_DATA_ROOT"
+
+
+def _default_data_root() -> Path:
+    configured = os.environ.get(_PUBLIC_DATA_ROOT_ENV)
+    if configured:
+        return Path(configured).expanduser()
+    return _REPOSITORY_ROOT / "data" / "raw" / "public_sources"
+
 
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -201,8 +211,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path("/data1/datasets/pii-detect-model"),
-        help="External data root; raw rows are never written into Git.",
+        default=_default_data_root(),
+        help=(
+            "Data root (default: repository data/raw/public_sources; override with "
+            f"{_PUBLIC_DATA_ROOT_ENV} or --root). Raw rows are never written into Git."
+        ),
     )
     parser.add_argument("--skip-openpii", action="store_true")
     parser.add_argument("--skip-benchmark", action="store_true")

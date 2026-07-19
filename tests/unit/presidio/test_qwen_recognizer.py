@@ -46,6 +46,17 @@ class FakePredictor:
         return outputs
 
 
+class PartialOverlapPredictor:
+    def predict_batch(self, texts: list[str]) -> list[list[dict[str, object]]]:
+        return [
+            [
+                {"entity": "B-PERSON_NAME", "start": 0, "end": 3, "score": 0.8},
+                {"entity": "B-PERSON_NAME", "start": 1, "end": 4, "score": 0.9},
+            ]
+            for _ in texts
+        ]
+
+
 def _result_signature(results: list[object]) -> list[tuple[object, ...]]:
     return [
         (result.entity_type, result.start, result.end, result.score)  # type: ignore[attr-defined]
@@ -119,3 +130,29 @@ def test_custom_local_loader_is_local_and_pluggable(tmp_path: Path) -> None:
     result = recognizer.analyze("张三", ["PERSON"])[0]
     assert seen == [model_path]
     assert result.recognition_metadata["loader"] == "fake"
+
+
+def test_exact_only_policy_preserves_partial_same_label_overlaps_end_to_end() -> None:
+    exact_only = QwenPiiRecognizer(
+        predictor=PartialOverlapPredictor(),
+        tokenizer=CharacterTokenizer(),
+        label_mapping={"PERSON_NAME": "PERSON"},
+        max_tokens=16,
+        deduplication_policy="exact_only_v1",
+    )
+    production_default = QwenPiiRecognizer(
+        predictor=PartialOverlapPredictor(),
+        tokenizer=CharacterTokenizer(),
+        label_mapping={"PERSON_NAME": "PERSON"},
+        max_tokens=16,
+    )
+
+    exact_results = exact_only.analyze("甲乙丙丁", ["PERSON"])
+    default_results = production_default.analyze("甲乙丙丁", ["PERSON"])
+
+    assert [(item.start, item.end) for item in exact_results] == [(0, 3), (1, 4)]
+    assert len(default_results) == 1
+    assert all(
+        item.recognition_metadata["deduplication_policy"] == "exact_only_v1"
+        for item in exact_results
+    )

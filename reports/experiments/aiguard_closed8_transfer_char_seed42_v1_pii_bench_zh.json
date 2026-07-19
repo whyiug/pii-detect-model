@@ -1,0 +1,620 @@
+{
+  "benchmark": {
+    "dataset_id": "wan9yu/pii-bench-zh",
+    "dataset_manifest_file_sha256": "62c03dc8c5ba343a883498cf92d272ab9f240252e92ea06a665022f5ce7df6f1",
+    "dataset_manifest_sha256": "545c990c96f23118ddc097ec0bed1d7f180785ac72e9f2a6ed56eb1ba3ee5e9b",
+    "dataset_revision": "c350b94897af668517ff5de237d89f2ce2eaa6f0",
+    "fixed_gold_manifest_verified": true,
+    "subsets": {
+      "chat": {
+        "canonical_sha256": "2d73326a7ea2da9966ba13336db1a791f03d5f18b7982fdc4495cb726c1180a5",
+        "gold_span_count": 7544,
+        "label_counts": {
+          "ADDRESS": 255,
+          "BANK_CARD_NUMBER": 504,
+          "CN_RESIDENT_ID": 522,
+          "EMAIL_ADDRESS": 493,
+          "PASSPORT_NUMBER": 260,
+          "PERSON_NAME": 3010,
+          "PHONE_NUMBER": 2261,
+          "VEHICLE_LICENSE_PLATE": 239
+        },
+        "prediction_sha256": "60d5cbf2c6be390ffa52d071603f8917749c9c00f67e671baee01b7a9b47786a",
+        "record_count": 3000
+      },
+      "formal": {
+        "canonical_sha256": "bb978137711cc90ae0c16df0645983413f3b34943bf29469e58b795b183a38af",
+        "gold_span_count": 15662,
+        "label_counts": {
+          "ADDRESS": 1429,
+          "BANK_CARD_NUMBER": 862,
+          "CN_RESIDENT_ID": 1812,
+          "EMAIL_ADDRESS": 931,
+          "PASSPORT_NUMBER": 463,
+          "PERSON_NAME": 5310,
+          "PHONE_NUMBER": 4400,
+          "VEHICLE_LICENSE_PLATE": 455
+        },
+        "prediction_sha256": "15b9572258630d04bfbe550a82a74a48ce9c90c5b8aea7bfb6773b6db66f840d",
+        "record_count": 5000
+      }
+    }
+  },
+  "comparison_contract": {
+    "benchmark_protocol": "pii_bench_zh_closed_8_v1",
+    "benchmark_read_for_this_diagnostic": true,
+    "benchmark_read_for_training": false,
+    "checkpoint_selection": false,
+    "exclusion_timing": "logits_masked_before_softmax_argmax_and_decoding",
+    "future_rerun_for_selection_allowed": false,
+    "mapping_sha256": "d9cd9a547a79833209e7b8ee1769870ddbee0fa32876e150e08f0f65a49c1d4a",
+    "metric": "strict_exact_start_end_label",
+    "protocol_excluded_source_types": [
+      "bank_password",
+      "birth_date",
+      "drivers_license",
+      "ems_tracking",
+      "hkmtp_pass",
+      "insurance_policy",
+      "jd_order",
+      "pdd_order",
+      "sf_tracking",
+      "social_security",
+      "taobao_order",
+      "yto_tracking"
+    ],
+    "score_threshold": 0.0,
+    "source_to_target": {
+      "address": "ADDRESS",
+      "bank_card": "BANK_CARD_NUMBER",
+      "credit_card": "BANK_CARD_NUMBER",
+      "email": "EMAIL_ADDRESS",
+      "id_card": "CN_RESIDENT_ID",
+      "mobile": "PHONE_NUMBER",
+      "name": "PERSON_NAME",
+      "passport": "PASSPORT_NUMBER",
+      "plate_number": "VEHICLE_LICENSE_PLATE"
+    },
+    "target_labels": [
+      "ADDRESS",
+      "BANK_CARD_NUMBER",
+      "CN_RESIDENT_ID",
+      "EMAIL_ADDRESS",
+      "PASSPORT_NUMBER",
+      "PERSON_NAME",
+      "PHONE_NUMBER",
+      "VEHICLE_LICENSE_PLATE"
+    ],
+    "threshold_tuning": false,
+    "track": "model_only"
+  },
+  "experimental_model": {
+    "all_output_artifacts_verified": true,
+    "inference": {
+      "attention_mode": "checkpoint_native_causal",
+      "max_tokens": 512,
+      "score_threshold": 0.0,
+      "stride_fraction": 0.25
+    },
+    "output_artifact_sha256": {
+      "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+      "config.json": "9124d13e1e3bfbf1c51a87ac52e61bfb0aae109988a89e6b0451e4f289c2c5c7",
+      "model.safetensors": "b4912a6fcfc9b922a1c1041a686b3d50ea8fd8c5094c15b0320174ce2debc292",
+      "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+      "tokenizer.json": "d2e48e97950a0ab988236cd5589df3960015407f602c69133ae91c3d398225f5",
+      "tokenizer_config.json": "6e8d475fbe52b733208c093aa580b7eed24641a3ed6d40a6295108721036e13a"
+    },
+    "release_eligible": false,
+    "source_model": {
+      "id": "ZJUICSR/AIguard-pii-detection-fast",
+      "license": "Apache-2.0",
+      "revision": "677a5ebc1600fef61e8973cafd3026be322b3a73"
+    },
+    "synthetic_validation": {
+      "documents": 2000,
+      "strict_macro_f1": 0.51530687,
+      "strict_micro_f1": 0.55916775
+    },
+    "training_data": {
+      "pii_bench_read_by_training": false,
+      "synthetic_only": true,
+      "train_documents": 16000,
+      "train_sha256": "6a1c4356ee3de64f4fab7e811bcdc873c21db2a043aa5cbf600626ed0baadbad",
+      "validation_documents": 2000,
+      "validation_sha256": "9affd99f5dd6a2aaac37b7975f3c3f051e7edb2d44be471a7238d27498c0b40d"
+    },
+    "training_manifest_file_sha256": "bb8ee1f4f6d556b17a92d89da52adb1fbfc21878c2d069a503f147f76de81deb",
+    "training_manifest_self_hash_verified": true,
+    "training_manifest_sha256": "5ef432eb19d8726417906ae0c7c44e00bd211f73c78513fcd827766c8f1453db",
+    "training_recipe": {
+      "class_weighting": false,
+      "epochs": 1,
+      "logit_space": "canonical_closed_8_before_softmax",
+      "seed": 42,
+      "tag_scheme": "BIE",
+      "tokenizer_boundary_mode": "unicode_codepoint_v1"
+    }
+  },
+  "implementation": {
+    "experimental_evaluator_sha256": "95ae12bf599d3a1efa37c5dd1333e7d9e8fb255737de25a9829c08d02fe4fdb3",
+    "pinned_baseline_helper_sha256": "4ede18a1548ab0e66fee7979ff3797829ffb7025a4401f863dcade45b0119f4c",
+    "predictor_sha256": "7bfeafac78cb6d772dd2246b17787ebf4482c7a43f795de4aae02bee185251b9"
+  },
+  "pilot_id": "aiguard_closed8_transfer_char_seed42_v1",
+  "privacy": {
+    "contains_entity_values": false,
+    "contains_local_paths": false,
+    "contains_raw_text": false,
+    "record_level_predictions_location_class": "ignored_runs_tree",
+    "record_level_predictions_mode": "0600",
+    "record_level_predictions_public": false
+  },
+  "relative_gates": {
+    "aiguard": {
+      "baseline_id": "aiguard_pii_detection_fast",
+      "baseline_report_sha256": "c10fa63beaebff42ad402fcdfca0642c7d899e332a4da3ce3eadc8d52bfecd97",
+      "by_suite": {
+        "chat": {
+          "strict_macro_f1": {
+            "delta": 0.15490155,
+            "gate": 0.4310555,
+            "meets_or_exceeds": true,
+            "pilot": 0.58595705
+          },
+          "strict_micro_f1": {
+            "delta": 0.1042129,
+            "gate": 0.5713543,
+            "meets_or_exceeds": true,
+            "pilot": 0.6755672
+          }
+        },
+        "formal": {
+          "strict_macro_f1": {
+            "delta": 0.01256221,
+            "gate": 0.77363919,
+            "meets_or_exceeds": true,
+            "pilot": 0.7862014
+          },
+          "strict_micro_f1": {
+            "delta": -0.02877444,
+            "gate": 0.80142013,
+            "meets_or_exceeds": false,
+            "pilot": 0.77264569
+          }
+        },
+        "pooled": {
+          "strict_macro_f1": {
+            "delta": 0.05869126,
+            "gate": 0.67829597,
+            "meets_or_exceeds": true,
+            "pilot": 0.73698723
+          },
+          "strict_micro_f1": {
+            "delta": 0.00625129,
+            "gate": 0.73639614,
+            "meets_or_exceeds": true,
+            "pilot": 0.74264743
+          }
+        }
+      },
+      "meets_all_formal_chat_pooled_micro_macro": false
+    },
+    "decision_rule": "diagnostic-only comparison; a gate requires meeting or exceeding both strict micro-F1 and macro-F1 on formal, chat, and pooled under the same track",
+    "pii_engineer": {
+      "baseline_id": "pii_engineer_chinese_ner_v1_0",
+      "baseline_report_sha256": "0d7a8e974c4b20afb3272208ba3a280e21710f9b207ee707ae6ebbc6791b2177",
+      "by_suite": {
+        "chat": {
+          "strict_macro_f1": {
+            "delta": 0.27614908,
+            "gate": 0.30980797,
+            "meets_or_exceeds": true,
+            "pilot": 0.58595705
+          },
+          "strict_micro_f1": {
+            "delta": -0.03174274,
+            "gate": 0.70730994,
+            "meets_or_exceeds": false,
+            "pilot": 0.6755672
+          }
+        },
+        "formal": {
+          "strict_macro_f1": {
+            "delta": 0.4677776,
+            "gate": 0.3184238,
+            "meets_or_exceeds": true,
+            "pilot": 0.7862014
+          },
+          "strict_micro_f1": {
+            "delta": 0.05430241,
+            "gate": 0.71834328,
+            "meets_or_exceeds": true,
+            "pilot": 0.77264569
+          }
+        },
+        "pooled": {
+          "strict_macro_f1": {
+            "delta": 0.42250702,
+            "gate": 0.31448021,
+            "meets_or_exceeds": true,
+            "pilot": 0.73698723
+          },
+          "strict_micro_f1": {
+            "delta": 0.02779934,
+            "gate": 0.71484809,
+            "meets_or_exceeds": true,
+            "pilot": 0.74264743
+          }
+        }
+      },
+      "meets_all_formal_chat_pooled_micro_macro": false
+    }
+  },
+  "report_type": "experimental_pilot_model_only_diagnostic",
+  "results": {
+    "chat": {
+      "documents": 3000,
+      "gold_spans": 7544,
+      "pii_free": {
+        "documents": 0,
+        "false_positive_documents": 0,
+        "false_positive_rate": null
+      },
+      "predicted_spans": 4665,
+      "strict_macro": {
+        "f1": 0.58595705,
+        "f2": 0.5262218,
+        "label_count": 8,
+        "precision": 0.86622132,
+        "recall": 0.49454999
+      },
+      "strict_micro": {
+        "f1": 0.6755672,
+        "f2": 0.59183146,
+        "fn": 3420,
+        "fp": 541,
+        "precision": 0.88403001,
+        "predicted": 4665,
+        "recall": 0.5466596,
+        "support": 7544,
+        "tp": 4124
+      },
+      "strict_per_label": {
+        "ADDRESS": {
+          "f1": 0.0078125,
+          "f2": 0.00489716,
+          "fn": 254,
+          "fp": 0,
+          "precision": 1.0,
+          "predicted": 1,
+          "recall": 0.00392157,
+          "support": 255,
+          "tp": 1
+        },
+        "BANK_CARD_NUMBER": {
+          "f1": 0.58924205,
+          "f2": 0.51716738,
+          "fn": 263,
+          "fp": 73,
+          "precision": 0.76751592,
+          "predicted": 314,
+          "recall": 0.4781746,
+          "support": 504,
+          "tp": 241
+        },
+        "CN_RESIDENT_ID": {
+          "f1": 0.52380952,
+          "f2": 0.44204738,
+          "fn": 313,
+          "fp": 67,
+          "precision": 0.75724638,
+          "predicted": 276,
+          "recall": 0.40038314,
+          "support": 522,
+          "tp": 209
+        },
+        "EMAIL_ADDRESS": {
+          "f1": 0.58630137,
+          "f2": 0.48438207,
+          "fn": 279,
+          "fp": 23,
+          "precision": 0.90295359,
+          "predicted": 237,
+          "recall": 0.43407708,
+          "support": 493,
+          "tp": 214
+        },
+        "PASSPORT_NUMBER": {
+          "f1": 0.99029126,
+          "f2": 0.98455598,
+          "fn": 5,
+          "fp": 0,
+          "precision": 1.0,
+          "predicted": 255,
+          "recall": 0.98076923,
+          "support": 260,
+          "tp": 255
+        },
+        "PERSON_NAME": {
+          "f1": 0.7607338,
+          "f2": 0.68849795,
+          "fn": 1061,
+          "fp": 165,
+          "precision": 0.92194891,
+          "predicted": 2114,
+          "recall": 0.64750831,
+          "support": 3010,
+          "tp": 1949
+        },
+        "PHONE_NUMBER": {
+          "f1": 0.63723285,
+          "f2": 0.54792533,
+          "fn": 1128,
+          "fp": 162,
+          "precision": 0.87490347,
+          "predicted": 1295,
+          "recall": 0.50110571,
+          "support": 2261,
+          "tp": 1133
+        },
+        "VEHICLE_LICENSE_PLATE": {
+          "f1": 0.59223301,
+          "f2": 0.54030115,
+          "fn": 117,
+          "fp": 51,
+          "precision": 0.70520231,
+          "predicted": 173,
+          "recall": 0.51046025,
+          "support": 239,
+          "tp": 122
+        }
+      }
+    },
+    "formal": {
+      "documents": 5000,
+      "gold_spans": 15662,
+      "pii_free": {
+        "documents": 0,
+        "false_positive_documents": 0,
+        "false_positive_rate": null
+      },
+      "predicted_spans": 11639,
+      "strict_macro": {
+        "f1": 0.7862014,
+        "f2": 0.76249316,
+        "label_count": 8,
+        "precision": 0.84920794,
+        "recall": 0.75055458
+      },
+      "strict_micro": {
+        "f1": 0.77264569,
+        "f2": 0.70988194,
+        "fn": 5115,
+        "fp": 1092,
+        "precision": 0.90617751,
+        "predicted": 11639,
+        "recall": 0.67341336,
+        "support": 15662,
+        "tp": 10547
+      },
+      "strict_per_label": {
+        "ADDRESS": {
+          "f1": 0.23895862,
+          "f2": 0.19959615,
+          "fn": 1172,
+          "fp": 465,
+          "precision": 0.35595568,
+          "predicted": 722,
+          "recall": 0.17984605,
+          "support": 1429,
+          "tp": 257
+        },
+        "BANK_CARD_NUMBER": {
+          "f1": 0.9199536,
+          "f2": 0.9199536,
+          "fn": 69,
+          "fp": 69,
+          "precision": 0.9199536,
+          "predicted": 862,
+          "recall": 0.9199536,
+          "support": 862,
+          "tp": 793
+        },
+        "CN_RESIDENT_ID": {
+          "f1": 0.94496943,
+          "f2": 0.94088997,
+          "fn": 112,
+          "fp": 86,
+          "precision": 0.9518477,
+          "predicted": 1786,
+          "recall": 0.93818985,
+          "support": 1812,
+          "tp": 1700
+        },
+        "EMAIL_ADDRESS": {
+          "f1": 0.94170911,
+          "f2": 0.9122807,
+          "fn": 99,
+          "fp": 4,
+          "precision": 0.99521531,
+          "predicted": 836,
+          "recall": 0.89366273,
+          "support": 931,
+          "tp": 832
+        },
+        "PASSPORT_NUMBER": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "predicted": 463,
+          "recall": 1.0,
+          "support": 463,
+          "tp": 463
+        },
+        "PERSON_NAME": {
+          "f1": 0.77920339,
+          "f2": 0.701402,
+          "fn": 1818,
+          "fp": 161,
+          "precision": 0.95592664,
+          "predicted": 3653,
+          "recall": 0.65762712,
+          "support": 5310,
+          "tp": 3492
+        },
+        "PHONE_NUMBER": {
+          "f1": 0.73807859,
+          "f2": 0.64837109,
+          "fn": 1761,
+          "fp": 112,
+          "precision": 0.95928753,
+          "predicted": 2751,
+          "recall": 0.59977273,
+          "support": 4400,
+          "tp": 2639
+        },
+        "VEHICLE_LICENSE_PLATE": {
+          "f1": 0.72673849,
+          "f2": 0.7774518,
+          "fn": 84,
+          "fp": 195,
+          "precision": 0.65547703,
+          "predicted": 566,
+          "recall": 0.81538462,
+          "support": 455,
+          "tp": 371
+        }
+      }
+    },
+    "pooled": {
+      "documents": 8000,
+      "gold_spans": 23206,
+      "pii_free": {
+        "documents": 0,
+        "false_positive_documents": 0,
+        "false_positive_rate": null
+      },
+      "predicted_spans": 16304,
+      "strict_macro": {
+        "f1": 0.73698723,
+        "f2": 0.69607805,
+        "label_count": 8,
+        "precision": 0.83495041,
+        "recall": 0.67329096
+      },
+      "strict_micro": {
+        "f1": 0.74264743,
+        "f2": 0.67219229,
+        "fn": 8535,
+        "fp": 1633,
+        "precision": 0.89984053,
+        "predicted": 16304,
+        "recall": 0.63220719,
+        "support": 23206,
+        "tp": 14671
+      },
+      "strict_per_label": {
+        "ADDRESS": {
+          "f1": 0.21437474,
+          "f2": 0.17294544,
+          "fn": 1426,
+          "fp": 465,
+          "precision": 0.35684647,
+          "predicted": 723,
+          "recall": 0.15320665,
+          "support": 1684,
+          "tp": 258
+        },
+        "BANK_CARD_NUMBER": {
+          "f1": 0.81353265,
+          "f2": 0.77861446,
+          "fn": 332,
+          "fp": 142,
+          "precision": 0.8792517,
+          "predicted": 1176,
+          "recall": 0.75695461,
+          "support": 1366,
+          "tp": 1034
+        },
+        "CN_RESIDENT_ID": {
+          "f1": 0.86851683,
+          "f2": 0.83742762,
+          "fn": 425,
+          "fp": 153,
+          "precision": 0.92580019,
+          "predicted": 2062,
+          "recall": 0.81790917,
+          "support": 2334,
+          "tp": 1909
+        },
+        "EMAIL_ADDRESS": {
+          "f1": 0.83780537,
+          "f2": 0.77263998,
+          "fn": 378,
+          "fp": 27,
+          "precision": 0.97483691,
+          "predicted": 1073,
+          "recall": 0.73455056,
+          "support": 1424,
+          "tp": 1046
+        },
+        "PASSPORT_NUMBER": {
+          "f1": 0.99653019,
+          "f2": 0.99445983,
+          "fn": 5,
+          "fp": 0,
+          "precision": 1.0,
+          "predicted": 718,
+          "recall": 0.99308437,
+          "support": 723,
+          "tp": 718
+        },
+        "PERSON_NAME": {
+          "f1": 0.77248527,
+          "f2": 0.69672446,
+          "fn": 2879,
+          "fp": 326,
+          "precision": 0.94347148,
+          "predicted": 5767,
+          "recall": 0.65396635,
+          "support": 8320,
+          "tp": 5441
+        },
+        "PHONE_NUMBER": {
+          "f1": 0.70458579,
+          "f2": 0.61453242,
+          "fn": 2889,
+          "fp": 274,
+          "precision": 0.93227879,
+          "predicted": 4046,
+          "recall": 0.56628134,
+          "support": 6661,
+          "tp": 3772
+        },
+        "VEHICLE_LICENSE_PLATE": {
+          "f1": 0.68806699,
+          "f2": 0.70128023,
+          "fn": 201,
+          "fp": 246,
+          "precision": 0.66711773,
+          "predicted": 739,
+          "recall": 0.71037464,
+          "support": 694,
+          "tp": 493
+        }
+      }
+    }
+  },
+  "schema_version": 1,
+  "status": {
+    "benchmark_exposure": "test_already_seen",
+    "diagnostic_only": true,
+    "experiment_classification": "experimental_pilot",
+    "reason": "one-shot post-training diagnostic on a public test set; results cannot be used for threshold tuning, checkpoint selection, or an uncontaminated release claim",
+    "release_eligible": false,
+    "release_status": "not_release_candidate",
+    "test_seen": true
+  }
+}

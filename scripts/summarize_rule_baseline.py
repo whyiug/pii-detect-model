@@ -17,7 +17,12 @@ from typing import Any
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPOSITORY_ROOT / "src"))
 
-from pii_zh.evaluation import add_manifest_hash, canonical_json_hash, sha256_file  # noqa: E402
+from pii_zh.evaluation import (  # noqa: E402
+    PUBLIC_SCORE_DECIMALS,
+    add_manifest_hash,
+    canonical_json_hash,
+    sha256_file,
+)
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -37,7 +42,7 @@ def _number(value: object, *, field: str, allow_none: bool = False) -> int | flo
         or not math.isfinite(float(value))
     ):
         raise ValueError(f"invalid numeric {field}")
-    return value
+    return round(value, PUBLIC_SCORE_DECIMALS) if isinstance(value, float) else value
 
 
 def _load_report(path: Path, *, expected_subset: str) -> dict[str, Any]:
@@ -69,7 +74,20 @@ def _micro_metrics(value: object, *, field: str) -> dict[str, int | float]:
         item = value.get(key)
         if isinstance(item, bool) or not isinstance(item, (int, float)):
             raise ValueError(f"invalid {field}.{key} metric")
-        result[key] = item
+        normalized = _number(item, field=f"{field}.{key}")
+        assert normalized is not None
+        result[key] = normalized
+    return result
+
+
+def _macro_metrics(value: object, *, field: str) -> dict[str, int | float]:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"missing {field} metrics")
+    result: dict[str, int | float] = {}
+    for key in ("label_count", "precision", "recall", "f1", "f2"):
+        normalized = _number(value.get(key), field=f"{field}.{key}")
+        assert normalized is not None
+        result[key] = normalized
     return result
 
 
@@ -160,6 +178,7 @@ def _selected_metrics(report: Mapping[str, Any]) -> dict[str, Any]:
             for key in ("gold", "predicted")
         },
         "strict_micro": _micro_metrics(strict.get("micro"), field="strict.micro"),
+        "strict_macro": _macro_metrics(strict.get("macro"), field="strict.macro"),
         "relaxed_micro": _micro_metrics(relaxed.get("micro"), field="relaxed.micro"),
         "character_micro": _micro_metrics(character.get("micro"), field="character.micro"),
         "pii_free": {
@@ -281,8 +300,33 @@ def main() -> int:
             "artifact_type": "rule_baseline_summary",
             "baseline": {
                 "id": "cn_common_rules",
+                "kind": "open_source_framework_rules",
                 "implementation_sha256": canonical_json_hash(rule_files),
                 "component_sha256": rule_files,
+            },
+            "comparison_contract": {
+                "track": "rules_only",
+                "metric": "strict_exact_start_end_label",
+                "benchmark_protocol": "pii_bench_zh_closed_8_v1",
+                "target_labels": [
+                    "ADDRESS",
+                    "BANK_CARD_NUMBER",
+                    "CN_RESIDENT_ID",
+                    "EMAIL_ADDRESS",
+                    "PASSPORT_NUMBER",
+                    "PERSON_NAME",
+                    "PHONE_NUMBER",
+                    "VEHICLE_LICENSE_PLATE",
+                ],
+                "supported_target_labels": [
+                    "BANK_CARD_NUMBER",
+                    "CN_RESIDENT_ID",
+                    "EMAIL_ADDRESS",
+                    "PASSPORT_NUMBER",
+                    "PHONE_NUMBER",
+                    "VEHICLE_LICENSE_PLATE",
+                ],
+                "unsupported_protocol_labels_count_as_false_negatives": True,
             },
             "dataset_manifest_sha256": formal_manifest,
             "subsets": {"formal": formal, "chat": chat},

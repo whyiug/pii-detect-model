@@ -11,14 +11,9 @@ from pathlib import Path
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPOSITORY_ROOT / "src"))
 
-from pii_zh.data.synthetic.materialize import (  # noqa: E402
-    DEFAULT_FROZEN_HOLDOUT_SOURCE_DIR,
-    materialize_synthetic_corpus,
-)
+from pii_zh.data.synthetic.materialize import materialize_synthetic_corpus  # noqa: E402
 
-DEFAULT_OUTPUT = Path(
-    "/data1/datasets/pii-detect-model/processed/public_release_pool/synthetic_v1_3"
-)
+DEFAULT_OUTPUT = _REPOSITORY_ROOT / "data/processed/synthetic_v1_3"
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -33,7 +28,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--holdout-source-dir",
         type=Path,
-        default=DEFAULT_FROZEN_HOLDOUT_SOURCE_DIR,
+        required=True,
         help="Frozen synthetic v1.2 directory; validation/test are hash-verified and byte-copied.",
     )
     parser.add_argument("--plan", type=Path, default=_REPOSITORY_ROOT / "pii-detect-plan.md")

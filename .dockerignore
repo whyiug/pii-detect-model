@@ -1,0 +1,16 @@
+**
+!pyproject.toml
+!uv.lock
+!LICENSE
+!docker/
+!docker/PACKAGE_README.md
+!src/
+!src/**
+src/**/__pycache__/
+src/**/*.py[cod]
+src/*.egg-info/
+src/**/*.egg-info/
+src/*.dist-info/
+src/**/*.dist-info/
+!scripts/
+!scripts/train.py

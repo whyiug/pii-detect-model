@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/open24_comparator_prediction_provenance_v1.schema.json",
+  "title": "Open-24 comparator prediction provenance v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_type",
+    "role",
+    "track",
+    "system_id",
+    "prediction_semantics",
+    "source",
+    "dataset",
+    "prediction",
+    "system_bindings",
+    "execution",
+    "privacy",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.open24-comparator-prediction-provenance.v1"
+    },
+    "manifest_type": {
+      "const": "open24_comparator_prediction_provenance"
+    },
+    "role": {
+      "const": "comparator"
+    },
+    "track": {
+      "enum": ["model_raw", "full_system"]
+    },
+    "system_id": {
+      "$ref": "#/$defs/safeId"
+    },
+    "prediction_semantics": {
+      "const": "strict_exact_character_spans_before_quality_aggregation"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "repository",
+        "revision",
+        "license",
+        "public_source"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "open_source_model",
+            "open_source_framework",
+            "prior_project_release"
+          ]
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "public_source": {
+          "const": true
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "dataset_version",
+        "target_split",
+        "gold_file_sha256",
+        "gold_size_bytes",
+        "gold_document_count",
+        "dataset_manifest_file_sha256",
+        "dataset_manifest_sha256",
+        "materialization_receipt_file_sha256",
+        "materialization_receipt_sha256",
+        "freeze_receipt_file_sha256"
+      ],
+      "properties": {
+        "dataset_id": {
+          "$ref": "#/$defs/safeId"
+        },
+        "dataset_version": {
+          "$ref": "#/$defs/safeId"
+        },
+        "target_split": {
+          "const": "internal_evaluation"
+        },
+        "gold_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gold_size_bytes": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "gold_document_count": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "dataset_manifest_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dataset_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "materialization_receipt_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "materialization_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "freeze_receipt_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "size_bytes",
+        "document_count"
+      ],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "document_count": {
+          "$ref": "#/$defs/positiveInteger"
+        }
+      }
+    },
+    "system_bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_closure_manifest",
+        "artifact_or_configuration",
+        "generation_receipt",
+        "generator_implementation",
+        "runtime_configuration",
+        "environment_lock"
+      ],
+      "properties": {
+        "source_closure_manifest": {
+          "$ref": "#/$defs/fileBinding"
+        },
+        "artifact_or_configuration": {
+          "$ref": "#/$defs/fileBinding"
+        },
+        "generation_receipt": {
+          "$ref": "#/$defs/fileBinding"
+        },
+        "generator_implementation": {
+          "$ref": "#/$defs/fileBinding"
+        },
+        "runtime_configuration": {
+          "$ref": "#/$defs/fileBinding"
+        },
+        "environment_lock": {
+          "$ref": "#/$defs/fileBinding"
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_gold_document_set",
+        "prediction_file_generated_by_bound_system",
+        "hand_edited",
+        "fixture"
+      ],
+      "properties": {
+        "exact_gold_document_set": {"const": true},
+        "prediction_file_generated_by_bound_system": {"const": true},
+        "hand_edited": {"const": false},
+        "fixture": {"type": "boolean"}
+      }
+    },
+    "privacy": {
+      "const": {
+        "contains_paths": false,
+        "contains_raw_text": false,
+        "contains_entity_values": false,
+        "contains_document_ids": false,
+        "aggregate_only": true
+      }
+    },
+    "manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+    },
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "fileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "$ref": "#/$defs/positiveInteger"
+        }
+      }
+    }
+  }
+}

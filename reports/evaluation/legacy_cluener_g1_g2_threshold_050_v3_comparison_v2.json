@@ -1,0 +1,394 @@
+{
+  "claims": {
+    "best_or_sota": false,
+    "hidden_test": false,
+    "new_service_exceeds_first_version": false,
+    "production_pii": false,
+    "release_allowed": false,
+    "single_ner_model_superiority": false
+  },
+  "closure_id": "legacy_cluener_g1_g2_threshold_050_v3_comparison_v2",
+  "comparison_variant": {
+    "candidate_id": "ernie_native_presidio_threshold_050_v3",
+    "g2_preregistration_file_sha256": "059683128696fe722854963231c38b448fb4a190867c3036f94265dad732f9e7",
+    "g2_preregistration_self_hash": "c1cdd44ec6d1f078242be0a59ccf8d62168d2decf947690b3282a5f69303c734",
+    "selection_result_blind": false,
+    "threshold": "0.50",
+    "threshold_selected_post_result": true
+  },
+  "eligibility": {
+    "best_or_sota": false,
+    "hidden_test": false,
+    "limited_legacy_cluener_10_compatibility_regression": true,
+    "model_release": false,
+    "production_pii": false
+  },
+  "exact_comparisons": {
+    "g2_vs_docx_attested_floor": {
+      "baseline": "docx_attested_5050_over_6417",
+      "baseline_f1_denominator": 6417,
+      "baseline_f1_numerator": 5050,
+      "baseline_numerator_times_candidate_denominator": 31905900,
+      "candidate_f1_denominator": 6318,
+      "candidate_f1_numerator": 5020,
+      "candidate_numerator_times_baseline_denominator": 32213340,
+      "integer_cross_multiplication_only": true,
+      "relation": "ABOVE",
+      "strictly_above": true
+    },
+    "g2_vs_verified_g1_replay": {
+      "baseline": "verified_g1_surviving_checkout_replay",
+      "baseline_f1_denominator": 6417,
+      "baseline_f1_numerator": 5050,
+      "baseline_numerator_times_candidate_denominator": 31905900,
+      "candidate_f1_denominator": 6318,
+      "candidate_f1_numerator": 5020,
+      "candidate_numerator_times_baseline_denominator": 32213340,
+      "integer_cross_multiplication_only": true,
+      "relation": "ABOVE",
+      "strictly_above": true
+    }
+  },
+  "execution": {
+    "device": "cpu",
+    "gpu_queried": false,
+    "gpu_used": false,
+    "model_inference_performed_by_this_closure": false,
+    "network_used": false
+  },
+  "gates": {
+    "best_or_sota": "BLOCKED_NOT_SUPPORTED",
+    "canonical_gold_binding": "PASS",
+    "g1_prediction_and_receipt_replay": "PASS",
+    "g2_prediction_and_receipt_replay": "PASS",
+    "g2_strictly_above_docx_attested_floor": "PASS",
+    "g2_strictly_above_verified_g1_replay": "PASS",
+    "limited_compatibility_regression_eligibility": "PASS",
+    "overall": "LIMITED_COMPATIBILITY_ELIGIBILITY_ONLY",
+    "paired_document_bootstrap_computed": "PASS",
+    "production_pii_release": "BLOCKED_SEPARATE_GATES_REQUIRED"
+  },
+  "implementation": {
+    "source_bindings": {
+      "builder": {
+        "file_sha256": "be8be1e622e664e71eaaa0a402bdeb5c18276418a7916912a5c5d5d52b1a2222",
+        "repository_relative_path": "scripts/build_legacy_cluener_g1_g2_threshold_050_v3_comparison_closure.py",
+        "size_bytes": 34806
+      },
+      "comparison_v1_engine": {
+        "file_sha256": "f74f91e36a1096c9199ec58aa3779d3f0b41e4c0b41b857d2505f2bde82e8305",
+        "repository_relative_path": "scripts/build_legacy_cluener_g1_g2_comparison_closure.py",
+        "size_bytes": 84255
+      },
+      "evaluation_io": {
+        "file_sha256": "63d23d4418e73e9ebbe0ad0b5fe1a2c5895ba2e3ea38559c964cef6c0882750a",
+        "repository_relative_path": "src/pii_zh/evaluation/io.py",
+        "size_bytes": 12791
+      },
+      "paired_bootstrap": {
+        "file_sha256": "af3852bbfe9cf8af98a0343a34bab2f3b5088e53a410f25b026af82564143ae6",
+        "repository_relative_path": "src/pii_zh/evaluation/paired_bootstrap.py",
+        "size_bytes": 9411
+      },
+      "schema": {
+        "file_sha256": "20c23580cccaf7506a60daf396e3c1cee7925615a6d3f39f8cca08f6c872e9db",
+        "repository_relative_path": "configs/evaluation/legacy_cluener_g1_g2_threshold_050_v3_comparison_closure.schema.json",
+        "size_bytes": 40632
+      },
+      "tests": {
+        "file_sha256": "30c293154d89b76c025fa6a25ab6e5f34506244f0282b5dc49e40284cfc16800",
+        "repository_relative_path": "tests/unit/test_legacy_cluener_g1_g2_threshold_050_v3_comparison_closure.py",
+        "size_bytes": 16413
+      }
+    },
+    "source_bundle_sha256": "ea4c545073e66d01d8e02fd4d07cf328095fa7c95b1109ccf4959f1d69ced224"
+  },
+  "input_bindings": {
+    "canonical_gold": {
+      "file_sha256": "d761b87e3b16c63094500429c5b39be246c04cc4765bfe75b6954aa064a3b234",
+      "mode": "0400",
+      "size_bytes": 338998
+    },
+    "comparison_preregistration": {
+      "file_sha256": "ded706a66030ef5c1654b14f3c41aa68d26d80e411aabde62a144be3eb42589c",
+      "mode": "0444",
+      "self_hash": "29abb1f01343ec9e251c1df9e912b3ce3d9ff210156b815f299fb4a76e35aebb",
+      "size_bytes": 6018
+    },
+    "g1_private_predictions": {
+      "contains_entity_values": false,
+      "contains_raw_text": false,
+      "file_sha256": "7b98046c81f87df35f1ce1241dc221ec3dca6bc2261ba3dae9ac76a07b8a96ad",
+      "mode": "0400",
+      "publicly_published": false,
+      "size_bytes": 342472
+    },
+    "g1_public_receipt": {
+      "file_sha256": "d6880bcf186c382880aa0a388f0c4c0a7cea1c4901cd9ed0a7586dad47832251",
+      "mode": "0444",
+      "size_bytes": 3940
+    },
+    "g2_private_predictions": {
+      "contains_entity_values": false,
+      "contains_raw_text": false,
+      "file_sha256": "359e0f7b09367a85b10216d0e80acce316f46099ec5aeac229c26cfaf750a687",
+      "mode": "0600",
+      "publicly_published": false,
+      "size_bytes": 306561
+    },
+    "g2_private_run_receipt": {
+      "contains_absolute_paths": false,
+      "contains_entity_values": false,
+      "contains_raw_text": false,
+      "file_sha256": "ef0e60a1bcf1c58c65d2c58de26a4e00d2e112133b497df8108cd33a1255b57f",
+      "mode": "0600",
+      "self_hash": "a72a1366f1a0ba390ce960528c0c23086e91895f664e1ced2369b9e7c67bf423",
+      "size_bytes": 1869
+    },
+    "g2_public_receipt": {
+      "file_sha256": "6965ad06a21d89e72cefd6cc1998f447ec275c4771702ee543170a6f391b3d67",
+      "mode": "0444",
+      "size_bytes": 10265
+    }
+  },
+  "kind": "legacy_cluener_g1_g2_threshold_050_v3_comparison_closure",
+  "limitations": {
+    "bootstrap_descriptive_only": true,
+    "compatibility_profile_non_default": true,
+    "contains_non_pii_cluener_labels": true,
+    "g1_exact_historical_runtime_attribution_unresolved": true,
+    "not_a_production_pii_metric": true,
+    "not_official_hidden_test": true,
+    "public_dev_test_exposed": true,
+    "separate_pii_hidden_fpr_latency_license_gates_required": true,
+    "single_ner_metric_release_blocking": false,
+    "threshold_selected_post_result_nonblind": true
+  },
+  "paired_document_bootstrap": {
+    "confidence": 0.95,
+    "confidence_interval": {
+      "lower": 0.004883808071,
+      "upper": 0.010453811188
+    },
+    "delta_g2_minus_g1": 0.007583133655,
+    "descriptive_only_not_an_additional_pass_gate": true,
+    "documents": 1343,
+    "g1_strict_micro_f1": 0.786972105345,
+    "g2_strict_micro_f1": 0.794555239,
+    "g2_win_probability": 1.0,
+    "outcomes": {
+      "g1_wins": 0,
+      "g2_wins": 1000,
+      "ties": 0
+    },
+    "samples": 1000,
+    "seed": 42,
+    "two_sided_tail_probability_approximation": 0.001998001998,
+    "unit": "document"
+  },
+  "privacy": {
+    "contains_absolute_paths": false,
+    "contains_entity_values": false,
+    "contains_raw_text": false,
+    "private_predictions_published": false
+  },
+  "protocol": {
+    "dataset_id": "legacy_cluener_dev_1343",
+    "document_count": 1343,
+    "gold_span_count": 3072,
+    "hidden": false,
+    "labels": [
+      "address",
+      "book",
+      "company",
+      "game",
+      "government",
+      "movie",
+      "name",
+      "organization",
+      "position",
+      "scene"
+    ],
+    "license_status": "unresolved",
+    "matching": "strict_document_label_start_end",
+    "offsets": "left_closed_right_open",
+    "profile_id": "legacy_cluener_10",
+    "public_dev": true,
+    "test_exposed": true,
+    "track_scope": "compatibility_regression_only"
+  },
+  "recomputed_results": {
+    "g1_surviving_checkout_replay": {
+      "document_count": 1343,
+      "gold_span_count": 3072,
+      "micro": {
+        "f1_denominator": 6417,
+        "f1_numerator": 5050,
+        "fn": 547,
+        "fp": 820,
+        "tp": 2525
+      },
+      "per_label": {
+        "address": {
+          "f1_denominator": 802,
+          "f1_numerator": 524,
+          "fn": 111,
+          "fp": 167,
+          "tp": 262
+        },
+        "book": {
+          "f1_denominator": 302,
+          "f1_numerator": 220,
+          "fn": 44,
+          "fp": 38,
+          "tp": 110
+        },
+        "company": {
+          "f1_denominator": 791,
+          "f1_numerator": 636,
+          "fn": 60,
+          "fp": 95,
+          "tp": 318
+        },
+        "game": {
+          "f1_denominator": 571,
+          "f1_numerator": 440,
+          "fn": 75,
+          "fp": 56,
+          "tp": 220
+        },
+        "government": {
+          "f1_denominator": 514,
+          "f1_numerator": 428,
+          "fn": 33,
+          "fp": 53,
+          "tp": 214
+        },
+        "movie": {
+          "f1_denominator": 312,
+          "f1_numerator": 254,
+          "fn": 24,
+          "fp": 34,
+          "tp": 127
+        },
+        "name": {
+          "f1_denominator": 945,
+          "f1_numerator": 838,
+          "fn": 46,
+          "fp": 61,
+          "tp": 419
+        },
+        "organization": {
+          "f1_denominator": 788,
+          "f1_numerator": 620,
+          "fn": 57,
+          "fp": 111,
+          "tp": 310
+        },
+        "position": {
+          "f1_denominator": 945,
+          "f1_numerator": 744,
+          "fn": 61,
+          "fp": 140,
+          "tp": 372
+        },
+        "scene": {
+          "f1_denominator": 447,
+          "f1_numerator": 346,
+          "fn": 36,
+          "fp": 65,
+          "tp": 173
+        }
+      },
+      "prediction_count": 3345
+    },
+    "g2_candidate_service": {
+      "document_count": 1343,
+      "gold_span_count": 3072,
+      "micro": {
+        "f1_denominator": 6318,
+        "f1_numerator": 5020,
+        "fn": 562,
+        "fp": 736,
+        "tp": 2510
+      },
+      "per_label": {
+        "address": {
+          "f1_denominator": 788,
+          "f1_numerator": 524,
+          "fn": 111,
+          "fp": 153,
+          "tp": 262
+        },
+        "book": {
+          "f1_denominator": 294,
+          "f1_numerator": 216,
+          "fn": 46,
+          "fp": 32,
+          "tp": 108
+        },
+        "company": {
+          "f1_denominator": 781,
+          "f1_numerator": 636,
+          "fn": 60,
+          "fp": 85,
+          "tp": 318
+        },
+        "game": {
+          "f1_denominator": 560,
+          "f1_numerator": 434,
+          "fn": 78,
+          "fp": 48,
+          "tp": 217
+        },
+        "government": {
+          "f1_denominator": 502,
+          "f1_numerator": 420,
+          "fn": 37,
+          "fp": 45,
+          "tp": 210
+        },
+        "movie": {
+          "f1_denominator": 309,
+          "f1_numerator": 254,
+          "fn": 24,
+          "fp": 31,
+          "tp": 127
+        },
+        "name": {
+          "f1_denominator": 938,
+          "f1_numerator": 834,
+          "fn": 48,
+          "fp": 56,
+          "tp": 417
+        },
+        "organization": {
+          "f1_denominator": 770,
+          "f1_numerator": 614,
+          "fn": 60,
+          "fp": 96,
+          "tp": 307
+        },
+        "position": {
+          "f1_denominator": 935,
+          "f1_numerator": 742,
+          "fn": 62,
+          "fp": 131,
+          "tp": 371
+        },
+        "scene": {
+          "f1_denominator": 441,
+          "f1_numerator": 346,
+          "fn": 36,
+          "fp": 59,
+          "tp": 173
+        }
+      },
+      "prediction_count": 3246
+    }
+  },
+  "schema_version": 1,
+  "sealed_at": "2026-07-16T12:41:03+08:00",
+  "self_hash": "3b610874266c82f936a5fa01e3b79d0499503792d2e6b3051ba8ce1deab4c95f",
+  "status": "CLOSED_LIMITED_COMPATIBILITY_REGRESSION_ELIGIBLE_NONACTIVATING"
+}

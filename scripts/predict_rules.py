@@ -24,6 +24,7 @@ from pii_zh.evaluation import (  # noqa: E402
 )
 from pii_zh.rules import CN_COMMON_RULES, CnCommonRulePack  # noqa: E402
 from pii_zh.rules import cn_common as cn_common_module  # noqa: E402
+from pii_zh.taxonomy import load_taxonomy  # noqa: E402
 
 RULE_TO_MODEL = {
     "CN_ID_CARD": "CN_RESIDENT_ID",
@@ -50,6 +51,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--dataset-manifest", type=Path)
     parser.add_argument("--prediction-manifest", type=Path)
+    parser.add_argument(
+        "--allowed-label",
+        action="append",
+        dest="allowed_labels",
+        help="Emit only this normalized model label; repeat for a closed protocol.",
+    )
     return parser.parse_args()
 
 
@@ -81,6 +88,22 @@ def main() -> int:
         args.prediction_manifest.resolve() == args.output.resolve()
     ):
         raise ValueError("--prediction-manifest and --output must be different files")
+    if args.allowed_labels is None:
+        allowed_labels = frozenset(RULE_TO_MODEL.values())
+    else:
+        core_labels = load_taxonomy().core_label_names
+        allowed_labels = frozenset(args.allowed_labels)
+        if (
+            not allowed_labels
+            or len(allowed_labels) != len(args.allowed_labels)
+            or not allowed_labels <= core_labels
+        ):
+            raise ValueError("--allowed-label values must be unique core taxonomy labels")
+    allowed_rule_entities = [
+        entity_type
+        for entity_type, model_label in RULE_TO_MODEL.items()
+        if model_label in allowed_labels
+    ]
     rule_pack = CnCommonRulePack()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     seen: set[str] = set()
@@ -94,7 +117,7 @@ def main() -> int:
                 if record.doc_id in seen:
                     raise ValueError("input contains a duplicate doc_id")
                 seen.add(record.doc_id)
-                matches = rule_pack.analyze(record.text, entities=list(RULE_TO_MODEL))
+                matches = rule_pack.analyze(record.text, entities=allowed_rule_entities)
                 prediction = PredictionRecord(
                     doc_id=record.doc_id,
                     spans=tuple(
@@ -105,7 +128,7 @@ def main() -> int:
                             score=match.score,
                         )
                         for match in matches
-                        if match.entity_type in RULE_TO_MODEL
+                        if RULE_TO_MODEL.get(match.entity_type) in allowed_labels
                     ),
                 )
                 write_prediction_jsonl([prediction], handle)
@@ -118,6 +141,7 @@ def main() -> int:
     if args.prediction_manifest is not None:
         rule_configuration = {
             "mapping": RULE_TO_MODEL,
+            "allowed_output_labels": sorted(allowed_labels),
             "rules": [
                 {
                     "already_masked": rule.already_masked,
