@@ -19,8 +19,9 @@
 - [x] 发布 namespace 已确定为 `Forrest20231206`；private model repo
   `Forrest20231206/pii-zh-qwen3-0.6b-24class` 已创建，当前只有平台初始化的 `.gitattributes`，未上传
   模型包。
-- [ ] GitHub hosted CI 尚未运行：远端目前只有 release-prep 分支，而 workflow 的 push 条件只包含
-  `main`；在建立可审阅的 `main`/PR 流程或明确调整触发条件前，本地验证不能替代 hosted CI。
+- [ ] GitHub hosted CI 仍是最终门禁：private 仓库首次推送时，source-prep commit `aabb84ac...`
+  的动态 CI 已通过；workflow 现支持对 release-prep 分支手动 dispatch，后续每个拟发布 commit 都须
+  记录与其完整 SHA 精确匹配的成功运行。本地验证不能替代该检查。
 - [ ] human/legal 许可证审批未完成；license inventory 状态仍为
   `COMPLETE_HUMAN_APPROVAL_PENDING`。
 - [ ] `$RELEASE_RUN/model-package-v2r2` 不是可上传包：其中 `SECURITY.md` 是旧版且明确说没有
@@ -376,7 +377,7 @@ gh api --method PATCH \
   `agent/community-v2-release-prep`；未创建或推送 tag，未创建 GitHub Release；
 - 已创建 private HF model repo `Forrest20231206/pii-zh-qwen3-0.6b-24class`；仅有平台初始化文件，
   未上传模型或 publication-successor；
-- 未建立 `main`/PR 流程，GitHub hosted CI 尚未运行；
+- 未建立 `main`/PR 流程；private 首推 CI 已成功，workflow 支持后续 release-prep commit 手动复验；
 - 未启用并实测私密漏洞报告渠道，未完成人工许可证审批；
 - 未上传 wheel、wheelhouse、SBOM 或任何发布回执；
 - 未修改冻结的 `model-package-v2r2`，也未把它包装成已发布工件。
