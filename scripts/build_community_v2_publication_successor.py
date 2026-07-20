@@ -33,6 +33,12 @@ RELEASE_TAG = "v0.2.0rc1"
 MANIFEST_SCHEMA_PATH = Path("configs/release/community_v2_publication_successor.schema.json")
 LICENSE_APPROVAL_SCHEMA_PATH = MANIFEST_SCHEMA_PATH
 SECURITY_CHANNEL_SCHEMA_PATH = MANIFEST_SCHEMA_PATH
+SECURITY_CHANNEL_WAIVER_SCHEMA_PATH = Path(
+    "configs/release/private_security_channel_waiver_receipt.schema.json"
+)
+SECURITY_CHANNEL_WAIVER_SOURCE_PATH = Path(
+    "release/community-v2-rc1/PRIVATE_SECURITY_CHANNEL_WAIVER.md"
+)
 HF_GITATTRIBUTES_TEMPLATE_PATH = Path("release/community-v2-rc1/huggingface.gitattributes")
 FINAL_LOCAL_RECEIPT_SCHEMA_PATH = Path(
     "configs/release/community_cascade_release_v2.receipt.schema.json"
@@ -41,6 +47,7 @@ FINAL_LOCAL_RECEIPT_SCHEMA_PATH = Path(
 FINAL_LOCAL_RECEIPT_NAME = "community_v2_final_local_receipt.json"
 LICENSE_APPROVAL_RECEIPT_NAME = "human_license_approval_receipt.json"
 SECURITY_CHANNEL_RECEIPT_NAME = "tested_private_security_channel_receipt.json"
+SECURITY_CHANNEL_WAIVER_RECEIPT_NAME = "private_security_channel_waiver_receipt.json"
 MANIFEST_NAME = "publication_manifest.json"
 CHECKSUMS_NAME = "checksums.txt"
 PREAUTHORIZATION_NAME = "community_v2_preauthorization.json"
@@ -78,6 +85,7 @@ _RESERVED_SUCCESSOR_FILES = frozenset(
         FINAL_LOCAL_RECEIPT_NAME,
         LICENSE_APPROVAL_RECEIPT_NAME,
         SECURITY_CHANNEL_RECEIPT_NAME,
+        SECURITY_CHANNEL_WAIVER_RECEIPT_NAME,
         MANIFEST_NAME,
         HF_GITATTRIBUTES_NAME,
     }
@@ -157,6 +165,11 @@ class BuildPlan:
     license_approval_document: Mapping[str, Any]
     security_channel_receipt: RegularPayload
     security_channel_document: Mapping[str, Any]
+    security_channel_receipt_name: str
+    security_channel_evidence_type: str
+    security_channel_tested: bool
+    security_channel_maintainer_waiver: bool
+    security_channel_provenance: str
     candidate_lineage_contract: Mapping[str, Any]
     stale_marker_scan: Mapping[str, Any]
     git_source_commit: str
@@ -731,6 +744,98 @@ def _load_self_hashed_receipt(
     return payload, document
 
 
+def _source_policy_requires_waiver(
+    *, github_repository: str, hugging_face_repository: str
+) -> bool:
+    """Return whether the committed source locks this exact RC target to waiver evidence."""
+
+    source_path = REPOSITORY_ROOT / SECURITY_CHANNEL_WAIVER_SOURCE_PATH
+    try:
+        os.lstat(source_path)
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        raise PublicationSuccessorError(
+            "PRIVATE_SECURITY_CHANNEL_WAIVER_SOURCE_UNAVAILABLE",
+            "private security channel waiver source cannot be inspected",
+        ) from exc
+    reviewed_waiver = _read_regular_payload(
+        source_path,
+        field="reviewed private security channel waiver source",
+        maximum_bytes=8 * 1024 * 1024,
+    )
+    try:
+        lines = [line.strip() for line in reviewed_waiver.payload.decode("utf-8").splitlines()]
+    except UnicodeDecodeError as exc:
+        raise PublicationSuccessorError(
+            "PRIVATE_SECURITY_CHANNEL_WAIVER_SOURCE_INVALID",
+            "private security channel waiver source must be UTF-8",
+        ) from exc
+    required_values = {
+        "Package-version": PACKAGE_VERSION,
+        "Provider": "github_private_vulnerability_reporting",
+        "Enabled": "true",
+        "Independent-test-completed": "false",
+        "Decision": "maintainer_waived_for_release_candidate",
+    }
+    observed: dict[str, list[str]] = {key: [] for key in required_values}
+    observed.update({"GitHub-repository": [], "Hugging-Face-repository": []})
+    for line in lines:
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        if key in observed:
+            observed[key].append(value.strip())
+    if any(observed[key] != [value] for key, value in required_values.items()):
+        raise PublicationSuccessorError(
+            "PRIVATE_SECURITY_CHANNEL_WAIVER_SOURCE_INVALID",
+            "committed waiver source does not retain its unique fail-closed RC policy",
+        )
+    source_github = observed["GitHub-repository"]
+    source_hugging_face = observed["Hugging-Face-repository"]
+    if source_github != [github_repository] or source_hugging_face != [
+        hugging_face_repository
+    ]:
+        raise PublicationSuccessorError(
+            "PRIVATE_SECURITY_CHANNEL_WAIVER_SOURCE_TARGET_MISMATCH",
+            "publication target differs from the target locked by the committed waiver source",
+        )
+    return True
+
+
+def _validate_waiver_source_binding(
+    document: Mapping[str, Any], *, git_source_commit: str
+) -> None:
+    reviewed_waiver = _read_regular_payload(
+        REPOSITORY_ROOT / SECURITY_CHANNEL_WAIVER_SOURCE_PATH,
+        field="reviewed private security channel waiver source",
+        maximum_bytes=8 * 1024 * 1024,
+    )
+    if document.get("waiver_file_sha256") != reviewed_waiver.file_sha256:
+        raise PublicationSuccessorError(
+            "PRIVATE_SECURITY_CHANNEL_WAIVER_SOURCE_MISMATCH",
+            "private security channel waiver receipt does not bind the reviewed source waiver",
+        )
+    target = document.get("target")
+    if not isinstance(target, Mapping) or target.get("git_source_commit") != git_source_commit:
+        raise PublicationSuccessorError(
+            "PRIVATE_SECURITY_CHANNEL_WAIVER_COMMIT_MISMATCH",
+            "private security channel waiver receipt does not bind the final source commit",
+        )
+    github_repository = target.get("github_repository")
+    hugging_face_repository = target.get("hugging_face_repository")
+    if not isinstance(github_repository, str) or not isinstance(
+        hugging_face_repository, str
+    ) or not _source_policy_requires_waiver(
+        github_repository=github_repository,
+        hugging_face_repository=hugging_face_repository,
+    ):
+        raise PublicationSuccessorError(
+            "PRIVATE_SECURITY_CHANNEL_WAIVER_SOURCE_MISMATCH",
+            "reviewed source waiver does not lock the receipt's exact release target",
+        )
+
+
 def _load_publication_text(
     path: Path,
     *,
@@ -882,10 +987,24 @@ def prepare_build_plan(
     final_local_receipt: Path | None,
     human_license_approval_receipt: Path | None,
     tested_private_security_channel_receipt: Path | None,
+    private_security_channel_waiver_receipt: Path | None = None,
     git_source_commit: str,
     github_repository: str,
     hugging_face_repository: str,
 ) -> BuildPlan:
+    channel_evidence_count = sum(
+        path is not None
+        for path in (
+            tested_private_security_channel_receipt,
+            private_security_channel_waiver_receipt,
+        )
+    )
+    if channel_evidence_count != 1:
+        raise PublicationSuccessorError(
+            "PRIVATE_SECURITY_CHANNEL_EVIDENCE_EXACTLY_ONE_REQUIRED",
+            "provide exactly one tested private security channel receipt or "
+            "maintainer waiver receipt",
+        )
     if not _GIT_COMMIT.fullmatch(git_source_commit):
         raise PublicationSuccessorError(
             "INVALID_GIT_SOURCE_COMMIT", "Git source commit must be a full 40- or 64-hex ID"
@@ -965,13 +1084,65 @@ def prepare_build_plan(
         schema_path=LICENSE_APPROVAL_SCHEMA_PATH,
         schema_definition="humanLicenseApprovalReceipt",
     )
-    security_payload, security_document = _load_self_hashed_receipt(
-        tested_private_security_channel_receipt,
-        field="tested private security channel receipt",
-        missing_blocker="TESTED_PRIVATE_SECURITY_CHANNEL_RECEIPT_MISSING",
-        schema_path=SECURITY_CHANNEL_SCHEMA_PATH,
-        schema_definition="testedPrivateSecurityChannelReceipt",
-    )
+    if tested_private_security_channel_receipt is not None:
+        if _source_policy_requires_waiver(
+            github_repository=github_repository,
+            hugging_face_repository=hugging_face_repository,
+        ):
+            raise PublicationSuccessorError(
+                "SOURCE_POLICY_REQUIRES_MAINTAINER_WAIVER",
+                "the committed source locks this release target to maintainer-waiver evidence",
+            )
+        security_payload, security_document = _load_self_hashed_receipt(
+            tested_private_security_channel_receipt,
+            field="tested private security channel receipt",
+            missing_blocker="TESTED_PRIVATE_SECURITY_CHANNEL_RECEIPT_MISSING",
+            schema_path=SECURITY_CHANNEL_SCHEMA_PATH,
+            schema_definition="testedPrivateSecurityChannelReceipt",
+        )
+        security_receipt_name = SECURITY_CHANNEL_RECEIPT_NAME
+        security_evidence_type = "tested_private_security_channel"
+        security_tested = True
+        security_maintainer_waiver = False
+        security_provenance = "tested_private_security_channel_receipt"
+    else:
+        security_payload, security_document = _load_self_hashed_receipt(
+            private_security_channel_waiver_receipt,
+            field="private security channel maintainer waiver receipt",
+            missing_blocker="PRIVATE_SECURITY_CHANNEL_WAIVER_RECEIPT_MISSING",
+            schema_path=SECURITY_CHANNEL_WAIVER_SCHEMA_PATH,
+        )
+        security_receipt_name = SECURITY_CHANNEL_WAIVER_RECEIPT_NAME
+        security_evidence_type = "maintainer_waiver_without_independent_test"
+        security_tested = False
+        security_maintainer_waiver = True
+        security_provenance = "private_security_channel_waiver_receipt"
+        channel_waiver = security_document.get("security_channel_waiver")
+        if not isinstance(channel_waiver, Mapping) or {
+            "provider": channel_waiver.get("provider"),
+            "enabled": channel_waiver.get("enabled"),
+            "independent_test_completed": channel_waiver.get(
+                "independent_test_completed"
+            ),
+            "decision": channel_waiver.get("decision"),
+            "evidence_basis": channel_waiver.get("evidence_basis"),
+        } != {
+            "provider": "github_private_vulnerability_reporting",
+            "enabled": True,
+            "independent_test_completed": False,
+            "decision": "maintainer_waived_for_release_candidate",
+            "evidence_basis": (
+                "explicit_human_maintainer_attestation_and_bound_waiver_file"
+            ),
+        }:
+            raise PublicationSuccessorError(
+                "PRIVATE_SECURITY_CHANNEL_WAIVER_NOT_AUTHORIZED",
+                "private security channel receipt is not an explicit maintainer waiver "
+                "of the independent test",
+            )
+        _validate_waiver_source_binding(
+            security_document, git_source_commit=git_source_commit
+        )
 
     expected_target = {
         "package_version": PACKAGE_VERSION,
@@ -983,7 +1154,10 @@ def prepare_build_plan(
             "LICENSE_APPROVAL_TARGET_MISMATCH",
             "human license approval receipt targets a different release or repository",
         )
-    if security_document.get("target") != expected_target:
+    expected_security_target = dict(expected_target)
+    if security_maintainer_waiver:
+        expected_security_target["git_source_commit"] = git_source_commit
+    if security_document.get("target") != expected_security_target:
         raise PublicationSuccessorError(
             "SECURITY_CHANNEL_TARGET_MISMATCH",
             "security channel receipt targets a different release or repository",
@@ -1019,6 +1193,11 @@ def prepare_build_plan(
         license_approval_document=license_document,
         security_channel_receipt=security_payload,
         security_channel_document=security_document,
+        security_channel_receipt_name=security_receipt_name,
+        security_channel_evidence_type=security_evidence_type,
+        security_channel_tested=security_tested,
+        security_channel_maintainer_waiver=security_maintainer_waiver,
+        security_channel_provenance=security_provenance,
         candidate_lineage_contract=candidate_lineage_contract,
         stale_marker_scan=stale_marker_scan,
         git_source_commit=git_source_commit,
@@ -1205,11 +1384,13 @@ def _make_manifest(plan: BuildPlan, files: Mapping[str, Mapping[str, Any]]) -> d
                 "receipt_sha256": plan.license_approval_document["receipt_sha256"],
                 "approved": True,
             },
-            "tested_private_security_channel": {
-                "path": SECURITY_CHANNEL_RECEIPT_NAME,
+            "private_security_channel": {
+                "path": plan.security_channel_receipt_name,
                 "file_sha256": plan.security_channel_receipt.file_sha256,
                 "receipt_sha256": plan.security_channel_document["receipt_sha256"],
-                "tested": True,
+                "evidence_type": plan.security_channel_evidence_type,
+                "channel_tested": plan.security_channel_tested,
+                "maintainer_waiver": plan.security_channel_maintainer_waiver,
             },
         },
         "candidate_lineage_contract": plan.candidate_lineage_contract,
@@ -1252,6 +1433,175 @@ def _write_checksums(directory: Path) -> None:
         digest, _size = _hash_regular_file(path, field=f"publication successor {relative}")
         lines.append(f"{digest}  {relative}")
     _write_new_file(directory / CHECKSUMS_NAME, ("\n".join(lines) + "\n").encode("utf-8"))
+
+
+def _validate_embedded_private_security_channel_evidence(
+    *,
+    files: Mapping[str, Path],
+    manifest: Mapping[str, Any],
+    payload_files: Mapping[str, Any],
+) -> None:
+    approval_evidence = manifest.get("approval_evidence")
+    if not isinstance(approval_evidence, Mapping):
+        raise PublicationSuccessorError(
+            "EMBEDDED_SECURITY_CHANNEL_EVIDENCE_MISMATCH",
+            "publication successor manifest has no approval evidence",
+        )
+    projection = approval_evidence.get("private_security_channel")
+    if not isinstance(projection, Mapping):
+        raise PublicationSuccessorError(
+            "EMBEDDED_SECURITY_CHANNEL_EVIDENCE_MISMATCH",
+            "publication successor manifest has no private security channel evidence",
+        )
+    receipt_name = projection.get("path")
+    if receipt_name == SECURITY_CHANNEL_RECEIPT_NAME:
+        publication_targets = manifest.get("publication_targets")
+        if not isinstance(publication_targets, Mapping):
+            raise PublicationSuccessorError(
+                "EMBEDDED_SECURITY_CHANNEL_TARGET_MISMATCH",
+                "publication successor manifest has no publication targets",
+            )
+        if _source_policy_requires_waiver(
+            github_repository=str(publication_targets.get("github_repository")),
+            hugging_face_repository=str(
+                publication_targets.get("hugging_face_repository")
+            ),
+        ):
+            raise PublicationSuccessorError(
+                "SOURCE_POLICY_REQUIRES_MAINTAINER_WAIVER",
+                "the committed source forbids replacing its waiver with tested evidence",
+            )
+        receipt_payload, receipt_document = _load_self_hashed_receipt(
+            files.get(SECURITY_CHANNEL_RECEIPT_NAME),
+            field="embedded tested private security channel receipt",
+            missing_blocker="EMBEDDED_SECURITY_CHANNEL_EVIDENCE_MISSING",
+            schema_path=SECURITY_CHANNEL_SCHEMA_PATH,
+            schema_definition="testedPrivateSecurityChannelReceipt",
+        )
+        channel = receipt_document.get("channel_test")
+        if not isinstance(channel, Mapping) or {
+            "provider": channel.get("provider"),
+            "tested": channel.get("tested"),
+            "outcome": channel.get("outcome"),
+        } != {
+            "provider": "github_private_vulnerability_reporting",
+            "tested": True,
+            "outcome": "accepted_private_test_report",
+        }:
+            raise PublicationSuccessorError(
+                "EMBEDDED_SECURITY_CHANNEL_EVIDENCE_MISMATCH",
+                "embedded tested-channel receipt does not retain tested semantics",
+            )
+        expected_projection = {
+            "path": SECURITY_CHANNEL_RECEIPT_NAME,
+            "file_sha256": receipt_payload.file_sha256,
+            "receipt_sha256": receipt_document["receipt_sha256"],
+            "evidence_type": "tested_private_security_channel",
+            "channel_tested": True,
+            "maintainer_waiver": False,
+        }
+        expected_provenance = "tested_private_security_channel_receipt"
+    elif receipt_name == SECURITY_CHANNEL_WAIVER_RECEIPT_NAME:
+        receipt_payload, receipt_document = _load_self_hashed_receipt(
+            files.get(SECURITY_CHANNEL_WAIVER_RECEIPT_NAME),
+            field="embedded private security channel maintainer waiver receipt",
+            missing_blocker="EMBEDDED_SECURITY_CHANNEL_EVIDENCE_MISSING",
+            schema_path=SECURITY_CHANNEL_WAIVER_SCHEMA_PATH,
+        )
+        channel = receipt_document.get("security_channel_waiver")
+        if not isinstance(channel, Mapping) or {
+            "provider": channel.get("provider"),
+            "enabled": channel.get("enabled"),
+            "independent_test_completed": channel.get("independent_test_completed"),
+            "decision": channel.get("decision"),
+            "evidence_basis": channel.get("evidence_basis"),
+        } != {
+            "provider": "github_private_vulnerability_reporting",
+            "enabled": True,
+            "independent_test_completed": False,
+            "decision": "maintainer_waived_for_release_candidate",
+            "evidence_basis": (
+                "explicit_human_maintainer_attestation_and_bound_waiver_file"
+            ),
+        }:
+            raise PublicationSuccessorError(
+                "EMBEDDED_SECURITY_CHANNEL_EVIDENCE_MISMATCH",
+                "embedded waiver receipt does not retain incomplete-test waiver semantics",
+            )
+        source_control = manifest.get("source_control")
+        git_source_commit = (
+            source_control.get("git_source_commit")
+            if isinstance(source_control, Mapping)
+            else None
+        )
+        if not isinstance(git_source_commit, str):
+            raise PublicationSuccessorError(
+                "EMBEDDED_SECURITY_CHANNEL_TARGET_MISMATCH",
+                "publication successor manifest has no bound source commit",
+            )
+        _validate_waiver_source_binding(
+            receipt_document, git_source_commit=git_source_commit
+        )
+        expected_projection = {
+            "path": SECURITY_CHANNEL_WAIVER_RECEIPT_NAME,
+            "file_sha256": receipt_payload.file_sha256,
+            "receipt_sha256": receipt_document["receipt_sha256"],
+            "evidence_type": "maintainer_waiver_without_independent_test",
+            "channel_tested": False,
+            "maintainer_waiver": True,
+        }
+        expected_provenance = "private_security_channel_waiver_receipt"
+    else:
+        raise PublicationSuccessorError(
+            "EMBEDDED_SECURITY_CHANNEL_EVIDENCE_MISMATCH",
+            "private security channel evidence references an unsupported receipt path",
+        )
+
+    if dict(projection) != expected_projection:
+        raise PublicationSuccessorError(
+            "EMBEDDED_SECURITY_CHANNEL_EVIDENCE_MISMATCH",
+            "private security channel manifest projection does not match its embedded receipt",
+        )
+    expected_target = {
+        "package_version": manifest.get("package_version"),
+        "github_repository": manifest.get("publication_targets", {}).get(
+            "github_repository"
+        ),
+        "hugging_face_repository": manifest.get("publication_targets", {}).get(
+            "hugging_face_repository"
+        ),
+    }
+    if receipt_name == SECURITY_CHANNEL_WAIVER_RECEIPT_NAME:
+        expected_target["git_source_commit"] = manifest.get("source_control", {}).get(
+            "git_source_commit"
+        )
+    if receipt_document.get("target") != expected_target:
+        raise PublicationSuccessorError(
+            "EMBEDDED_SECURITY_CHANNEL_TARGET_MISMATCH",
+            "embedded private security channel evidence targets a different publication",
+        )
+    security_path = files.get("SECURITY.md")
+    if security_path is None:
+        raise PublicationSuccessorError(
+            "EMBEDDED_SECURITY_CHANNEL_SECURITY_MISSING",
+            "publication successor has no SECURITY.md to bind",
+        )
+    security_sha256, _security_size = _hash_regular_file(
+        security_path, field="manifest-bound publication SECURITY.md"
+    )
+    if receipt_document.get("security_file_sha256") != security_sha256:
+        raise PublicationSuccessorError(
+            "EMBEDDED_SECURITY_CHANNEL_SECURITY_BINDING_MISMATCH",
+            "embedded private security channel evidence does not bind SECURITY.md",
+        )
+    payload_binding = payload_files.get(receipt_name)
+    if not isinstance(payload_binding, Mapping) or payload_binding.get(
+        "provenance"
+    ) != expected_provenance:
+        raise PublicationSuccessorError(
+            "EMBEDDED_SECURITY_CHANNEL_PROVENANCE_MISMATCH",
+            "private security channel payload provenance does not match its receipt type",
+        )
 
 
 def verify_successor_package(directory: Path) -> dict[str, Any]:
@@ -1329,6 +1679,11 @@ def verify_successor_package(directory: Path) -> dict[str, Any]:
             "MANIFEST_PAYLOAD_INVENTORY_MISMATCH",
             "publication successor manifest payload inventory hash does not verify",
         )
+    _validate_embedded_private_security_channel_evidence(
+        files=files,
+        manifest=manifest,
+        payload_files=payload_files,
+    )
     return {
         "file_count": len(files),
         "verified_file_count": len(declared),
@@ -1374,9 +1729,9 @@ def build_publication_successor(plan: BuildPlan) -> dict[str, Any]:
                 plan.license_approval_receipt,
                 "human_license_approval_receipt",
             ),
-            SECURITY_CHANNEL_RECEIPT_NAME: (
+            plan.security_channel_receipt_name: (
                 plan.security_channel_receipt,
-                "tested_private_security_channel_receipt",
+                plan.security_channel_provenance,
             ),
             HF_GITATTRIBUTES_NAME: (
                 plan.huggingface_gitattributes,
@@ -1440,6 +1795,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--final-local-receipt", type=Path)
     parser.add_argument("--human-license-approval-receipt", type=Path)
     parser.add_argument("--tested-private-security-channel-receipt", type=Path)
+    parser.add_argument("--private-security-channel-waiver-receipt", type=Path)
     parser.add_argument("--git-source-commit", required=True)
     parser.add_argument("--github-repository", required=True)
     parser.add_argument("--hugging-face-repository", required=True)
@@ -1463,6 +1819,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             final_local_receipt=args.final_local_receipt,
             human_license_approval_receipt=args.human_license_approval_receipt,
             tested_private_security_channel_receipt=(args.tested_private_security_channel_receipt),
+            private_security_channel_waiver_receipt=(
+                args.private_security_channel_waiver_receipt
+            ),
             git_source_commit=args.git_source_commit,
             github_repository=args.github_repository,
             hugging_face_repository=args.hugging_face_repository,

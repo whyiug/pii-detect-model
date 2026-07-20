@@ -1556,20 +1556,41 @@
           "$ref": "#/$defs/sha256"
         },
         "required_files": {
-          "const": [
-            ".gitattributes",
-            "LICENSE",
-            "NOTICE",
-            "README.md",
-            "SECURITY.md",
-            "THIRD_PARTY_NOTICES.md",
-            "checksums.txt",
-            "community_v2_final_local_receipt.json",
-            "config.json",
-            "human_license_approval_receipt.json",
-            "model.safetensors",
-            "publication_manifest.json",
-            "tested_private_security_channel_receipt.json"
+          "oneOf": [
+            {
+              "const": [
+                ".gitattributes",
+                "LICENSE",
+                "NOTICE",
+                "README.md",
+                "SECURITY.md",
+                "THIRD_PARTY_NOTICES.md",
+                "checksums.txt",
+                "community_v2_final_local_receipt.json",
+                "config.json",
+                "human_license_approval_receipt.json",
+                "model.safetensors",
+                "publication_manifest.json",
+                "tested_private_security_channel_receipt.json"
+              ]
+            },
+            {
+              "const": [
+                ".gitattributes",
+                "LICENSE",
+                "NOTICE",
+                "README.md",
+                "SECURITY.md",
+                "THIRD_PARTY_NOTICES.md",
+                "checksums.txt",
+                "community_v2_final_local_receipt.json",
+                "config.json",
+                "human_license_approval_receipt.json",
+                "model.safetensors",
+                "publication_manifest.json",
+                "private_security_channel_waiver_receipt.json"
+              ]
+            }
           ]
         },
         "download_verification": {

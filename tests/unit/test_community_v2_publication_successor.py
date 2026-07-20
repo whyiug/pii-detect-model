@@ -14,7 +14,7 @@ from jsonschema import Draft202012Validator
 from scripts import build_community_v2_publication_successor as successor
 
 GITHUB_REPOSITORY = "whyiug/pii-detect-model"
-HUGGING_FACE_REPOSITORY = "maintainer/pii-zh-qwen3-0.6b-24class"
+HUGGING_FACE_REPOSITORY = "Forrest20231206/pii-zh-qwen3-0.6b-24class"
 GIT_SOURCE_COMMIT = "a" * 40
 
 
@@ -249,6 +249,35 @@ def _fixture_inputs(tmp_path: Path) -> dict[str, Path]:
     )
     channel_path = tmp_path / "security-channel-test.json"
     _write_json(channel_path, channel_receipt)
+    waiver_receipt = _seal(
+        {
+            "schema_version": (
+                "pii-zh.community-v2-private-security-channel-waiver-receipt.v1"
+            ),
+            "target": {**target, "git_source_commit": GIT_SOURCE_COMMIT},
+            "security_channel_waiver": {
+                "provider": "github_private_vulnerability_reporting",
+                "enabled": True,
+                "independent_test_completed": False,
+                "decision": "maintainer_waived_for_release_candidate",
+                "authorized_by": "fixture-maintainer",
+                "authorized_at": "2026-07-20T08:05:00Z",
+                "evidence_basis": (
+                    "explicit_human_maintainer_attestation_and_bound_waiver_file"
+                ),
+                "waiver_id": "maintainer-waiver-001",
+            },
+            "security_file_sha256": _sha256(security.read_bytes()),
+            "waiver_file_sha256": _sha256(
+                (
+                    successor.REPOSITORY_ROOT
+                    / successor.SECURITY_CHANNEL_WAIVER_SOURCE_PATH
+                ).read_bytes()
+            ),
+        }
+    )
+    waiver_path = tmp_path / "security-channel-waiver.json"
+    _write_json(waiver_path, waiver_receipt)
     return {
         "source": source,
         "model_card": model_card,
@@ -258,6 +287,7 @@ def _fixture_inputs(tmp_path: Path) -> dict[str, Path]:
         "final_receipt": final_receipt,
         "license_receipt": license_path,
         "channel_receipt": channel_path,
+        "waiver_receipt": waiver_path,
     }
 
 
@@ -271,7 +301,32 @@ def _prepare(tmp_path: Path, inputs: dict[str, Path]) -> successor.BuildPlan:
         third_party_notices=inputs["third_party_notices"],
         final_local_receipt=inputs["final_receipt"],
         human_license_approval_receipt=inputs["license_receipt"],
-        tested_private_security_channel_receipt=inputs["channel_receipt"],
+        tested_private_security_channel_receipt=None,
+        private_security_channel_waiver_receipt=inputs["waiver_receipt"],
+        git_source_commit=GIT_SOURCE_COMMIT,
+        github_repository=GITHUB_REPOSITORY,
+        hugging_face_repository=HUGGING_FACE_REPOSITORY,
+    )
+
+
+def _prepare_with_channel_evidence(
+    tmp_path: Path,
+    inputs: dict[str, Path],
+    *,
+    tested_receipt: Path | None,
+    waiver_receipt: Path | None,
+) -> successor.BuildPlan:
+    return successor.prepare_build_plan(
+        source_package=inputs["source"],
+        output=tmp_path / "publication-successor",
+        model_card=inputs["model_card"],
+        security=inputs["security"],
+        notice=inputs["notice"],
+        third_party_notices=inputs["third_party_notices"],
+        final_local_receipt=inputs["final_receipt"],
+        human_license_approval_receipt=inputs["license_receipt"],
+        tested_private_security_channel_receipt=tested_receipt,
+        private_security_channel_waiver_receipt=waiver_receipt,
         git_source_commit=GIT_SOURCE_COMMIT,
         github_repository=GITHUB_REPOSITORY,
         hugging_face_repository=HUGGING_FACE_REPOSITORY,
@@ -341,6 +396,16 @@ def test_builds_checksum_closed_successor_without_mutating_source(tmp_path: Path
         "hugging_face_commit": None,
     }
     assert manifest["publication_authorization_source"] == "external_receipts"
+    assert manifest["approval_evidence"]["private_security_channel"] == {
+        "path": successor.SECURITY_CHANNEL_WAIVER_RECEIPT_NAME,
+        "file_sha256": _sha256(inputs["waiver_receipt"].read_bytes()),
+        "receipt_sha256": plan.security_channel_document["receipt_sha256"],
+        "evidence_type": "maintainer_waiver_without_independent_test",
+        "channel_tested": False,
+        "maintainer_waiver": True,
+    }
+    assert (output / successor.SECURITY_CHANNEL_WAIVER_RECEIPT_NAME).is_file()
+    assert not (output / successor.SECURITY_CHANNEL_RECEIPT_NAME).exists()
     gitattributes_binding = manifest["payload_files"][successor.HF_GITATTRIBUTES_NAME]
     assert gitattributes_binding["provenance"] == "reviewed_hugging_face_gitattributes"
     assert gitattributes_binding["transfer_method"] == "copy"
@@ -366,6 +431,202 @@ def test_builds_checksum_closed_successor_without_mutating_source(tmp_path: Path
     assert (output / "model.safetensors").stat().st_ino != (
         inputs["source"] / "model.safetensors"
     ).stat().st_ino
+
+
+def test_builds_successor_with_explicit_maintainer_waiver_without_claiming_tested(
+    tmp_path: Path,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    plan = _prepare_with_channel_evidence(
+        tmp_path,
+        inputs,
+        tested_receipt=None,
+        waiver_receipt=inputs["waiver_receipt"],
+    )
+
+    successor.build_publication_successor(plan)
+
+    output = plan.output
+    assert (output / successor.SECURITY_CHANNEL_WAIVER_RECEIPT_NAME).read_bytes() == inputs[
+        "waiver_receipt"
+    ].read_bytes()
+    assert not (output / successor.SECURITY_CHANNEL_RECEIPT_NAME).exists()
+    manifest = json.loads((output / successor.MANIFEST_NAME).read_text(encoding="utf-8"))
+    assert manifest["approval_evidence"]["private_security_channel"] == {
+        "path": successor.SECURITY_CHANNEL_WAIVER_RECEIPT_NAME,
+        "file_sha256": _sha256(inputs["waiver_receipt"].read_bytes()),
+        "receipt_sha256": plan.security_channel_document["receipt_sha256"],
+        "evidence_type": "maintainer_waiver_without_independent_test",
+        "channel_tested": False,
+        "maintainer_waiver": True,
+    }
+    assert manifest["payload_files"][successor.SECURITY_CHANNEL_WAIVER_RECEIPT_NAME][
+        "provenance"
+    ] == "private_security_channel_waiver_receipt"
+    assert successor.verify_successor_package(output)["verified_file_count"] > 0
+
+
+@pytest.mark.parametrize(
+    ("tested", "waiver"),
+    [
+        (None, None),
+        ("tested", "waiver"),
+    ],
+)
+def test_private_security_channel_evidence_requires_exactly_one_receipt(
+    tmp_path: Path,
+    tested: str | None,
+    waiver: str | None,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        _prepare_with_channel_evidence(
+            tmp_path,
+            inputs,
+            tested_receipt=inputs["channel_receipt"] if tested else None,
+            waiver_receipt=inputs["waiver_receipt"] if waiver else None,
+        )
+    assert captured.value.blocker_id == (
+        "PRIVATE_SECURITY_CHANNEL_EVIDENCE_EXACTLY_ONE_REQUIRED"
+    )
+    assert not (tmp_path / "publication-successor").exists()
+
+
+def test_committed_waiver_policy_rejects_tested_receipt_for_same_release(
+    tmp_path: Path,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        _prepare_with_channel_evidence(
+            tmp_path,
+            inputs,
+            tested_receipt=inputs["channel_receipt"],
+            waiver_receipt=None,
+        )
+    assert captured.value.blocker_id == "SOURCE_POLICY_REQUIRES_MAINTAINER_WAIVER"
+
+
+def test_private_security_channel_waiver_self_hash_tamper_fails_closed(
+    tmp_path: Path,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    waiver = json.loads(inputs["waiver_receipt"].read_text(encoding="utf-8"))
+    waiver["security_channel_waiver"]["authorized_by"] = "tampered-maintainer"
+    _write_json(inputs["waiver_receipt"], waiver)
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        _prepare_with_channel_evidence(
+            tmp_path,
+            inputs,
+            tested_receipt=None,
+            waiver_receipt=inputs["waiver_receipt"],
+        )
+    assert captured.value.blocker_id == "RECEIPT_SELF_HASH_MISMATCH"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("independent_test_completed", True),
+        ("decision", "accepted_private_test_report"),
+    ],
+)
+def test_waiver_cannot_claim_a_test_or_replace_explicit_maintainer_decision(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    waiver = json.loads(inputs["waiver_receipt"].read_text(encoding="utf-8"))
+    waiver["security_channel_waiver"][field] = value
+    _write_json(inputs["waiver_receipt"], _seal(waiver))
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        _prepare_with_channel_evidence(
+            tmp_path,
+            inputs,
+            tested_receipt=None,
+            waiver_receipt=inputs["waiver_receipt"],
+        )
+    assert captured.value.blocker_id == "RECEIPT_SCHEMA_REJECTED"
+
+
+@pytest.mark.parametrize(
+    "mismatch", ["target", "git_source_commit", "security", "waiver_source"]
+)
+def test_private_security_channel_waiver_release_bindings_must_match(
+    tmp_path: Path,
+    mismatch: str,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    waiver = json.loads(inputs["waiver_receipt"].read_text(encoding="utf-8"))
+    if mismatch == "target":
+        waiver["target"]["github_repository"] = "different-owner/pii-detect-model"
+    elif mismatch == "git_source_commit":
+        waiver["target"]["git_source_commit"] = "b" * 40
+    elif mismatch == "security":
+        waiver["security_file_sha256"] = "0" * 64
+    else:
+        waiver["waiver_file_sha256"] = "0" * 64
+    _write_json(inputs["waiver_receipt"], _seal(waiver))
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        _prepare_with_channel_evidence(
+            tmp_path,
+            inputs,
+            tested_receipt=None,
+            waiver_receipt=inputs["waiver_receipt"],
+        )
+    expected = {
+        "target": "PRIVATE_SECURITY_CHANNEL_WAIVER_SOURCE_TARGET_MISMATCH",
+        "git_source_commit": "PRIVATE_SECURITY_CHANNEL_WAIVER_COMMIT_MISMATCH",
+        "security": "SECURITY_CHANNEL_BINDING_MISMATCH",
+        "waiver_source": "PRIVATE_SECURITY_CHANNEL_WAIVER_SOURCE_MISMATCH",
+    }
+    assert captured.value.blocker_id == expected[mismatch]
+
+
+def test_waiver_cli_flag_is_accepted_in_preflight(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    output = tmp_path / "publication-successor"
+    return_code = successor.main(
+        [
+            "--source-package",
+            str(inputs["source"]),
+            "--output",
+            str(output),
+            "--model-card",
+            str(inputs["model_card"]),
+            "--security",
+            str(inputs["security"]),
+            "--notice",
+            str(inputs["notice"]),
+            "--third-party-notices",
+            str(inputs["third_party_notices"]),
+            "--final-local-receipt",
+            str(inputs["final_receipt"]),
+            "--human-license-approval-receipt",
+            str(inputs["license_receipt"]),
+            "--private-security-channel-waiver-receipt",
+            str(inputs["waiver_receipt"]),
+            "--git-source-commit",
+            GIT_SOURCE_COMMIT,
+            "--github-repository",
+            GITHUB_REPOSITORY,
+            "--hugging-face-repository",
+            HUGGING_FACE_REPOSITORY,
+            "--dry-run",
+        ]
+    )
+    report = json.loads(capsys.readouterr().out)
+    assert return_code == 0
+    assert report["status"] == "READY"
+    assert report["mode"] == "preflight"
+    assert report["remote_write_performed"] is False
+    assert not output.exists()
 
 
 def test_staged_model_weights_do_not_follow_later_source_writes(tmp_path: Path) -> None:
@@ -450,6 +711,128 @@ def test_verifier_rejects_resealed_manifest_payload_inventory_hash_lie(
     with pytest.raises(successor.PublicationSuccessorError) as captured:
         successor.verify_successor_package(plan.output)
     assert captured.value.blocker_id == "MANIFEST_PAYLOAD_INVENTORY_MISMATCH"
+
+
+def test_verifier_cannot_relabel_embedded_waiver_as_tested_receipt(
+    tmp_path: Path,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    plan = _prepare_with_channel_evidence(
+        tmp_path,
+        inputs,
+        tested_receipt=None,
+        waiver_receipt=inputs["waiver_receipt"],
+    )
+    successor.build_publication_successor(plan)
+    waiver_path = plan.output / successor.SECURITY_CHANNEL_WAIVER_RECEIPT_NAME
+    tested_path = plan.output / successor.SECURITY_CHANNEL_RECEIPT_NAME
+    waiver_path.rename(tested_path)
+
+    manifest_path = plan.output / successor.MANIFEST_NAME
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    binding = manifest["payload_files"].pop(
+        successor.SECURITY_CHANNEL_WAIVER_RECEIPT_NAME
+    )
+    binding["provenance"] = "tested_private_security_channel_receipt"
+    manifest["payload_files"][successor.SECURITY_CHANNEL_RECEIPT_NAME] = binding
+    manifest["approval_evidence"]["private_security_channel"] = {
+        "path": successor.SECURITY_CHANNEL_RECEIPT_NAME,
+        "file_sha256": _sha256(tested_path.read_bytes()),
+        "receipt_sha256": plan.security_channel_document["receipt_sha256"],
+        "evidence_type": "tested_private_security_channel",
+        "channel_tested": True,
+        "maintainer_waiver": False,
+    }
+    manifest["payload_inventory_sha256"] = successor.canonical_json_hash(
+        manifest["payload_files"]
+    )
+    manifest["manifest_sha256"] = successor.canonical_json_hash(
+        manifest, remove="manifest_sha256"
+    )
+    _write_json(manifest_path, manifest)
+    _write_checksums(plan.output)
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        successor.verify_successor_package(plan.output)
+    assert captured.value.blocker_id == "SOURCE_POLICY_REQUIRES_MAINTAINER_WAIVER"
+
+
+def test_verifier_rejects_fully_resealed_waiver_to_valid_tested_receipt(
+    tmp_path: Path,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    plan = _prepare(tmp_path, inputs)
+    successor.build_publication_successor(plan)
+
+    waiver_path = plan.output / successor.SECURITY_CHANNEL_WAIVER_RECEIPT_NAME
+    tested_path = plan.output / successor.SECURITY_CHANNEL_RECEIPT_NAME
+    waiver_path.unlink()
+    tested_receipt = json.loads(
+        inputs["channel_receipt"].read_text(encoding="utf-8")
+    )
+    tested_receipt["target"]["github_repository"] = "WHYIUG/pii-detect-model"
+    tested_receipt = _seal(tested_receipt)
+    _write_json(tested_path, tested_receipt)
+
+    manifest_path = plan.output / successor.MANIFEST_NAME
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["publication_targets"]["github_repository"] = "WHYIUG/pii-detect-model"
+    binding = manifest["payload_files"].pop(
+        successor.SECURITY_CHANNEL_WAIVER_RECEIPT_NAME
+    )
+    binding.update(
+        {
+            "file_sha256": _sha256(tested_path.read_bytes()),
+            "size_bytes": tested_path.stat().st_size,
+            "provenance": "tested_private_security_channel_receipt",
+        }
+    )
+    manifest["payload_files"][successor.SECURITY_CHANNEL_RECEIPT_NAME] = binding
+    manifest["approval_evidence"]["private_security_channel"] = {
+        "path": successor.SECURITY_CHANNEL_RECEIPT_NAME,
+        "file_sha256": _sha256(tested_path.read_bytes()),
+        "receipt_sha256": tested_receipt["receipt_sha256"],
+        "evidence_type": "tested_private_security_channel",
+        "channel_tested": True,
+        "maintainer_waiver": False,
+    }
+    manifest["payload_inventory_sha256"] = successor.canonical_json_hash(
+        manifest["payload_files"]
+    )
+    manifest["manifest_sha256"] = successor.canonical_json_hash(
+        manifest, remove="manifest_sha256"
+    )
+    _write_json(manifest_path, manifest)
+    _write_checksums(plan.output)
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        successor.verify_successor_package(plan.output)
+    assert captured.value.blocker_id == (
+        "PRIVATE_SECURITY_CHANNEL_WAIVER_SOURCE_TARGET_MISMATCH"
+    )
+
+
+def test_waiver_manifest_binding_rejects_legacy_tested_flag(tmp_path: Path) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    plan = _prepare_with_channel_evidence(
+        tmp_path,
+        inputs,
+        tested_receipt=None,
+        waiver_receipt=inputs["waiver_receipt"],
+    )
+    successor.build_publication_successor(plan)
+    manifest_path = plan.output / successor.MANIFEST_NAME
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["approval_evidence"]["private_security_channel"]["tested"] = True
+    manifest["manifest_sha256"] = successor.canonical_json_hash(
+        manifest, remove="manifest_sha256"
+    )
+    _write_json(manifest_path, manifest)
+    _write_checksums(plan.output)
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        successor.verify_successor_package(plan.output)
+    assert captured.value.blocker_id == "RECEIPT_SCHEMA_REJECTED"
 
 
 def test_hugging_face_gitattributes_template_drift_fails_closed(
@@ -619,9 +1002,14 @@ def test_license_receipt_must_bind_publication_not_old_source_notices(
     ["missing_evidence_basis", "remote_verified_evidence", "blank_tested_by"],
 )
 def test_security_receipt_requires_human_non_remote_evidence_contract(
-    tmp_path: Path, mutation: str
+    tmp_path: Path, mutation: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     inputs = _fixture_inputs(tmp_path)
+    monkeypatch.setattr(
+        successor,
+        "SECURITY_CHANNEL_WAIVER_SOURCE_PATH",
+        tmp_path / "no-committed-waiver-policy.md",
+    )
     channel = json.loads(inputs["channel_receipt"].read_text(encoding="utf-8"))
     if mutation == "missing_evidence_basis":
         channel["channel_test"].pop("evidence_basis")
@@ -632,7 +1020,12 @@ def test_security_receipt_requires_human_non_remote_evidence_contract(
     _write_json(inputs["channel_receipt"], _seal(channel))
 
     with pytest.raises(successor.PublicationSuccessorError) as captured:
-        _prepare(tmp_path, inputs)
+        _prepare_with_channel_evidence(
+            tmp_path,
+            inputs,
+            tested_receipt=inputs["channel_receipt"],
+            waiver_receipt=None,
+        )
     assert captured.value.blocker_id == "RECEIPT_SCHEMA_REJECTED"
 
 
@@ -651,9 +1044,9 @@ def test_successor_rejects_security_without_exact_target_reporting_url(
 ) -> None:
     inputs = _fixture_inputs(tmp_path)
     inputs["security"].write_text(security_text, encoding="utf-8")
-    channel = json.loads(inputs["channel_receipt"].read_text(encoding="utf-8"))
-    channel["security_file_sha256"] = _sha256(inputs["security"].read_bytes())
-    _write_json(inputs["channel_receipt"], _seal(channel))
+    waiver = json.loads(inputs["waiver_receipt"].read_text(encoding="utf-8"))
+    waiver["security_file_sha256"] = _sha256(inputs["security"].read_bytes())
+    _write_json(inputs["waiver_receipt"], _seal(waiver))
 
     with pytest.raises(successor.PublicationSuccessorError) as captured:
         _prepare(tmp_path, inputs)

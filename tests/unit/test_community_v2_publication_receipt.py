@@ -356,6 +356,14 @@ def _github_release_assets_document(
 
 
 def _hugging_face_document() -> dict[str, Any]:
+    paths = tuple(
+        sorted(
+            (
+                *publication.REQUIRED_HUGGING_FACE_FILES,
+                "private_security_channel_waiver_receipt.json",
+            )
+        )
+    )
     inventory = [
         {
             "path": path,
@@ -368,7 +376,7 @@ def _hugging_face_document() -> dict[str, Any]:
             ),
             "downloaded_sha256": _sha256(f"remote file {path}"),
         }
-        for index, path in enumerate(publication.REQUIRED_HUGGING_FACE_FILES)
+        for index, path in enumerate(paths)
     ]
     readme = next(item for item in inventory if item["path"] == "README.md")
     return _seal(
@@ -403,6 +411,46 @@ def _hugging_face_document() -> dict[str, Any]:
             },
         }
     )
+
+
+@pytest.mark.parametrize("mode", ["missing", "both"])
+def test_hf_requires_exactly_one_private_security_channel_evidence(mode: str) -> None:
+    document = _hugging_face_document()
+    inventory = document["inventory"]
+    waiver = next(
+        item
+        for item in inventory
+        if item["path"] == "private_security_channel_waiver_receipt.json"
+    )
+    if mode == "missing":
+        inventory.remove(waiver)
+    else:
+        tested = copy.deepcopy(waiver)
+        tested["path"] = "tested_private_security_channel_receipt.json"
+        tested["remote_oid"] = _sha256("tested channel remote oid")[:40]
+        tested["downloaded_sha256"] = _sha256("tested channel receipt")
+        inventory.append(tested)
+        inventory.sort(key=lambda item: item["path"])
+
+    with pytest.raises(publication.PublicationReceiptError) as captured:
+        publication._validate_hugging_face_relationships(document)
+    assert (
+        captured.value.blocker_id
+        == "HF_PRIVATE_SECURITY_CHANNEL_EVIDENCE_CARDINALITY"
+    )
+
+
+def test_hf_accepts_tested_private_security_channel_evidence_alternative() -> None:
+    document = _hugging_face_document()
+    waiver = next(
+        item
+        for item in document["inventory"]
+        if item["path"] == "private_security_channel_waiver_receipt.json"
+    )
+    waiver["path"] = "tested_private_security_channel_receipt.json"
+    document["inventory"].sort(key=lambda item: item["path"])
+
+    publication._validate_hugging_face_relationships(document)
 
 
 def _download_document(hugging_face: dict[str, Any]) -> dict[str, Any]:

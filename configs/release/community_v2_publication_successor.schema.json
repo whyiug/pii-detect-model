@@ -113,7 +113,7 @@
       "required": [
         "final_local_receipt",
         "human_license_approval",
-        "tested_private_security_channel"
+        "private_security_channel"
       ],
       "properties": {
         "final_local_receipt": {
@@ -158,24 +158,58 @@
             }
           ]
         },
-        "tested_private_security_channel": {
+        "private_security_channel": {
           "allOf": [
             {
               "$ref": "#/$defs/receiptBinding"
             },
             {
-              "type": "object",
-              "required": [
-                "tested"
-              ],
-              "properties": {
-                "path": {
-                  "const": "tested_private_security_channel_receipt.json"
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "evidence_type",
+                    "channel_tested",
+                    "maintainer_waiver"
+                  ],
+                  "properties": {
+                    "path": {
+                      "const": "tested_private_security_channel_receipt.json"
+                    },
+                    "evidence_type": {
+                      "const": "tested_private_security_channel"
+                    },
+                    "channel_tested": {
+                      "const": true
+                    },
+                    "maintainer_waiver": {
+                      "const": false
+                    }
+                  }
                 },
-                "tested": {
-                  "const": true
+                {
+                  "type": "object",
+                  "required": [
+                    "evidence_type",
+                    "channel_tested",
+                    "maintainer_waiver"
+                  ],
+                  "properties": {
+                    "path": {
+                      "const": "private_security_channel_waiver_receipt.json"
+                    },
+                    "evidence_type": {
+                      "const": "maintainer_waiver_without_independent_test"
+                    },
+                    "channel_tested": {
+                      "const": false
+                    },
+                    "maintainer_waiver": {
+                      "const": true
+                    }
+                  }
                 }
-              }
+              ]
             }
           ]
         }
@@ -212,8 +246,29 @@
         "THIRD_PARTY_NOTICES.md",
         "model.safetensors",
         "community_v2_final_local_receipt.json",
-        "human_license_approval_receipt.json",
-        "tested_private_security_channel_receipt.json"
+        "human_license_approval_receipt.json"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "tested_private_security_channel_receipt.json"
+          ],
+          "not": {
+            "required": [
+              "private_security_channel_waiver_receipt.json"
+            ]
+          }
+        },
+        {
+          "required": [
+            "private_security_channel_waiver_receipt.json"
+          ],
+          "not": {
+            "required": [
+              "tested_private_security_channel_receipt.json"
+            ]
+          }
+        }
       ]
     },
     "payload_inventory_sha256": {
@@ -315,6 +370,7 @@
             "final_local_receipt",
             "human_license_approval_receipt",
             "tested_private_security_channel_receipt",
+            "private_security_channel_waiver_receipt",
             "reviewed_hugging_face_gitattributes"
           ]
         },
@@ -353,7 +409,16 @@
         "approved": {
           "type": "boolean"
         },
-        "tested": {
+        "evidence_type": {
+          "enum": [
+            "tested_private_security_channel",
+            "maintainer_waiver_without_independent_test"
+          ]
+        },
+        "channel_tested": {
+          "type": "boolean"
+        },
+        "maintainer_waiver": {
           "type": "boolean"
         }
       }

@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/private_security_channel_waiver_receipt.schema.json",
+  "title": "Private security channel release-candidate waiver receipt",
+  "description": "Closed, self-hashed receipt recording that GitHub Private Vulnerability Reporting is enabled, its independent end-to-end test is not complete, and a named maintainer explicitly waived that release-candidate gate. It does not claim a channel test passed and contains no advisory content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "target",
+    "security_channel_waiver",
+    "security_file_sha256",
+    "waiver_file_sha256",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-v2-private-security-channel-waiver-receipt.v1"
+    },
+    "target": {
+      "$ref": "#/$defs/publicationTarget"
+    },
+    "security_channel_waiver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "enabled",
+        "independent_test_completed",
+        "decision",
+        "evidence_basis",
+        "authorized_by",
+        "authorized_at",
+        "waiver_id"
+      ],
+      "properties": {
+        "provider": {
+          "const": "github_private_vulnerability_reporting"
+        },
+        "enabled": {
+          "const": true
+        },
+        "independent_test_completed": {
+          "const": false
+        },
+        "decision": {
+          "const": "maintainer_waived_for_release_candidate"
+        },
+        "evidence_basis": {
+          "const": "explicit_human_maintainer_attestation_and_bound_waiver_file"
+        },
+        "authorized_by": {
+          "$ref": "#/$defs/githubLogin"
+        },
+        "authorized_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "waiver_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 192,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+        }
+      }
+    },
+    "security_file_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "waiver_file_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repoId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "githubLogin": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 39,
+      "pattern": "^(?=.{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$"
+    },
+    "publicationTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_version",
+        "github_repository",
+        "hugging_face_repository",
+        "git_source_commit"
+      ],
+      "properties": {
+        "package_version": {
+          "const": "0.2.0rc1"
+        },
+        "github_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "hugging_face_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "git_source_commit": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        }
+      }
+    }
+  }
+}

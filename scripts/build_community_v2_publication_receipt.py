@@ -76,7 +76,12 @@ REQUIRED_HUGGING_FACE_FILES = (
     "human_license_approval_receipt.json",
     "model.safetensors",
     "publication_manifest.json",
-    "tested_private_security_channel_receipt.json",
+)
+PRIVATE_SECURITY_CHANNEL_EVIDENCE_FILES = frozenset(
+    {
+        "private_security_channel_waiver_receipt.json",
+        "tested_private_security_channel_receipt.json",
+    }
 )
 REQUIRED_GITHUB_RELEASE_ASSETS = {
     "checksums": "checksums.txt",
@@ -956,6 +961,15 @@ def _validate_hugging_face_relationships(document: Mapping[str, Any]) -> None:
             "HF_REQUIRED_FILES_MISSING",
             f"Hugging Face remote inventory lacks required file {missing[0]!r}",
         )
+    private_security_evidence = sorted(
+        set(paths) & PRIVATE_SECURITY_CHANNEL_EVIDENCE_FILES
+    )
+    if len(private_security_evidence) != 1:
+        raise PublicationReceiptError(
+            "HF_PRIVATE_SECURITY_CHANNEL_EVIDENCE_CARDINALITY",
+            "Hugging Face remote inventory must contain exactly one tested-channel or "
+            "maintainer-waiver security evidence receipt",
+        )
 
     cross_path = _validate_repo_path(
         cross_reference["path"], field="Hugging Face cross-reference path"
@@ -1273,6 +1287,11 @@ def build_publication_receipt(
     hf_cross = hugging_face["cross_reference"]
     assets = _release_assets(github)
     inventory = _hugging_face_inventory(hugging_face)
+    private_security_evidence_path = next(
+        item["path"]
+        for item in inventory
+        if item["path"] in PRIVATE_SECURITY_CHANNEL_EVIDENCE_FILES
+    )
     hf_revision_url = (
         f"https://huggingface.co/{hugging_face['repository']['id']}/tree/"
         f"{hf_revision['immutable_sha']}"
@@ -1326,7 +1345,10 @@ def build_publication_receipt(
             "requested_revision": hf_revision["requested_revision"],
             "inventory": inventory,
             "inventory_sha256": canonical_json_hash(inventory),
-            "required_files": list(REQUIRED_HUGGING_FACE_FILES),
+            "required_files": [
+                *REQUIRED_HUGGING_FACE_FILES,
+                private_security_evidence_path,
+            ],
             "download_verification": {
                 "repository": hf_download["repository"],
                 "immutable_sha": hf_download["resolved_commit"],

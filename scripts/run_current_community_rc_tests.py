@@ -60,6 +60,7 @@ PUBLIC_CLEAN_CHECKOUT_TEST_PATHS = (
     "tests/unit/test_release_eval_v2_stage_gate.py",
     "tests/unit/test_render_community_v2_publication_model_card.py",
     "tests/unit/test_render_community_v2_release_notes.py",
+    "tests/unit/test_private_security_channel_waiver_receipt.py",
     "tests/unit/test_tested_private_security_channel_receipt.py",
     "tests/unit/data/test_synthetic_sota_v2_resplit.py",
     "tests/unit/data/test_validators.py",

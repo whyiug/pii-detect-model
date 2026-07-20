@@ -9,8 +9,9 @@
 
 > 当前版本：`0.2.0rc1` community research preview candidate。模型和本地服务候选已经完成
 > machine-verifiable RC 验收，但尚未发布、不是生产版本。训练与主 Open-24 评测均为合成数据；
-> 许可证人审已完成，私密安全报告渠道仍未完成。本项目不声称“首个”“全局最强”“真实世界 SOTA”
-> 或合规保证。
+> 许可证人审已完成，GitHub Private Vulnerability Reporting 已启用，但独立端到端通道测试未完成；
+> 维护者仅对 `0.2.0rc1` 的该测试门禁做了显式 waiver。本项目不声称“首个”“全局最强”、
+> “真实世界 SOTA”或合规保证。
 
 English summary: a local-first Simplified Chinese PII token classifier and Presidio/rules/model
 cascade. This is a synthetic-data research candidate, not a production privacy control.
@@ -199,8 +200,8 @@ uv build --wheel
 ```
 
 current-RC runner 使用适合 GitHub 干净 checkout 的显式产品/发布测试 allowlist；它不会依赖未公开
-的历史冻结件、逐行数据或本机证据树。当前公开源码闭包为 429 tests。更大的本地历史回执是冻结
-候选证据，不代表当前 Git tree，也不替代这条 clean-checkout CI。所有正式验证均设置
+的历史冻结件、逐行数据或本机证据树。测试数以该 runner 在对应 source commit 的实际收集结果为准；
+更大的本地历史回执是冻结候选证据，不代表当前 Git tree，也不替代这条 clean-checkout CI。所有正式验证均设置
 `CUDA_VISIBLE_DEVICES=''`、`HF_HUB_OFFLINE=1` 和 `TRANSFORMERS_OFFLINE=1`，无需 GPU 或网络。
 
 核心文档：
@@ -234,8 +235,10 @@ docker/            本地训练/推理镜像模板
 - 只对你有权处理的文本运行 PII 检测；不要把真实 PII 提交到 issue、日志或公开复现。
 - 本地 API 默认绑定 `127.0.0.1`；不要无保护地暴露到公网。
 - 模型可能漏检或误检；脱敏前应结合场景阈值、人工抽检和回滚策略。
-- GitHub Private Vulnerability Reporting 已启用，但尚未完成独立账号的合成端到端实测；在实测回执
-  生成前，Hugging Face 模型上传和 GitHub Release 仍被阻塞，详见 [SECURITY.md](SECURITY.md)。
+- GitHub Private Vulnerability Reporting 已启用，但尚未完成独立账号的合成端到端实测。维护者
+  `whyiug` 仅对 `0.2.0rc1` 的该测试门禁做出显式 waiver，允许发布 staging 继续；这不表示渠道
+  测试通过，也不替代最终公开确认。详见 [SECURITY.md](SECURITY.md) 与
+  [waiver 记录](release/community-v2-rc1/PRIVATE_SECURITY_CHANNEL_WAIVER.md)。
 - 代码仓库使用 Apache-2.0；模型与依赖的机械归属见
   [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。冻结的机械 license report 保留
   `COMPLETE_HUMAN_APPROVAL_PENDING` 状态；维护者 `whyiug` 已于 2026-07-20 完成人工审批、无例外，

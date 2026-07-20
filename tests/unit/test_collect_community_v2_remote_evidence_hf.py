@@ -47,9 +47,13 @@ def _file_payloads() -> dict[str, bytes]:
         f"git_source_commit: {SOURCE_SHA}\n"
         f"release_tag: {collector.RELEASE_TAG}\n"
     ).encode()
+    required_paths = (
+        *publication.REQUIRED_HUGGING_FACE_FILES,
+        "private_security_channel_waiver_receipt.json",
+    )
     result = {
         path: f"offline fixture for {path}\n".encode()
-        for path in publication.REQUIRED_HUGGING_FACE_FILES
+        for path in required_paths
     }
     result[collector.HF_MODEL_CARD_PATH] = readme
     return result
@@ -270,7 +274,12 @@ def test_collect_hf_evidence_rechecks_private_immutable_state_without_weights(
 
     document = _collect(provenance, verification, transport)
 
-    expected_paths = sorted(publication.REQUIRED_HUGGING_FACE_FILES)
+    expected_paths = sorted(
+        (
+            *publication.REQUIRED_HUGGING_FACE_FILES,
+            "private_security_channel_waiver_receipt.json",
+        )
+    )
     assert provenance.mode == verification.mode == 0o444
     assert [item["path"] for item in document["inventory"]] == expected_paths
     assert len(document["inventory"]) == 13
