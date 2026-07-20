@@ -234,7 +234,8 @@ docker/            本地训练/推理镜像模板
 - 只对你有权处理的文本运行 PII 检测；不要把真实 PII 提交到 issue、日志或公开复现。
 - 本地 API 默认绑定 `127.0.0.1`；不要无保护地暴露到公网。
 - 模型可能漏检或误检；脱敏前应结合场景阈值、人工抽检和回滚策略。
-- 当前 [SECURITY.md](SECURITY.md) 仍明确记录：私密漏洞报告渠道尚未创建并实测，因此公开上传被阻塞。
+- GitHub Private Vulnerability Reporting 已启用，但尚未完成独立账号的合成端到端实测；在实测回执
+  生成前，Hugging Face 模型上传和 GitHub Release 仍被阻塞，详见 [SECURITY.md](SECURITY.md)。
 - 代码仓库使用 Apache-2.0；模型与依赖的机械归属见
   [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。冻结的机械 license report 保留
   `COMPLETE_HUMAN_APPROVAL_PENDING` 状态；维护者 `whyiug` 已于 2026-07-20 完成人工审批、无例外，
@@ -243,9 +244,9 @@ docker/            本地训练/推理镜像模板
 
 ## 发布状态
 
-本分支用于整理本地 release commit 与实际发布材料。本 README 不声称已经执行远端 push、tag、
-GitHub Release 或 Hugging Face upload。发布时必须验证精确 commit/tag/revision 和各制品 SHA-256，
-再由独立 publication receipt 双向绑定。
+本分支用于整理 release commit 与实际发布材料，GitHub 源码分支已经公开。本 README 不声称已经
+创建 tag、GitHub Release 或执行 Hugging Face upload。发布时必须验证精确 commit/tag/revision 和
+各制品 SHA-256，再由独立 publication receipt 双向绑定。
 
 参见 [v0.2.0rc1 release notes](release/community-v2-rc1/RELEASE_NOTES.md) 与
 [发布运行手册](release/community-v2-rc1/PUBLISHING.md)。

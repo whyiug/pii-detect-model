@@ -1,8 +1,9 @@
 # GitHub / Hugging Face 发布手册（community v2 RC1）
 
-> 本文件同时记录 private 暂存阶段状态和后续操作模板。2026-07-19 已按维护者授权创建两个 private
-> 仓库，并把当前 release-prep 分支推送到 GitHub；尚未创建或推送 tag，未上传模型，未创建
-> GitHub Release，也未切换为 public。后续远端写命令仍须在对应 checkbox 完成后逐条执行。
+> 本文件同时记录暂存阶段状态和后续操作模板。2026-07-19 已按维护者授权创建两个 private 仓库；
+> 2026-07-20 已将 GitHub 源码仓库切换为 public 并启用 Private Vulnerability Reporting，Hugging
+> Face 仓库仍为 private。尚未创建或推送 tag，未上传模型，未创建 GitHub Release。后续远端写
+> 命令仍须在对应 checkbox 完成后逐条执行。
 
 ## 1. 当前快照与硬停止条件
 
@@ -12,23 +13,23 @@
   `087b1c0e1b918e2c927c0653f312d8d0dc2954b6631b46fa22f9d7e194a84880`，回执文件
   SHA-256 为 `5248a9746ce0676856cb29ecdd183f232a6078cd4b94e7138c539fa5bc1675e7`。
 - [x] GitHub CLI 已登录。
-- [x] GitHub 目标 `whyiug/pii-detect-model` 已创建为 private；`origin` 使用不含凭据的 SSH URL，
+- [x] GitHub 目标 `whyiug/pii-detect-model` 已切换为 public；`origin` 使用不含凭据的 SSH URL，
   `agent/community-v2-release-prep` 已推送并跟踪同名远端分支。
-- [x] Hugging Face CLI 已在官方 Hub 验证登录，当前用户为 `Forrest20231206`，可见组织为
-  `SparkShieldLab`；本文件没有记录或输出 token。
+- [ ] Hugging Face CLI 曾在官方 Hub 验证为 `Forrest20231206`；2026-07-20 上传前复核发现本机保存
+  的凭据已经失效，必须由维护者交互轮换并重新运行 `hf auth whoami`。本文件不记录或输出 token。
 - [x] 发布 namespace 已确定为 `Forrest20231206`；private model repo
   `Forrest20231206/pii-zh-qwen3-0.6b-24class` 已创建，当前只有平台初始化的 `.gitattributes`，未上传
   模型包。
-- [ ] GitHub hosted CI 仍是最终门禁：private 仓库首次推送时，source-prep commit `aabb84ac...`
-  的动态 CI 已通过；workflow 现支持对 release-prep 分支手动 dispatch，后续每个拟发布 commit 都须
-  记录与其完整 SHA 精确匹配的成功运行。本地验证不能替代该检查。
+- [ ] GitHub hosted CI 仍是最终门禁：commit
+  `565ceafd82f4c1001a0c4bf36e6ffc493f4e6e71` 的 workflow-dispatch CI 已通过；后续每个拟发布
+  commit 都须记录与其完整 SHA 精确匹配的成功运行。本地验证不能替代该检查。
 - [x] 维护者 `whyiug` 已于 2026-07-20 审批 GitHub/Hugging Face 公开分发、无例外；冻结的机械
   license inventory 仍保留 `COMPLETE_HUMAN_APPROVAL_PENDING` 历史状态，外部自哈希回执绑定最终
   `LICENSE`、`NOTICE` 和 `THIRD_PARTY_NOTICES.md`。回执时间为 `2026-07-20T02:19:17Z`，语义
   `receipt_sha256` 为 `0d1862151175c36e0ec262f381ce2e1af0c002e7131ed80f035881397b4cc738`，
   回执文件 SHA-256 为 `501fd5080a9748030d9875d331b24d479eca90fff483e911ec2410b35489619c`。
-- [ ] GitHub Private Vulnerability Reporting 只对 public repository 可用；当前 private 仓库的只读 API
-  检查返回 404。必须另行授权公开 GitHub 源码仓库、保持 HF 模型 private，再启用并实测该渠道。
+- [ ] GitHub 源码仓库已为 public，Private Vulnerability Reporting API 返回 `enabled=true`；仍须由
+  无管理权限账号提交纯合成报告并由维护者验证接收，才能生成安全渠道回执并关闭本门禁。
 - [ ] `$RELEASE_RUN/model-package-v2r2` 不是可上传包：其中 `SECURITY.md` 是旧版且明确说没有
   已测试私密报告渠道，模型卡仍为 `unpublished_local_candidate`，并含
   `community_v2_preauthorization.json`。其中 false-only config/remote-code 字段是冻结候选 lineage，
@@ -156,10 +157,10 @@ export HF_REPO_ID="$HF_NAMESPACE/pii-zh-qwen3-0.6b-24class"
 printf '%s\n' "$HF_REPO_ID"
 ```
 
-### 4.2 已建立 private GitHub 暂存仓库；源码公开与安全渠道待办
+### 4.2 GitHub 已公开并启用安全渠道；独立实测待办
 
-private 仓库创建、`origin` 添加和 release-prep 分支首推已经完成，不要重复执行创建命令。先用
-以下只读命令复核：
+仓库创建、`origin` 添加、release-prep 分支首推、源码公开和 Private Vulnerability Reporting 启用
+均已完成，不要重复执行写命令。使用以下只读命令复核：
 
 ```bash
 gh repo view "$GH_REPO" --json nameWithOwner,isPrivate,url
@@ -167,20 +168,16 @@ git remote -v
 git ls-remote --heads origin "$RELEASE_BRANCH"
 ```
 
-GitHub 官方只允许 public repository 启用 Private Vulnerability Reporting。当前 private 状态下不能
-诚实完成安全渠道回执。许可证审批已完成后，仍须获得一次单独的源码公开授权；先公开 GitHub、保持
-HF private，再启用并由无管理权限的独立账号提交纯合成测试报告：
+GitHub visibility PATCH 和 Private Vulnerability Reporting PUT 已于 2026-07-20 按维护者授权执行；
+HF 仍保持 private。当前只做只读状态确认：
 
 ```bash
-gh api --method PATCH "repos/${GH_REPO}" -f visibility=public
 gh repo view "$GH_REPO" --json nameWithOwner,isPrivate,url
-gh api --method PUT "repos/${GH_REPO}/private-vulnerability-reporting"
 gh api "repos/${GH_REPO}/private-vulnerability-reporting"
 ```
 
-上述 visibility 写入和后续安全测试本轮均未执行。随后由维护者用合成内容实测私密报告入口，更新并
-复核两个 `SECURITY.md`。仅检查 API 返回
-“enabled”还不算完成实测。
+后续须由无管理权限的独立账号用纯合成内容实测私密报告入口，维护者验证可见性后再更新并复核两个
+`SECURITY.md`。仅检查 API 返回“enabled”还不算完成实测。
 
 ### 4.3 冻结 source commit 与签名 tag
 
@@ -383,16 +380,17 @@ gh api --method PATCH \
 - [ ] 建立回滚/撤回说明：发现许可证、安全、身份或 checksum 问题时先停止分发、保留证据，再发布
   更正或撤回通知；不得无记录覆盖 tag 或 immutable commit。
 
-## 6. 本轮 private 暂存记录与明确未执行项
+## 6. 当前暂存记录与明确未执行项
 
-- 已创建 private GitHub repo `whyiug/pii-detect-model`，添加 `origin`，并推送
+- GitHub repo `whyiug/pii-detect-model` 已公开，已添加 `origin` 并推送
   `agent/community-v2-release-prep`；未创建或推送 tag，未创建 GitHub Release；
 - 已创建 private HF model repo `Forrest20231206/pii-zh-qwen3-0.6b-24class`；仅有平台初始化文件，
   未上传模型或 publication-successor；
-- 未建立 `main`/PR 流程；private 首推 CI 已成功，workflow 支持后续 release-prep commit 手动复验；
-- 未启用并实测私密漏洞报告渠道；人工许可证审批已完成并生成本地自哈希回执；
+- 未建立 `main`/PR 流程；commit `565ceafd82f4c1001a0c4bf36e6ffc493f4e6e71` 的 CI 已成功，
+  workflow 支持后续 release-prep commit 手动复验；
+- 私密漏洞报告渠道已启用但未完成独立账号实测；人工许可证审批已完成并生成本地自哈希回执；
 - 未上传 wheel、wheelhouse、SBOM、许可证回执或 publication receipt；
 - 未修改冻结的 `model-package-v2r2`，也未把它包装成已发布工件。
 
-下一次真正执行远端写入前，应先把本清单的未完成项、目标 namespace、repo 可见性、最终 source
-commit、签名 tag 与 publication-successor receipt 交由维护者复核并明确授权。
+下一次创建 tag、上传 HF 或发布 GitHub Release 前，应先把本清单的未完成项、目标 namespace、
+repo 可见性、最终 source commit、签名 tag 与 publication-successor receipt 交由维护者复核。

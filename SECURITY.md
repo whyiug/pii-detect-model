@@ -2,21 +2,22 @@
 
 ## Supported version
 
-`pii-zh-qwen 0.2.0rc1` is a community research release candidate. Once a tested private route is established,
-reports concerning software security, model behavior, data provenance, privacy, or supply-chain
-integrity will be in scope for this version. This release candidate is not presented as a
-production security warranty or service-level commitment.
+`pii-zh-qwen 0.2.0rc1` is a community research release candidate. GitHub Private Vulnerability
+Reporting is enabled for this public source repository, but an independent synthetic end-to-end
+check has not yet been recorded. Reports concerning software security, model behavior, data
+provenance, privacy, or supply-chain integrity are in scope for this version. This release
+candidate is not presented as a production security warranty or service-level commitment.
 
 ## Private reporting
 
 Do not disclose a suspected vulnerability, leaked personal datum, model-memorization case,
 unsafe remote-code behavior, or supply-chain issue in a public issue, discussion, or post.
 
-No tested private reporting route exists for this local RC package yet. Public upload remains
-blocked. Before publication, an authorized maintainer must create the intended repository, enable
-and test GitHub private vulnerability reporting, and update this file with the verified route. If
-you received this package through an existing trusted private channel, use that same channel only
-to request a secure reporting route; do not include vulnerability details in the initial request.
+[GitHub Private Vulnerability Reporting](https://github.com/whyiug/pii-detect-model/security/advisories/new)
+is enabled. Its independent synthetic end-to-end check and receipt are still pending, so the
+Hugging Face model upload and GitHub Release remain blocked. If the authenticated private-report
+form is unavailable, use an existing trusted channel only to request a secure reporting route; do
+not include vulnerability details in that initial request.
 
 Identify `pii-zh-qwen 0.2.0rc1` and give only a short impact category. Do not attach sensitive data,
 real PII, secrets, frozen evaluation rows, exploit details, or reproduction archives to the first
@@ -38,6 +39,7 @@ disclosure timing discussed with the reporter.
 
 False negatives, false positives, domain regressions, memorization, provenance errors, and
 evaluation leakage are treated as safety-quality reports even when they are not software
-vulnerabilities. Once the verified private route exists, use it whenever evidence could contain
-PII or disclose a frozen evaluation set. Until then, an existing trusted channel may be used only
-to request a route; the initial request must contain no report details.
+vulnerabilities. Use the private-report route whenever evidence could contain PII or disclose a
+frozen evaluation set. Until its independent test is recorded, an existing trusted channel may be
+used only to report that the form is unavailable; that initial message must contain no report
+details.
