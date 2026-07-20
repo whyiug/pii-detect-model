@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/tested_private_security_channel_receipt.schema.json",
+  "title": "Tested private security channel receipt",
+  "description": "Closed human-attestation receipt for an accepted synthetic GitHub private vulnerability report. The receipt contains no advisory body and does not itself verify remote state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "target",
+    "channel_test",
+    "security_file_sha256",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-v2-tested-private-security-channel-receipt.v1"
+    },
+    "target": {
+      "$ref": "#/$defs/publicationTarget"
+    },
+    "channel_test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tested",
+        "tested_by",
+        "tested_at",
+        "provider",
+        "evidence_basis",
+        "test_case_id",
+        "outcome",
+        "contains_real_sensitive_data"
+      ],
+      "properties": {
+        "tested": {
+          "const": true
+        },
+        "tested_by": {
+          "$ref": "#/$defs/githubLogin"
+        },
+        "tested_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "provider": {
+          "const": "github_private_vulnerability_reporting"
+        },
+        "evidence_basis": {
+          "const": "human_attestation_not_remote_verified"
+        },
+        "test_case_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 192,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@+-]{0,191}$"
+        },
+        "outcome": {
+          "const": "accepted_private_test_report"
+        },
+        "contains_real_sensitive_data": {
+          "const": false
+        }
+      }
+    },
+    "security_file_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repoId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "humanIdentity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192,
+      "pattern": "^[^\\r\\n\\u0000]+$"
+    },
+    "githubLogin": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 39,
+      "pattern": "^(?=.{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$"
+    },
+    "publicationTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_version",
+        "github_repository",
+        "hugging_face_repository"
+      ],
+      "properties": {
+        "package_version": {
+          "const": "0.2.0rc1"
+        },
+        "github_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "hugging_face_repository": {
+          "$ref": "#/$defs/repoId"
+        }
+      }
+    }
+  }
+}

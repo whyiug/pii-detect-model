@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import errno
 import hashlib
 import json
 import os
@@ -179,19 +180,27 @@ def _fixture_inputs(tmp_path: Path) -> dict[str, Path]:
         "# Community v2\n\n"
         "Version 0.2.0rc1 publication candidate.\n\n"
         f"github_repository: {GITHUB_REPOSITORY}\n"
-        f"hugging_face_repository: {HUGGING_FACE_REPOSITORY}\n",
+        f"hugging_face_repository: {HUGGING_FACE_REPOSITORY}\n"
+        f"git_source_commit: {GIT_SOURCE_COMMIT}\n"
+        f"release_tag: {successor.RELEASE_TAG}\n"
+        "github_release_url: "
+        f"https://github.com/{GITHUB_REPOSITORY}/releases/tag/{successor.RELEASE_TAG}\n",
         encoding="utf-8",
     )
     security = tmp_path / "SECURITY.current.md"
     security.write_text(
-        "# Security\n\nUse the tested private vulnerability reporting channel.\n",
+        "# Security\n\nUse the tested private vulnerability reporting channel at "
+        f"https://github.com/{GITHUB_REPOSITORY}/security/advisories/new.\n",
         encoding="utf-8",
     )
     notice = tmp_path / "NOTICE.publication"
     notice.write_text("pii-zh-qwen 0.2.0rc1 community publication notice.\n", encoding="utf-8")
     third_party_notices = tmp_path / "THIRD_PARTY_NOTICES.publication.md"
     third_party_notices.write_text(
-        "# Third-Party Notices for 0.2.0rc1\n\nHuman license review is complete.\n",
+        "# Third-Party Notices for 0.2.0rc1\n\n"
+        "The immutable license report retains status `COMPLETE_HUMAN_APPROVAL_PENDING` "
+        "as historical mechanical evidence. Human clearance comes from the separately "
+        "validated approval receipt.\n",
         encoding="utf-8",
     )
     final_receipt = tmp_path / "final-local-receipt.json"
@@ -230,6 +239,7 @@ def _fixture_inputs(tmp_path: Path) -> dict[str, Path]:
                 "tested_by": "fixture-maintainer",
                 "tested_at": "2026-07-19T08:05:00Z",
                 "provider": "github_private_vulnerability_reporting",
+                "evidence_basis": "human_attestation_not_remote_verified",
                 "test_case_id": "synthetic-private-report-001",
                 "outcome": "accepted_private_test_report",
                 "contains_real_sensitive_data": False,
@@ -287,6 +297,9 @@ def test_builds_checksum_closed_successor_without_mutating_source(tmp_path: Path
     assert (output / "THIRD_PARTY_NOTICES.md").read_bytes() == inputs[
         "third_party_notices"
     ].read_bytes()
+    assert (output / successor.HF_GITATTRIBUTES_NAME).read_bytes() == (
+        successor.REPOSITORY_ROOT / successor.HF_GITATTRIBUTES_TEMPLATE_PATH
+    ).read_bytes()
     assert b"unpublished local" not in (output / "NOTICE").read_bytes().lower()
     approval = json.loads(
         (output / successor.LICENSE_APPROVAL_RECEIPT_NAME).read_text(encoding="utf-8")
@@ -328,6 +341,10 @@ def test_builds_checksum_closed_successor_without_mutating_source(tmp_path: Path
         "hugging_face_commit": None,
     }
     assert manifest["publication_authorization_source"] == "external_receipts"
+    gitattributes_binding = manifest["payload_files"][successor.HF_GITATTRIBUTES_NAME]
+    assert gitattributes_binding["provenance"] == "reviewed_hugging_face_gitattributes"
+    assert gitattributes_binding["transfer_method"] == "copy"
+    assert gitattributes_binding["output_type"] == "regular_file"
     lineage = manifest["candidate_lineage_contract"]
     assert lineage["interpretation"] == (
         "immutable_candidate_lineage_not_current_remote_publication_state"
@@ -344,12 +361,43 @@ def test_builds_checksum_closed_successor_without_mutating_source(tmp_path: Path
         inputs["source"] / "training_manifest.json"
     ).read_bytes()
     weight_binding = manifest["payload_files"]["model.safetensors"]
-    assert weight_binding["transfer_method"] in {"hardlink", "copy"}
+    assert weight_binding["transfer_method"] in {"reflink", "copy"}
     assert weight_binding["output_type"] == "regular_file"
-    if weight_binding["transfer_method"] == "hardlink":
-        assert (output / "model.safetensors").stat().st_ino == (
-            inputs["source"] / "model.safetensors"
-        ).stat().st_ino
+    assert (output / "model.safetensors").stat().st_ino != (
+        inputs["source"] / "model.safetensors"
+    ).stat().st_ino
+
+
+def test_staged_model_weights_do_not_follow_later_source_writes(tmp_path: Path) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    plan = _prepare(tmp_path, inputs)
+    successor.build_publication_successor(plan)
+    source_weights = inputs["source"] / "model.safetensors"
+    output_weights = plan.output / "model.safetensors"
+    output_before = output_weights.read_bytes()
+
+    source_weights.write_bytes(b"source-mutated-after-successor-build")
+
+    assert output_weights.read_bytes() == output_before
+    assert output_weights.stat().st_ino != source_weights.stat().st_ino
+
+
+def test_reflink_unsupported_falls_back_to_independent_copy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+
+    def unsupported_reflink(*_args: object, **_kwargs: object) -> None:
+        raise OSError(errno.EOPNOTSUPP, "fixture filesystem has no reflink")
+
+    monkeypatch.setattr(successor.fcntl, "ioctl", unsupported_reflink)
+    plan = _prepare(tmp_path, inputs)
+    successor.build_publication_successor(plan)
+    manifest = json.loads((plan.output / successor.MANIFEST_NAME).read_text(encoding="utf-8"))
+    assert manifest["payload_files"]["model.safetensors"]["transfer_method"] == "copy"
+    assert (plan.output / "model.safetensors").stat().st_ino != (
+        inputs["source"] / "model.safetensors"
+    ).stat().st_ino
 
 
 def test_source_checksum_tamper_fails_closed(tmp_path: Path) -> None:
@@ -358,6 +406,63 @@ def test_source_checksum_tamper_fails_closed(tmp_path: Path) -> None:
     with pytest.raises(successor.PublicationSuccessorError, match="checksum mismatch") as captured:
         _prepare(tmp_path, inputs)
     assert captured.value.blocker_id == "SOURCE_CHECKSUM_MISMATCH"
+    assert not (tmp_path / "publication-successor").exists()
+
+
+def test_verifier_rejects_manifest_payload_binding_lie_even_with_resealed_files(
+    tmp_path: Path,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    plan = _prepare(tmp_path, inputs)
+    successor.build_publication_successor(plan)
+    manifest_path = plan.output / successor.MANIFEST_NAME
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["payload_files"]["README.md"]["file_sha256"] = "0" * 64
+    manifest["payload_inventory_sha256"] = successor.canonical_json_hash(
+        manifest["payload_files"]
+    )
+    manifest["manifest_sha256"] = successor.canonical_json_hash(
+        manifest, remove="manifest_sha256"
+    )
+    _write_json(manifest_path, manifest)
+    _write_checksums(plan.output)
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        successor.verify_successor_package(plan.output)
+    assert captured.value.blocker_id == "MANIFEST_PAYLOAD_BINDING_MISMATCH"
+
+
+def test_verifier_rejects_resealed_manifest_payload_inventory_hash_lie(
+    tmp_path: Path,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    plan = _prepare(tmp_path, inputs)
+    successor.build_publication_successor(plan)
+    manifest_path = plan.output / successor.MANIFEST_NAME
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["payload_inventory_sha256"] = "0" * 64
+    manifest["manifest_sha256"] = successor.canonical_json_hash(
+        manifest, remove="manifest_sha256"
+    )
+    _write_json(manifest_path, manifest)
+    _write_checksums(plan.output)
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        successor.verify_successor_package(plan.output)
+    assert captured.value.blocker_id == "MANIFEST_PAYLOAD_INVENTORY_MISMATCH"
+
+
+def test_hugging_face_gitattributes_template_drift_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    drifted = tmp_path / "huggingface.gitattributes"
+    drifted.write_text("*.bin filter=lfs diff=lfs merge=lfs -text\n", encoding="utf-8")
+    monkeypatch.setattr(successor, "HF_GITATTRIBUTES_TEMPLATE_PATH", drifted)
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        _prepare(tmp_path, inputs)
+    assert captured.value.blocker_id == "INVALID_HUGGING_FACE_GITATTRIBUTES"
     assert not (tmp_path / "publication-successor").exists()
 
 
@@ -386,6 +491,12 @@ def test_model_card_exact_repository_targets_are_bound_into_plan(tmp_path: Path)
     text = plan.model_card.payload.decode("utf-8")
     assert f"github_repository: {GITHUB_REPOSITORY}" in text
     assert f"hugging_face_repository: {HUGGING_FACE_REPOSITORY}" in text
+    assert f"git_source_commit: {GIT_SOURCE_COMMIT}" in text
+    assert f"release_tag: {successor.RELEASE_TAG}" in text
+    assert (
+        f"github_release_url: https://github.com/{GITHUB_REPOSITORY}/releases/tag/"
+        f"{successor.RELEASE_TAG}"
+    ) in text
     assert plan.github_repository == GITHUB_REPOSITORY
     assert plan.hugging_face_repository == HUGGING_FACE_REPOSITORY
 
@@ -409,13 +520,83 @@ def test_model_card_placeholder_or_mismatched_target_fails_closed(
         "# Community v2\n\n"
         "Version 0.2.0rc1 publication candidate.\n\n"
         f"github_repository: {GITHUB_REPOSITORY}\n"
-        f"hugging_face_repository: {hugging_face_target}\n",
+        f"hugging_face_repository: {hugging_face_target}\n"
+        f"git_source_commit: {GIT_SOURCE_COMMIT}\n"
+        f"release_tag: {successor.RELEASE_TAG}\n"
+        "github_release_url: "
+        f"https://github.com/{GITHUB_REPOSITORY}/releases/tag/{successor.RELEASE_TAG}\n",
         encoding="utf-8",
     )
     with pytest.raises(successor.PublicationSuccessorError) as captured:
         _prepare(tmp_path, inputs)
     assert captured.value.blocker_id == blocker_id
     assert not (tmp_path / "publication-successor").exists()
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        (GIT_SOURCE_COMMIT, "b" * 40),
+        (successor.RELEASE_TAG, "v0.2.0"),
+        (
+            f"https://github.com/{GITHUB_REPOSITORY}/releases/tag/{successor.RELEASE_TAG}",
+            "https://github.com/other/repository/releases/tag/v0.2.0rc1",
+        ),
+    ],
+)
+def test_model_card_source_tag_or_release_url_mismatch_fails_closed(
+    tmp_path: Path, old: str, new: str
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    text = inputs["model_card"].read_text(encoding="utf-8")
+    inputs["model_card"].write_text(text.replace(old, new), encoding="utf-8")
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        _prepare(tmp_path, inputs)
+    assert captured.value.blocker_id == "MODEL_CARD_TARGET_MISMATCH"
+
+
+def test_explained_historical_license_pending_status_is_allowed_when_receipt_binds_it(
+    tmp_path: Path,
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    plan = _prepare(tmp_path, inputs)
+    assert successor._LICENSE_HISTORY_MARKER in plan.third_party_notices.payload.decode("utf-8")
+    assert plan.license_approval_document["reviewed_files"]["THIRD_PARTY_NOTICES.md"] == (
+        _sha256(plan.third_party_notices.payload)
+    )
+
+
+@pytest.mark.parametrize(
+    "third_party_text",
+    [
+        "# Third-Party Notices for 0.2.0rc1\n\nPublication approval is pending.\n",
+        (
+            "# Third-Party Notices for 0.2.0rc1\n\n"
+            "Status `COMPLETE_HUMAN_APPROVAL_PENDING` is retained.\n"
+        ),
+        (
+            "# Third-Party Notices for 0.2.0rc1\n\n"
+            "The immutable license report retains status `COMPLETE_HUMAN_APPROVAL_PENDING` "
+            "as historical mechanical evidence. Human clearance comes from the separately "
+            "validated approval receipt. Public distribution is still pending.\n"
+        ),
+    ],
+)
+def test_real_pending_publication_text_still_fails_with_a_binding_license_receipt(
+    tmp_path: Path, third_party_text: str
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    inputs["third_party_notices"].write_text(third_party_text, encoding="utf-8")
+    receipt = json.loads(inputs["license_receipt"].read_text(encoding="utf-8"))
+    receipt["reviewed_files"]["THIRD_PARTY_NOTICES.md"] = _sha256(
+        inputs["third_party_notices"].read_bytes()
+    )
+    _write_json(inputs["license_receipt"], _seal(receipt))
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        _prepare(tmp_path, inputs)
+    assert captured.value.blocker_id == "STALE_PREAUTHORIZATION_TEXT"
 
 
 def test_license_receipt_must_bind_publication_not_old_source_notices(
@@ -431,6 +612,52 @@ def test_license_receipt_must_bind_publication_not_old_source_notices(
     with pytest.raises(successor.PublicationSuccessorError, match="does not bind") as captured:
         _prepare(tmp_path, inputs)
     assert captured.value.blocker_id == "LICENSE_APPROVAL_BINDING_MISMATCH"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing_evidence_basis", "remote_verified_evidence", "blank_tested_by"],
+)
+def test_security_receipt_requires_human_non_remote_evidence_contract(
+    tmp_path: Path, mutation: str
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    channel = json.loads(inputs["channel_receipt"].read_text(encoding="utf-8"))
+    if mutation == "missing_evidence_basis":
+        channel["channel_test"].pop("evidence_basis")
+    elif mutation == "remote_verified_evidence":
+        channel["channel_test"]["evidence_basis"] = "remote_verified"
+    else:
+        channel["channel_test"]["tested_by"] = "   "
+    _write_json(inputs["channel_receipt"], _seal(channel))
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        _prepare(tmp_path, inputs)
+    assert captured.value.blocker_id == "RECEIPT_SCHEMA_REJECTED"
+
+
+@pytest.mark.parametrize(
+    "security_text",
+    [
+        "# Security\n\nThe synthetic private-report test is complete.\n",
+        (
+            "# Security\n\nUse "
+            "https://github.com/different-owner/pii-detect-model/security/advisories/new.\n"
+        ),
+    ],
+)
+def test_successor_rejects_security_without_exact_target_reporting_url(
+    tmp_path: Path, security_text: str
+) -> None:
+    inputs = _fixture_inputs(tmp_path)
+    inputs["security"].write_text(security_text, encoding="utf-8")
+    channel = json.loads(inputs["channel_receipt"].read_text(encoding="utf-8"))
+    channel["security_file_sha256"] = _sha256(inputs["security"].read_bytes())
+    _write_json(inputs["channel_receipt"], _seal(channel))
+
+    with pytest.raises(successor.PublicationSuccessorError) as captured:
+        _prepare(tmp_path, inputs)
+    assert captured.value.blocker_id == "SECURITY_REPORTING_URL_MISSING"
 
 
 @pytest.mark.parametrize(

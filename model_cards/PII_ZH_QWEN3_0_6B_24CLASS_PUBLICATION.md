@@ -12,14 +12,15 @@ tags:
 - token-classification
 model_name: pii-zh-qwen3-0.6b-24class
 package_version: 0.2.0rc1
-publication_state: staged_not_uploaded
+publication_state: release_candidate
 ---
 
 # pii-zh-qwen3-0.6b-24class
 
 这是一个面向简体中文个人信息识别的 token-classification 模型，覆盖 24 个实体类型；
 分类头包含 `O + 24×BIO`，因此共有 49 个 token 标签。模型可与中文规则、Presidio 兼容层
-组成级联服务。当前卡片处于 `staged_not_uploaded` 状态，尚未上传到 Hugging Face。
+组成级联服务。本卡片是 publication-successor 使用的发布候选卡片；它在源码 commit 冻结后由
+受审离线 renderer 写入不可变源码身份、签名 tag 和确定的 GitHub Release URL。
 
 ## 发布目标与身份
 
@@ -28,11 +29,13 @@ publication_state: staged_not_uploaded
 - Hugging Face 目标：`Forrest20231206/pii-zh-qwen3-0.6b-24class`
 - `github_repository: whyiug/pii-detect-model`
 - `hugging_face_repository: Forrest20231206/pii-zh-qwen3-0.6b-24class`
+- `git_source_commit: {{GIT_SOURCE_COMMIT}}`
+- `release_tag: {{RELEASE_TAG}}`
+- `github_release_url: {{GITHUB_RELEASE_URL}}`
 
-两个 private 暂存仓库已经创建；Hugging Face 仓库目前只有平台初始化的 `.gitattributes`，尚未
-上传模型文件，也没有可供发布绑定的模型 revision。最终上传必须由外部、经过校验的
-`publication_manifest.json` 及其绑定回执授权；模型卡本身不承担发布授权，也不预写 Hugging Face
-revision。
+GitHub 源码与 Hugging Face 模型的目标仓库由以上字段固定。最终上传必须由外部、经过校验的
+`publication_manifest.json` 及其绑定回执授权；模型卡本身不承担发布授权，也不预写只能在上传
+后取得的 Hugging Face immutable revision。
 
 ## 使用方式
 
@@ -93,7 +96,7 @@ print(tuple(logits.shape))
 
 `config.json` 中的 `pii_release_eligible=false` 是冻结候选 lineage 与 remote-code 兼容合同的一部分，
 不是当前发布授权，也不应由使用方改写。最终发布授权来自经过校验的外部 publication manifest、
-许可证批准回执、私密安全渠道测试回执和本地候选回执。当前卡片及其模型包尚未上传。
+许可证批准回执、私密安全渠道测试回执和本地候选回执。
 
 ## 冻结合成 Open-24 评测
 
@@ -180,5 +183,5 @@ generation、decoder、标签覆盖和 framework hybrid 不能合并成无条件
 GitHub/Hugging Face repository ID、外部批准回执、重新生成的 checksum 闭包和
 `publication_manifest.json`。
 
-只有这些外部工件全部校验通过，远端上传与不可变 revision 才可执行。当前
-`publication_state` 为 `staged_not_uploaded`，没有远端 revision 可供声明。
+只有这些外部工件全部校验通过，远端上传与不可变 revision 才可执行。Hugging Face immutable
+revision 在上传并从远端重新验证后由 publication receipt 记录，因此不会预写到这张卡片中。

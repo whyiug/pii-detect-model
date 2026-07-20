@@ -1,0 +1,1780 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_v2_publication_receipt.schema.json",
+  "title": "Community v2 pre-publication gate receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "package_version",
+    "recorded_at",
+    "status",
+    "stage",
+    "final_publication_confirmed",
+    "producer",
+    "evidence_bindings",
+    "github",
+    "hugging_face",
+    "required_release_assets",
+    "optional_release_asset_names",
+    "release_assets",
+    "release_asset_inventory_sha256",
+    "draft_release_attachment",
+    "remote_reference_bindings",
+    "verification",
+    "limitations",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-v2-pre-publication-gate-receipt.v1"
+    },
+    "receipt_type": {
+      "const": "community_v2_pre_publication_gate"
+    },
+    "package_version": {
+      "const": "0.2.0rc1"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "const": "READY_FOR_FINAL_PUBLICATION_CONFIRMATION"
+    },
+    "stage": {
+      "const": "pre_publication_gate"
+    },
+    "final_publication_confirmed": {
+      "const": false
+    },
+    "producer": {
+      "const": {
+        "name": "build_community_v2_publication_receipt.py",
+        "network_accessed": false,
+        "remote_mutation_performed": false,
+        "input_policy": "caller_supplied_self_hashed_remote_collector_download_provenance_and_local_release_assets_evidence",
+        "remote_collector_still_required": true
+      }
+    },
+    "evidence_bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "github",
+        "github_release_assets_verification",
+        "hugging_face",
+        "hugging_face_download_verification"
+      ],
+      "properties": {
+        "github": {
+          "$ref": "#/$defs/githubEvidenceBinding"
+        },
+        "github_release_assets_verification": {
+          "$ref": "#/$defs/githubReleaseAssetsVerificationEvidenceBinding"
+        },
+        "hugging_face": {
+          "$ref": "#/$defs/huggingFaceEvidenceBinding"
+        },
+        "hugging_face_download_verification": {
+          "$ref": "#/$defs/huggingFaceDownloadEvidenceBinding"
+        }
+      }
+    },
+    "github": {
+      "$ref": "#/$defs/githubProjection"
+    },
+    "hugging_face": {
+      "$ref": "#/$defs/huggingFaceProjection"
+    },
+    "release_assets": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/releaseAssetProjection"
+      }
+    },
+    "required_release_assets": {
+      "const": {
+        "checksums": "checksums.txt",
+        "sbom": "sbom.cdx.json",
+        "wheel": "pii_zh_qwen-0.2.0rc1-py3-none-any.whl"
+      }
+    },
+    "optional_release_asset_names": {
+      "type": "array",
+      "maxItems": 0,
+      "items": {
+        "$ref": "#/$defs/assetName"
+      }
+    },
+    "release_asset_inventory_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "draft_release_attachment": {
+      "const": {
+        "asset_name": "community-v2-pre-publication-gate-receipt.json",
+        "attach_after_receipt_generation": true,
+        "excluded_from_bound_release_asset_inventory": true,
+        "release_must_remain_draft": true
+      }
+    },
+    "remote_reference_bindings": {
+      "$ref": "#/$defs/remoteReferenceBindings"
+    },
+    "verification": {
+      "const": {
+        "derivation": "relationships_recomputed_from_bound_remote_evidence",
+        "caller_supplied_status_accepted": false,
+        "reviewed_collector_implementation_bound": true,
+        "github_tag_source_relationship_verified": true,
+        "github_hosted_ci_exact_source_verified": true,
+        "github_draft_release_relationship_verified": true,
+        "github_draft_release_hf_revision_reference_verified": true,
+        "release_asset_digests_match": true,
+        "release_checksums_match_downloaded_assets": true,
+        "github_release_assets_local_verification_bound": true,
+        "github_release_assets_exact_remote_match_verified": true,
+        "github_release_assets_checksum_closure_verified": true,
+        "github_release_assets_wheel_inventory_verified": true,
+        "github_release_assets_isolated_smoke_verified": true,
+        "github_release_assets_public_scan_verified": true,
+        "hugging_face_immutable_revision_verified": true,
+        "hugging_face_inventory_unique_and_sorted": true,
+        "hugging_face_download_verification_bound": true,
+        "hugging_face_package_verification_bound": true,
+        "remote_repository_references_verified": true
+      }
+    },
+    "limitations": {
+      "const": {
+        "remote_collector_required": true,
+        "producer_did_not_query_remote": true,
+        "producer_did_not_modify_remote": true,
+        "collector_authenticity_is_caller_responsibility": true,
+        "does_not_attest_final_publication": true,
+        "github_release_must_remain_draft": true,
+        "hugging_face_repository_must_remain_private": true,
+        "safe_to_attach_to_draft_release": true,
+        "final_visibility_transition_requires_separate_confirmation": true,
+        "statement": "This offline producer validates caller-supplied pre-publication collector evidence; it does not prove collector authenticity or attest that the draft GitHub Release or private Hugging Face model has been finally published."
+      }
+    },
+    "receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gitSha": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "hfGitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "gitBlobOid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "repoId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "nonEmptyText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[^\\r\\n\\u0000]+$"
+    },
+    "repoPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9._@+ -]+(?:/[A-Za-z0-9._@+ -]+)*$"
+    },
+    "hfSafePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/+@ -]*$"
+    },
+    "assetName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+@ -]*$"
+    },
+    "githubCollector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "collected_at",
+        "endpoint",
+        "network_accessed",
+        "remote_mutation_performed",
+        "generator_path",
+        "generator_file_sha256",
+        "collection_run_sha256"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/nonEmptyText"
+        },
+        "version": {
+          "$ref": "#/$defs/nonEmptyText"
+        },
+        "collected_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endpoint": {
+          "const": "https://api.github.com"
+        },
+        "network_accessed": {
+          "const": true
+        },
+        "remote_mutation_performed": {
+          "const": false
+        },
+        "generator_path": {
+          "const": "scripts/collect_community_v2_remote_evidence.py"
+        },
+        "generator_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "collection_run_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "huggingFaceCollector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "collected_at",
+        "endpoint",
+        "network_accessed",
+        "remote_mutation_performed",
+        "generator_path",
+        "generator_file_sha256",
+        "collection_run_sha256"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/nonEmptyText"
+        },
+        "version": {
+          "$ref": "#/$defs/nonEmptyText"
+        },
+        "collected_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endpoint": {
+          "const": "https://huggingface.co"
+        },
+        "network_accessed": {
+          "const": true
+        },
+        "remote_mutation_performed": {
+          "const": false
+        },
+        "generator_path": {
+          "const": "scripts/collect_community_v2_remote_evidence.py"
+        },
+        "generator_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "collection_run_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "githubRepository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "visibility"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/repoId"
+        },
+        "visibility": {
+          "const": "public"
+        }
+      }
+    },
+    "huggingFaceRepository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "visibility"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/repoId"
+        },
+        "visibility": {
+          "const": "private"
+        }
+      }
+    },
+    "tagVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "verified",
+        "reason",
+        "verified_at",
+        "signature_sha256",
+        "payload_sha256",
+        "signing_key_fingerprint",
+        "local_cryptographic_verification"
+      ],
+      "properties": {
+        "provider": {
+          "const": "github"
+        },
+        "verified": {
+          "const": true
+        },
+        "reason": {
+          "const": "valid"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "signature_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "signing_key_fingerprint": {
+          "type": "string",
+          "pattern": "^SHA256:[A-Za-z0-9+/]{43}$"
+        },
+        "local_cryptographic_verification": {
+          "const": true
+        }
+      }
+    },
+    "signedTag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "ref_target_type",
+        "ref_target_sha",
+        "tag_object_sha",
+        "tag_target_type",
+        "tag_target_sha",
+        "verification"
+      ],
+      "properties": {
+        "name": {
+          "const": "v0.2.0rc1"
+        },
+        "ref_target_type": {
+          "const": "tag"
+        },
+        "ref_target_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "tag_object_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "tag_target_type": {
+          "const": "commit"
+        },
+        "tag_target_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "verification": {
+          "$ref": "#/$defs/tagVerification"
+        }
+      }
+    },
+    "githubHostedCI": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "workflow_path",
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "status",
+        "conclusion",
+        "completed_at",
+        "jobs_receipt_sha256"
+      ],
+      "properties": {
+        "provider": {
+          "const": "github_actions"
+        },
+        "workflow_path": {
+          "const": ".github/workflows/ci.yml"
+        },
+        "run_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "run_attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "head_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "status": {
+          "const": "completed"
+        },
+        "conclusion": {
+          "const": "success"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "jobs_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "githubReleaseAssetEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "role",
+        "name",
+        "size_bytes",
+        "state",
+        "github_digest_sha256",
+        "downloaded_sha256"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "role": {
+          "enum": [
+            "wheel",
+            "sbom",
+            "checksums"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/assetName"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "const": "uploaded"
+        },
+        "github_digest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "downloaded_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "githubReleaseChecksumsEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_name",
+        "file_sha256",
+        "format",
+        "line_count",
+        "entries",
+        "matched_downloaded_assets"
+      ],
+      "properties": {
+        "asset_name": {
+          "const": "checksums.txt"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "format": {
+          "const": "sha256sum_text_two_space_two_lines_lf"
+        },
+        "line_count": {
+          "const": 2
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "sha256"
+              ],
+              "properties": {
+                "name": {
+                  "const": "pii_zh_qwen-0.2.0rc1-py3-none-any.whl"
+                },
+                "sha256": {
+                  "$ref": "#/$defs/sha256"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "sha256"
+              ],
+              "properties": {
+                "name": {
+                  "const": "sbom.cdx.json"
+                },
+                "sha256": {
+                  "$ref": "#/$defs/sha256"
+                }
+              }
+            }
+          ],
+          "items": false
+        },
+        "matched_downloaded_assets": {
+          "const": true
+        }
+      }
+    },
+    "githubReleaseEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_id",
+        "tag_name",
+        "resolved_source_sha",
+        "draft",
+        "prerelease",
+        "created_at",
+        "updated_at",
+        "body",
+        "body_sha256",
+        "optional_asset_names",
+        "checksums",
+        "assets"
+      ],
+      "properties": {
+        "release_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tag_name": {
+          "const": "v0.2.0rc1"
+        },
+        "resolved_source_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "draft": {
+          "const": true
+        },
+        "prerelease": {
+          "const": true
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "body_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "optional_asset_names": {
+          "type": "array",
+          "maxItems": 0,
+          "items": {
+            "$ref": "#/$defs/assetName"
+          }
+        },
+        "checksums": {
+          "$ref": "#/$defs/githubReleaseChecksumsEvidence"
+        },
+        "assets": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/githubReleaseAssetEvidence"
+          }
+        }
+      }
+    },
+    "githubCrossReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "file_sha256",
+        "hugging_face_repository"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "hugging_face_repository": {
+          "$ref": "#/$defs/repoId"
+        }
+      }
+    },
+    "githubRemoteEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "collector",
+        "repository",
+        "source_commit_sha",
+        "signed_tag",
+        "hosted_ci",
+        "release",
+        "cross_reference",
+        "evidence_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "pii-zh.community-v2-github-publication-evidence.v1"
+        },
+        "collector": {
+          "$ref": "#/$defs/githubCollector"
+        },
+        "repository": {
+          "$ref": "#/$defs/githubRepository"
+        },
+        "source_commit_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "signed_tag": {
+          "$ref": "#/$defs/signedTag"
+        },
+        "hosted_ci": {
+          "$ref": "#/$defs/githubHostedCI"
+        },
+        "release": {
+          "$ref": "#/$defs/githubReleaseEvidence"
+        },
+        "cross_reference": {
+          "$ref": "#/$defs/githubCrossReference"
+        },
+        "evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "huggingFaceRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_revision",
+        "resolved_sha",
+        "immutable_sha"
+      ],
+      "properties": {
+        "requested_revision": {
+          "$ref": "#/$defs/nonEmptyText"
+        },
+        "resolved_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "immutable_sha": {
+          "$ref": "#/$defs/gitSha"
+        }
+      }
+    },
+    "huggingFaceRemoteFileEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "kind",
+        "size_bytes",
+        "remote_oid",
+        "downloaded_sha256"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "kind": {
+          "const": "file"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "remote_oid": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "downloaded_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "huggingFaceCrossReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "file_sha256",
+        "github_repository",
+        "github_source_sha"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "github_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "github_source_sha": {
+          "$ref": "#/$defs/gitSha"
+        }
+      }
+    },
+    "packageIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_sha256",
+        "checksums_file_sha256",
+        "payload_inventory_sha256",
+        "model_file_sha256",
+        "verified_file_count"
+      ],
+      "properties": {
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "checksums_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verified_file_count": {
+          "type": "integer",
+          "minimum": 10
+        }
+      }
+    },
+    "huggingFacePackageVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "file_sha256",
+        "receipt_sha256",
+        "context",
+        "status",
+        "hugging_face_commit",
+        "github_source_commit",
+        "hf_download_provenance_file_sha256",
+        "hf_download_provenance_receipt_sha256",
+        "package_identity"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "pii-zh.community-v2-publication-package-verification.v1"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "context": {
+          "const": "hugging_face_immutable_download"
+        },
+        "status": {
+          "const": "PASS"
+        },
+        "hugging_face_commit": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "github_source_commit": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "hf_download_provenance_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "hf_download_provenance_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "package_identity": {
+          "$ref": "#/$defs/packageIdentity"
+        }
+      }
+    },
+    "huggingFaceRemoteEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "collector",
+        "repository",
+        "revision",
+        "inventory",
+        "cross_reference",
+        "package_verification",
+        "evidence_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "pii-zh.community-v2-hugging-face-publication-evidence.v1"
+        },
+        "collector": {
+          "$ref": "#/$defs/huggingFaceCollector"
+        },
+        "repository": {
+          "$ref": "#/$defs/huggingFaceRepository"
+        },
+        "revision": {
+          "$ref": "#/$defs/huggingFaceRevision"
+        },
+        "inventory": {
+          "type": "array",
+          "minItems": 13,
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/huggingFaceRemoteFileEvidence"
+          }
+        },
+        "cross_reference": {
+          "$ref": "#/$defs/huggingFaceCrossReference"
+        },
+        "package_verification": {
+          "$ref": "#/$defs/huggingFacePackageVerification"
+        },
+        "evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "downloadedFileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "remoteFileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "size_bytes",
+        "git_blob_oid",
+        "lfs_oid_sha256",
+        "content_verification"
+      ],
+      "properties": {
+        "size_bytes": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "git_blob_oid": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/gitBlobOid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lfs_oid_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content_verification": {
+          "enum": [
+            "lfs_sha256",
+            "git_blob_sha1",
+            "immutable_revision_transport_only"
+          ]
+        }
+      }
+    },
+    "huggingFaceDownloadProvenanceEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "provider",
+        "endpoint",
+        "repository",
+        "requested_revision",
+        "resolved_commit",
+        "downloaded_at",
+        "remote_snapshot",
+        "generator",
+        "local_root",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "pii-zh.community-v2-hf-download-provenance.v1"
+        },
+        "provider": {
+          "const": "huggingface_hub"
+        },
+        "endpoint": {
+          "const": "https://huggingface.co"
+        },
+        "repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "requested_revision": {
+          "$ref": "#/$defs/hfGitSha"
+        },
+        "resolved_commit": {
+          "$ref": "#/$defs/hfGitSha"
+        },
+        "downloaded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "remote_snapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "private",
+            "visibility",
+            "file_count",
+            "metadata_inventory_sha256",
+            "metadata_coverage",
+            "files",
+            "evidence_boundary"
+          ],
+          "properties": {
+            "private": {
+              "type": "boolean"
+            },
+            "visibility": {
+              "enum": [
+                "public",
+                "private"
+              ]
+            },
+            "file_count": {
+              "type": "integer",
+              "minimum": 10
+            },
+            "metadata_inventory_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "metadata_coverage": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "size_count",
+                "git_blob_oid_count",
+                "lfs_oid_count",
+                "content_verified_count"
+              ],
+              "properties": {
+                "size_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "git_blob_oid_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "lfs_oid_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "content_verified_count": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "files": {
+              "type": "object",
+              "minProperties": 10,
+              "propertyNames": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/hfSafePath"
+                  },
+                  {
+                    "const": ".gitattributes"
+                  }
+                ]
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/remoteFileBinding"
+              },
+              "required": [
+                ".gitattributes",
+                "README.md",
+                "checksums.txt",
+                "model.safetensors",
+                "publication_manifest.json"
+              ]
+            },
+            "evidence_boundary": {
+              "const": "official Hub repository metadata and list_repo_files bind the immutable remote inventory; local SHA-256 binds materialized bytes; an advertised LFS SHA-256 or non-LFS Git blob SHA-1 is content-verified when available, otherwise transport and immutable-revision trust are explicit"
+            }
+          }
+        },
+        "generator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "file_sha256"
+          ],
+          "properties": {
+            "path": {
+              "const": "scripts/materialize_community_v2_hf_snapshot.py"
+            },
+            "file_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "local_root": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "file_count",
+            "inventory_sha256",
+            "files"
+          ],
+          "properties": {
+            "format": {
+              "const": "materialized_regular_file_tree_v1"
+            },
+            "file_count": {
+              "type": "integer",
+              "minimum": 10
+            },
+            "inventory_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "files": {
+              "type": "object",
+              "minProperties": 10,
+              "propertyNames": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/hfSafePath"
+                  },
+                  {
+                    "const": ".gitattributes"
+                  }
+                ]
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/downloadedFileBinding"
+              },
+              "required": [
+                ".gitattributes",
+                "README.md",
+                "checksums.txt",
+                "model.safetensors",
+                "publication_manifest.json"
+              ]
+            }
+          }
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "evidenceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "file_sha256",
+        "evidence_sha256",
+        "collected_at",
+        "collector_name",
+        "generator_path",
+        "generator_file_sha256",
+        "collection_run_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "collected_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "collector_name": {
+          "$ref": "#/$defs/nonEmptyText"
+        },
+        "generator_path": {
+          "const": "scripts/collect_community_v2_remote_evidence.py"
+        },
+        "generator_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "collection_run_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "signing_key_fingerprint": {
+          "type": "string",
+          "pattern": "^SHA256:[A-Za-z0-9+/]{43}$"
+        },
+        "local_cryptographic_verification": {
+          "const": true
+        }
+      }
+    },
+    "githubEvidenceBinding": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/evidenceBinding"
+        },
+        {
+          "required": [
+            "signing_key_fingerprint",
+            "local_cryptographic_verification"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "pii-zh.community-v2-github-publication-evidence.v1"
+            },
+            "signing_key_fingerprint": {
+              "type": "string",
+              "pattern": "^SHA256:[A-Za-z0-9+/]{43}$"
+            },
+            "local_cryptographic_verification": {
+              "const": true
+            }
+          }
+        }
+      ]
+    },
+    "githubReleaseAssetsVerificationEvidenceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "file_sha256",
+        "receipt_sha256",
+        "source_commit",
+        "generator_path",
+        "generator_file_sha256",
+        "schema_path",
+        "schema_file_sha256",
+        "verified_asset_count",
+        "verified_asset_inventory_sha256",
+        "checksums_file_sha256",
+        "checksum_closure_status",
+        "wheel_inventory_status",
+        "wheel_member_count",
+        "wheel_member_inventory_sha256",
+        "isolated_wheel_smoke_status",
+        "isolated_wheel_smoke_profile_version",
+        "public_artifact_scan_status",
+        "public_artifact_scan_finding_count"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "pii-zh.community-v2-github-release-assets-receipt.v1"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "generator_path": {
+          "const": "scripts/build_community_v2_github_release_assets_receipt.py"
+        },
+        "generator_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "schema_path": {
+          "const": "configs/release/community_v2_github_release_assets_receipt.schema.json"
+        },
+        "schema_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verified_asset_count": {
+          "const": 3
+        },
+        "verified_asset_inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "checksums_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "checksum_closure_status": {
+          "const": "PASS"
+        },
+        "wheel_inventory_status": {
+          "const": "PASS"
+        },
+        "wheel_member_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "wheel_member_inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "isolated_wheel_smoke_status": {
+          "const": "PASS"
+        },
+        "isolated_wheel_smoke_profile_version": {
+          "const": "c1-conservative-v2"
+        },
+        "public_artifact_scan_status": {
+          "const": "PASS"
+        },
+        "public_artifact_scan_finding_count": {
+          "const": 0
+        }
+      }
+    },
+    "huggingFaceEvidenceBinding": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/evidenceBinding"
+        },
+        {
+          "properties": {
+            "schema_version": {
+              "const": "pii-zh.community-v2-hugging-face-publication-evidence.v1"
+            }
+          }
+        }
+      ]
+    },
+    "huggingFaceDownloadEvidenceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "file_sha256",
+        "receipt_sha256",
+        "downloaded_at",
+        "generator_path",
+        "generator_file_sha256",
+        "inventory_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "pii-zh.community-v2-hf-download-provenance.v1"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "downloaded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "generator_path": {
+          "const": "scripts/materialize_community_v2_hf_snapshot.py"
+        },
+        "generator_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "githubReleaseProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_id",
+        "tag_name",
+        "resolved_source_sha",
+        "created_at",
+        "updated_at",
+        "body_sha256",
+        "hugging_face_revision_url",
+        "draft",
+        "prerelease",
+        "optional_asset_names",
+        "checksums"
+      ],
+      "properties": {
+        "release_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tag_name": {
+          "const": "v0.2.0rc1"
+        },
+        "resolved_source_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "body_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "hugging_face_revision_url": {
+          "type": "string",
+          "pattern": "^https://huggingface\\.co/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/tree/(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "draft": {
+          "const": true
+        },
+        "prerelease": {
+          "const": true
+        },
+        "optional_asset_names": {
+          "type": "array",
+          "maxItems": 0,
+          "items": {
+            "$ref": "#/$defs/assetName"
+          }
+        },
+        "checksums": {
+          "$ref": "#/$defs/githubReleaseChecksumsEvidence"
+        }
+      }
+    },
+    "githubProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "visibility",
+        "source_commit_sha",
+        "signed_tag",
+        "hosted_ci",
+        "release"
+      ],
+      "properties": {
+        "repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "visibility": {
+          "const": "public"
+        },
+        "source_commit_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "signed_tag": {
+          "$ref": "#/$defs/signedTag"
+        },
+        "hosted_ci": {
+          "$ref": "#/$defs/githubHostedCI"
+        },
+        "release": {
+          "$ref": "#/$defs/githubReleaseProjection"
+        }
+      }
+    },
+    "huggingFaceRemoteFileProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "size_bytes",
+        "remote_oid",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "remote_oid": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "huggingFaceDownloadProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "immutable_sha",
+        "receipt_sha256",
+        "evidence_file_sha256",
+        "downloaded_at",
+        "inventory_sha256"
+      ],
+      "properties": {
+        "repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "immutable_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "downloaded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "huggingFaceProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "visibility",
+        "immutable_sha",
+        "requested_revision",
+        "inventory",
+        "inventory_sha256",
+        "required_files",
+        "download_verification",
+        "package_verification"
+      ],
+      "properties": {
+        "repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "visibility": {
+          "const": "private"
+        },
+        "immutable_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "requested_revision": {
+          "$ref": "#/$defs/nonEmptyText"
+        },
+        "inventory": {
+          "type": "array",
+          "minItems": 13,
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/huggingFaceRemoteFileProjection"
+          }
+        },
+        "inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "required_files": {
+          "const": [
+            ".gitattributes",
+            "LICENSE",
+            "NOTICE",
+            "README.md",
+            "SECURITY.md",
+            "THIRD_PARTY_NOTICES.md",
+            "checksums.txt",
+            "community_v2_final_local_receipt.json",
+            "config.json",
+            "human_license_approval_receipt.json",
+            "model.safetensors",
+            "publication_manifest.json",
+            "tested_private_security_channel_receipt.json"
+          ]
+        },
+        "download_verification": {
+          "$ref": "#/$defs/huggingFaceDownloadProjection"
+        },
+        "package_verification": {
+          "$ref": "#/$defs/huggingFacePackageVerification"
+        }
+      }
+    },
+    "releaseAssetProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "role",
+        "name",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "role": {
+          "enum": [
+            "wheel",
+            "sbom",
+            "checksums"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/assetName"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "githubSourceToHuggingFaceRepository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_source",
+        "github_repository",
+        "github_source_sha",
+        "evidence_path",
+        "evidence_file_sha256",
+        "hugging_face_repository"
+      ],
+      "properties": {
+        "reference_source": {
+          "const": "github_source"
+        },
+        "github_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "github_source_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "evidence_path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "evidence_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "hugging_face_repository": {
+          "$ref": "#/$defs/repoId"
+        }
+      }
+    },
+    "githubDraftReleaseToHuggingFaceRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_source",
+        "github_repository",
+        "github_release_id",
+        "release_body_sha256",
+        "hugging_face_repository",
+        "hugging_face_immutable_sha",
+        "hugging_face_revision_url"
+      ],
+      "properties": {
+        "reference_source": {
+          "const": "github_draft_release_body"
+        },
+        "github_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "github_release_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "release_body_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "hugging_face_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "hugging_face_immutable_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "hugging_face_revision_url": {
+          "type": "string",
+          "pattern": "^https://huggingface\\.co/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/tree/(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        }
+      }
+    },
+    "huggingFaceModelCardToGithubSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_source",
+        "hugging_face_repository",
+        "hugging_face_immutable_sha",
+        "evidence_path",
+        "evidence_file_sha256",
+        "github_repository",
+        "github_source_sha",
+        "github_signed_tag"
+      ],
+      "properties": {
+        "reference_source": {
+          "const": "hugging_face_model_card"
+        },
+        "hugging_face_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "hugging_face_immutable_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "evidence_path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "evidence_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "github_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "github_source_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "github_signed_tag": {
+          "const": "v0.2.0rc1"
+        }
+      }
+    },
+    "receiptStagingBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binding_source",
+        "github_source_sha",
+        "hugging_face_repository",
+        "hugging_face_immutable_sha",
+        "hugging_face_download_verification_receipt_sha256"
+      ],
+      "properties": {
+        "binding_source": {
+          "const": "pre_publication_gate_receipt"
+        },
+        "github_source_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "hugging_face_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "hugging_face_immutable_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "hugging_face_download_verification_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "remoteReferenceBindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "github_source_to_hugging_face_repository",
+        "github_draft_release_to_hugging_face_revision",
+        "hugging_face_model_card_to_github_source",
+        "receipt_staging_binding"
+      ],
+      "properties": {
+        "github_source_to_hugging_face_repository": {
+          "$ref": "#/$defs/githubSourceToHuggingFaceRepository"
+        },
+        "github_draft_release_to_hugging_face_revision": {
+          "$ref": "#/$defs/githubDraftReleaseToHuggingFaceRevision"
+        },
+        "hugging_face_model_card_to_github_source": {
+          "$ref": "#/$defs/huggingFaceModelCardToGithubSource"
+        },
+        "receipt_staging_binding": {
+          "$ref": "#/$defs/receiptStagingBinding"
+        }
+      }
+    }
+  }
+}

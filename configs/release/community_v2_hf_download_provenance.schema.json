@@ -1,0 +1,264 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_v2_hf_download_provenance.schema.json",
+  "title": "Community v2 Hugging Face immutable download provenance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "provider",
+    "endpoint",
+    "repository",
+    "requested_revision",
+    "resolved_commit",
+    "downloaded_at",
+    "remote_snapshot",
+    "generator",
+    "local_root",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-v2-hf-download-provenance.v1"
+    },
+    "provider": {
+      "const": "huggingface_hub"
+    },
+    "endpoint": {
+      "const": "https://huggingface.co"
+    },
+    "repository": {
+      "$ref": "#/$defs/repoId"
+    },
+    "requested_revision": {
+      "$ref": "#/$defs/gitSha"
+    },
+    "resolved_commit": {
+      "$ref": "#/$defs/gitSha"
+    },
+    "downloaded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "remote_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "private",
+        "visibility",
+        "file_count",
+        "metadata_inventory_sha256",
+        "metadata_coverage",
+        "files",
+        "evidence_boundary"
+      ],
+      "properties": {
+        "private": {
+          "type": "boolean"
+        },
+        "visibility": {
+          "enum": ["public", "private"]
+        },
+        "file_count": {
+          "type": "integer",
+          "minimum": 10
+        },
+        "metadata_inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "metadata_coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "size_count",
+            "git_blob_oid_count",
+            "lfs_oid_count",
+            "content_verified_count"
+          ],
+          "properties": {
+            "size_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "git_blob_oid_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "lfs_oid_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "content_verified_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "files": {
+          "type": "object",
+          "minProperties": 10,
+          "propertyNames": {
+            "anyOf": [
+              { "$ref": "#/$defs/safePath" },
+              { "const": ".gitattributes" }
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/remoteFileBinding"
+          },
+          "required": [
+            ".gitattributes",
+            "README.md",
+            "checksums.txt",
+            "model.safetensors",
+            "publication_manifest.json"
+          ]
+        },
+        "evidence_boundary": {
+          "const": "official Hub repository metadata and list_repo_files bind the immutable remote inventory; local SHA-256 binds materialized bytes; an advertised LFS SHA-256 or non-LFS Git blob SHA-1 is content-verified when available, otherwise transport and immutable-revision trust are explicit"
+        }
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "file_sha256"],
+      "properties": {
+        "path": {
+          "const": "scripts/materialize_community_v2_hf_snapshot.py"
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "local_root": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "file_count", "inventory_sha256", "files"],
+      "properties": {
+        "format": {
+          "const": "materialized_regular_file_tree_v1"
+        },
+        "file_count": {
+          "type": "integer",
+          "minimum": 10
+        },
+        "inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "files": {
+          "type": "object",
+          "minProperties": 10,
+          "propertyNames": {
+            "anyOf": [
+              { "$ref": "#/$defs/safePath" },
+              { "const": ".gitattributes" }
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/fileBinding"
+          },
+          "required": [
+            ".gitattributes",
+            "README.md",
+            "checksums.txt",
+            "model.safetensors",
+            "publication_manifest.json"
+          ]
+        }
+      }
+    },
+    "receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "gitBlobOid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "repoId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "safePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/+@ -]*$"
+    },
+    "fileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file_sha256", "size_bytes"],
+      "properties": {
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "remoteFileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "size_bytes",
+        "git_blob_oid",
+        "lfs_oid_sha256",
+        "content_verification"
+      ],
+      "properties": {
+        "size_bytes": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "git_blob_oid": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/gitBlobOid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lfs_oid_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content_verification": {
+          "enum": [
+            "lfs_sha256",
+            "git_blob_sha1",
+            "immutable_revision_transport_only"
+          ]
+        }
+      }
+    }
+  }
+}

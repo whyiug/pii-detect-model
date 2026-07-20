@@ -2,7 +2,7 @@
 """Build a fail-closed, offline publication successor for community v2.
 
 The builder treats the pre-authorization model package as immutable input.  It
-verifies its complete checksum closure, copies or hard-links only regular files
+verifies its complete checksum closure, copies or reflinks only regular files
 into a new no-clobber directory, replaces publication metadata, and emits a new
 manifest and checksum closure.  It never loads model tensors, opens record-level
 data, uses a GPU, contacts a network service, or mutates the source package.
@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import errno
+import fcntl
 import hashlib
 import json
 import os
@@ -28,9 +29,11 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_VERSION = "0.2.0rc1"
+RELEASE_TAG = "v0.2.0rc1"
 MANIFEST_SCHEMA_PATH = Path("configs/release/community_v2_publication_successor.schema.json")
 LICENSE_APPROVAL_SCHEMA_PATH = MANIFEST_SCHEMA_PATH
 SECURITY_CHANNEL_SCHEMA_PATH = MANIFEST_SCHEMA_PATH
+HF_GITATTRIBUTES_TEMPLATE_PATH = Path("release/community-v2-rc1/huggingface.gitattributes")
 FINAL_LOCAL_RECEIPT_SCHEMA_PATH = Path(
     "configs/release/community_cascade_release_v2.receipt.schema.json"
 )
@@ -41,6 +44,7 @@ SECURITY_CHANNEL_RECEIPT_NAME = "tested_private_security_channel_receipt.json"
 MANIFEST_NAME = "publication_manifest.json"
 CHECKSUMS_NAME = "checksums.txt"
 PREAUTHORIZATION_NAME = "community_v2_preauthorization.json"
+HF_GITATTRIBUTES_NAME = ".gitattributes"
 
 _CHECKSUM_LINE = re.compile(r"^([0-9a-f]{64})  ([^\r\n]+)$")
 _GIT_COMMIT = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
@@ -49,8 +53,10 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _MODEL_CARD_TARGET_PLACEHOLDER = re.compile(
     r"(?:hf_namespace/|<(?:hf_)?namespace[^>]*>)", re.IGNORECASE
 )
+_GITHUB_URL = re.compile(r"https://github\.com/[^\s<>()\[\]{}\"']+")
 _MAX_METADATA_BYTES = 64 * 1024 * 1024
 _READ_BLOCK_BYTES = 4 * 1024 * 1024
+_FICLONE = 0x40049409
 
 _REQUIRED_SOURCE_FILES = frozenset(
     {
@@ -73,6 +79,7 @@ _RESERVED_SUCCESSOR_FILES = frozenset(
         LICENSE_APPROVAL_RECEIPT_NAME,
         SECURITY_CHANNEL_RECEIPT_NAME,
         MANIFEST_NAME,
+        HF_GITATTRIBUTES_NAME,
     }
 )
 _OLD_PUBLICATION_MARKERS = (
@@ -81,6 +88,12 @@ _OLD_PUBLICATION_MARKERS = (
     "withheld",
     "no tested private reporting route exists",
     "no-tested-route",
+)
+_LICENSE_HISTORY_MARKER = "COMPLETE_HUMAN_APPROVAL_PENDING"
+_LICENSE_HISTORY_EXPLANATION = (
+    "historical mechanical evidence",
+    "human clearance comes",
+    "separately validated approval receipt",
 )
 _FALSE_ONLY_CONTRACT_FILES = frozenset(
     {
@@ -137,6 +150,7 @@ class BuildPlan:
     security: RegularPayload
     notice: RegularPayload
     third_party_notices: RegularPayload
+    huggingface_gitattributes: RegularPayload
     final_local_receipt: RegularPayload
     final_local_document: Mapping[str, Any]
     license_approval_receipt: RegularPayload
@@ -717,7 +731,12 @@ def _load_self_hashed_receipt(
     return payload, document
 
 
-def _load_publication_text(path: Path, *, field: str) -> RegularPayload:
+def _load_publication_text(
+    path: Path,
+    *,
+    field: str,
+    allowed_exact_markers: frozenset[str] = frozenset(),
+) -> RegularPayload:
     payload = _read_regular_payload(path, field=field, maximum_bytes=8 * 1024 * 1024)
     try:
         text = payload.payload.decode("utf-8")
@@ -729,7 +748,24 @@ def _load_publication_text(path: Path, *, field: str) -> RegularPayload:
         raise PublicationSuccessorError(
             "INVALID_PUBLICATION_TEXT", f"{field} is empty or contains NUL"
         )
-    lowered = text.lower()
+    scan_text = text
+    for marker in allowed_exact_markers:
+        if marker == _LICENSE_HISTORY_MARKER:
+            explanatory_paragraphs = [
+                paragraph
+                for paragraph in re.split(r"\n\s*\n", text)
+                if marker in paragraph
+            ]
+            if len(explanatory_paragraphs) != 1 or text.count(marker) != 1 or any(
+                phrase not in explanatory_paragraphs[0].casefold()
+                for phrase in _LICENSE_HISTORY_EXPLANATION
+            ):
+                raise PublicationSuccessorError(
+                    "STALE_PREAUTHORIZATION_TEXT",
+                    f"{field} does not explain the historical license-status marker",
+                )
+        scan_text = scan_text.replace(marker, "")
+    lowered = scan_text.lower()
     stale = next((marker for marker in _OLD_PUBLICATION_MARKERS if marker in lowered), None)
     if stale is not None:
         raise PublicationSuccessorError(
@@ -745,6 +781,21 @@ def _validate_repository_id(value: str, *, field: str) -> str:
             "INVALID_PUBLICATION_TARGET", f"{field} must be an owner/repository ID"
         )
     return value
+
+
+def _validate_security_reporting_url(
+    payload: RegularPayload, *, github_repository: str
+) -> None:
+    text = payload.payload.decode("utf-8")
+    expected = f"https://github.com/{github_repository}/security/advisories/new"
+    observed = {
+        match.group(0).rstrip(".,;:!?") for match in _GITHUB_URL.finditer(text)
+    }
+    if expected not in observed:
+        raise PublicationSuccessorError(
+            "SECURITY_REPORTING_URL_MISSING",
+            "current SECURITY does not contain the exact target private-report URL",
+        )
 
 
 def _model_card_target_values(text: str, *, key: str) -> list[str]:
@@ -763,7 +814,11 @@ def _model_card_target_values(text: str, *, key: str) -> list[str]:
 
 
 def _validate_model_card_targets(
-    payload: RegularPayload, *, github_repository: str, hugging_face_repository: str
+    payload: RegularPayload,
+    *,
+    git_source_commit: str,
+    github_repository: str,
+    hugging_face_repository: str,
 ) -> None:
     text = payload.payload.decode("utf-8")
     if _MODEL_CARD_TARGET_PLACEHOLDER.search(text):
@@ -774,13 +829,18 @@ def _validate_model_card_targets(
     expected = {
         "github_repository": github_repository,
         "hugging_face_repository": hugging_face_repository,
+        "git_source_commit": git_source_commit,
+        "release_tag": RELEASE_TAG,
+        "github_release_url": (
+            f"https://github.com/{github_repository}/releases/tag/{RELEASE_TAG}"
+        ),
     }
     for key, repository in expected.items():
         values = _model_card_target_values(text, key=key)
         if not values or any(value != repository for value in values):
             raise PublicationSuccessorError(
                 "MODEL_CARD_TARGET_MISMATCH",
-                f"publication Model Card {key} must equal the intended repository ID",
+                f"publication Model Card {key} does not match the intended release binding",
             )
 
 
@@ -848,14 +908,30 @@ def prepare_build_plan(
         )
     _validate_model_card_targets(
         publication_model_card,
+        git_source_commit=git_source_commit,
         github_repository=github_repository,
         hugging_face_repository=hugging_face_repository,
     )
     current_security = _load_publication_text(security, field="current SECURITY")
+    _validate_security_reporting_url(
+        current_security, github_repository=github_repository
+    )
     publication_notice = _load_publication_text(notice, field="publication NOTICE")
     publication_third_party_notices = _load_publication_text(
-        third_party_notices, field="publication THIRD_PARTY_NOTICES"
+        third_party_notices,
+        field="publication THIRD_PARTY_NOTICES",
+        allowed_exact_markers=frozenset({_LICENSE_HISTORY_MARKER}),
     )
+    huggingface_gitattributes = _read_regular_payload(
+        REPOSITORY_ROOT / HF_GITATTRIBUTES_TEMPLATE_PATH,
+        field="reviewed Hugging Face .gitattributes",
+        maximum_bytes=1024 * 1024,
+    )
+    if huggingface_gitattributes.payload != b"*.safetensors filter=lfs diff=lfs merge=lfs -text\n":
+        raise PublicationSuccessorError(
+            "INVALID_HUGGING_FACE_GITATTRIBUTES",
+            "reviewed Hugging Face .gitattributes template drifted",
+        )
     for field, payload in (
         ("publication NOTICE", publication_notice),
         ("publication THIRD_PARTY_NOTICES", publication_third_party_notices),
@@ -936,6 +1012,7 @@ def prepare_build_plan(
         security=current_security,
         notice=publication_notice,
         third_party_notices=publication_third_party_notices,
+        huggingface_gitattributes=huggingface_gitattributes,
         final_local_receipt=final_payload,
         final_local_document=final_document,
         license_approval_receipt=license_payload,
@@ -1009,34 +1086,71 @@ def _copy_regular_file(source: Path, destination: Path, *, expected_sha256: str)
 
 def _stage_model_weights(source: Path, destination: Path, *, expected_sha256: str) -> str:
     destination.parent.mkdir(parents=True, exist_ok=True)
+    source_descriptor = -1
+    destination_descriptor = -1
     try:
-        os.link(source, destination, follow_symlinks=False)
-        metadata = os.lstat(destination)
-        if not stat.S_ISREG(metadata.st_mode):
+        source_descriptor = os.open(source, _open_read_flags())
+        source_metadata = os.fstat(source_descriptor)
+        if not stat.S_ISREG(source_metadata.st_mode):
             raise PublicationSuccessorError(
-                "MODEL_WEIGHT_LINK_UNSAFE", "hard-linked model output is not a regular file"
+                "MODEL_WEIGHT_SOURCE_UNSAFE", "model weight source is not a regular file"
             )
-        method = "hardlink"
-    except PublicationSuccessorError:
+        destination_descriptor = os.open(
+            destination,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_CLOEXEC", 0),
+            0o644,
+        )
+        fcntl.ioctl(destination_descriptor, _FICLONE, source_descriptor)
+        os.fsync(destination_descriptor)
+        method = "reflink"
+    except OSError as exc:
+        if destination_descriptor >= 0:
+            os.close(destination_descriptor)
+            destination_descriptor = -1
+        if source_descriptor >= 0:
+            os.close(source_descriptor)
+            source_descriptor = -1
         if destination.exists() or destination.is_symlink():
             destination.unlink()
-        raise
-    except OSError as exc:
         if exc.errno not in {
             errno.EXDEV,
             errno.EPERM,
             errno.EACCES,
-            errno.EMLINK,
             errno.ENOTSUP,
             errno.EOPNOTSUPP,
+            errno.ENOTTY,
+            errno.EINVAL,
         }:
             raise PublicationSuccessorError(
-                "MODEL_WEIGHT_STAGE_FAILED", "model weights could not be hard-linked safely"
+                "MODEL_WEIGHT_STAGE_FAILED", "model weights could not be reflinked safely"
             ) from exc
         _copy_regular_file(source, destination, expected_sha256=expected_sha256)
         method = "copy"
+    finally:
+        if destination_descriptor >= 0:
+            os.close(destination_descriptor)
+        if source_descriptor >= 0:
+            os.close(source_descriptor)
+    try:
+        source_metadata = os.lstat(source)
+        destination_metadata = os.lstat(destination)
+    except OSError as exc:
+        raise PublicationSuccessorError(
+            "MODEL_WEIGHT_STAGE_FAILED", "staged model weights became unavailable"
+        ) from exc
+    if (
+        not stat.S_ISREG(source_metadata.st_mode)
+        or not stat.S_ISREG(destination_metadata.st_mode)
+        or (source_metadata.st_dev, source_metadata.st_ino)
+        == (destination_metadata.st_dev, destination_metadata.st_ino)
+    ):
+        raise PublicationSuccessorError(
+            "MODEL_WEIGHT_INODE_NOT_ISOLATED",
+            "staged model weights must have an inode independent from the source",
+        )
+    source_observed, _source_size = _hash_regular_file(source, field="source model.safetensors")
     observed, _size = _hash_regular_file(destination, field="staged model.safetensors")
-    if observed != expected_sha256:
+    if source_observed != expected_sha256 or observed != expected_sha256:
         raise PublicationSuccessorError(
             "STAGED_MODEL_CHECKSUM_MISMATCH", "staged model.safetensors checksum drifted"
         )
@@ -1183,6 +1297,38 @@ def verify_successor_package(directory: Path) -> dict[str, Any]:
         raise PublicationSuccessorError(
             "MANIFEST_SELF_HASH_MISMATCH", "publication successor manifest self-hash failed"
         )
+    payload_files = manifest.get("payload_files")
+    if not isinstance(payload_files, Mapping):  # schema validation is fail-closed above
+        raise PublicationSuccessorError(
+            "MANIFEST_PAYLOAD_BINDING_MISMATCH",
+            "publication successor manifest has no payload inventory",
+        )
+    expected_payload_names = actual - {MANIFEST_NAME}
+    if set(payload_files) != expected_payload_names:
+        raise PublicationSuccessorError(
+            "MANIFEST_PAYLOAD_BINDING_MISMATCH",
+            "publication successor manifest payload paths differ from the package",
+        )
+    observed_payload_files: dict[str, dict[str, Any]] = {}
+    for relative in sorted(expected_payload_names):
+        digest, size = _hash_regular_file(
+            files[relative], field=f"manifest-bound publication payload {relative}"
+        )
+        binding = payload_files.get(relative)
+        if not isinstance(binding, Mapping) or (
+            binding.get("file_sha256") != digest or binding.get("size_bytes") != size
+        ):
+            raise PublicationSuccessorError(
+                "MANIFEST_PAYLOAD_BINDING_MISMATCH",
+                f"publication successor manifest binding differs for {relative!r}",
+            )
+        observed_payload_files[relative] = dict(binding)
+    observed_inventory_sha256 = canonical_json_hash(observed_payload_files)
+    if manifest.get("payload_inventory_sha256") != observed_inventory_sha256:
+        raise PublicationSuccessorError(
+            "MANIFEST_PAYLOAD_INVENTORY_MISMATCH",
+            "publication successor manifest payload inventory hash does not verify",
+        )
     return {
         "file_count": len(files),
         "verified_file_count": len(declared),
@@ -1231,6 +1377,10 @@ def build_publication_successor(plan: BuildPlan) -> dict[str, Any]:
             SECURITY_CHANNEL_RECEIPT_NAME: (
                 plan.security_channel_receipt,
                 "tested_private_security_channel_receipt",
+            ),
+            HF_GITATTRIBUTES_NAME: (
+                plan.huggingface_gitattributes,
+                "reviewed_hugging_face_gitattributes",
             ),
         }
         excluded = {CHECKSUMS_NAME, PREAUTHORIZATION_NAME, *_SUPERSEDED_SOURCE_FILES}

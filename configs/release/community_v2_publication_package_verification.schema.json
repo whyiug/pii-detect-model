@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/whyiug/pii-detect-model/schemas/community_v2_publication_package_verification.schema.json",
+  "title": "Community v2 publication package verification receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "context",
+    "package_version",
+    "target",
+    "source_control",
+    "hf_download_provenance",
+    "package_identity",
+    "checks",
+    "runtime",
+    "status",
+    "verified_at",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pii-zh.community-v2-publication-package-verification.v1"
+    },
+    "context": {
+      "enum": [
+        "local_publication_successor",
+        "hugging_face_immutable_download"
+      ]
+    },
+    "package_version": {
+      "const": "0.2.0rc1"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "github_repository",
+        "hugging_face_repository",
+        "hugging_face_commit"
+      ],
+      "properties": {
+        "github_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "hugging_face_repository": {
+          "$ref": "#/$defs/repoId"
+        },
+        "hugging_face_commit": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/gitSha" }
+          ]
+        }
+      }
+    },
+    "source_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["git_source_commit"],
+      "properties": {
+        "git_source_commit": {
+          "$ref": "#/$defs/gitSha"
+        }
+      }
+    },
+    "hf_download_provenance": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/hfDownloadProvenanceBinding" }
+      ]
+    },
+    "package_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_sha256",
+        "checksums_file_sha256",
+        "payload_inventory_sha256",
+        "model_file_sha256",
+        "verified_file_count"
+      ],
+      "properties": {
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "checksums_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verified_file_count": {
+          "type": "integer",
+          "minimum": 10
+        }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checksum_closure",
+        "manifest_schema_and_self_hash",
+        "target_and_source_binding",
+        "hf_download_provenance_binding",
+        "forbidden_file_absence",
+        "remote_code_contract",
+        "public_artifact_scan",
+        "post_smoke_reverification",
+        "offline_model_load",
+        "finite_forward"
+      ],
+      "properties": {
+        "checksum_closure": { "const": true },
+        "manifest_schema_and_self_hash": { "const": true },
+        "target_and_source_binding": { "const": true },
+        "hf_download_provenance_binding": { "const": true },
+        "forbidden_file_absence": { "const": true },
+        "remote_code_contract": { "const": true },
+        "public_artifact_scan": { "const": true },
+        "post_smoke_reverification": { "const": true },
+        "offline_model_load": { "const": true },
+        "finite_forward": { "const": true }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "python",
+        "torch",
+        "transformers",
+        "network_disabled",
+        "cuda_visible_devices"
+      ],
+      "properties": {
+        "python": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "torch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "transformers": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "network_disabled": { "const": true },
+        "cuda_visible_devices": { "const": "" }
+      }
+    },
+    "status": { "const": "PASS" },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "context": { "const": "local_publication_successor" }
+        }
+      },
+      "then": {
+        "properties": {
+          "hf_download_provenance": { "type": "null" },
+          "target": {
+            "properties": {
+              "hugging_face_commit": { "type": "null" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "context": { "const": "hugging_face_immutable_download" }
+        }
+      },
+      "then": {
+        "properties": {
+          "hf_download_provenance": {
+            "$ref": "#/$defs/hfDownloadProvenanceBinding"
+          },
+          "target": {
+            "properties": {
+              "hugging_face_commit": { "$ref": "#/$defs/gitSha" }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "repoId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "hfDownloadProvenanceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "receipt_sha256",
+        "repository",
+        "requested_revision",
+        "resolved_commit",
+        "remote_visibility",
+        "remote_file_count",
+        "remote_metadata_inventory_sha256",
+        "remote_content_verified_count",
+        "local_root_inventory_sha256",
+        "generator_file_sha256"
+      ],
+      "properties": {
+        "file_sha256": { "$ref": "#/$defs/sha256" },
+        "receipt_sha256": { "$ref": "#/$defs/sha256" },
+        "repository": { "$ref": "#/$defs/repoId" },
+        "requested_revision": { "$ref": "#/$defs/gitSha" },
+        "resolved_commit": { "$ref": "#/$defs/gitSha" },
+        "remote_visibility": { "enum": ["public", "private"] },
+        "remote_file_count": { "type": "integer", "minimum": 10 },
+        "remote_metadata_inventory_sha256": { "$ref": "#/$defs/sha256" },
+        "remote_content_verified_count": { "type": "integer", "minimum": 10 },
+        "local_root_inventory_sha256": { "$ref": "#/$defs/sha256" },
+        "generator_file_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}
