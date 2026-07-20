@@ -189,6 +189,12 @@ def test_model_smoke_uses_read_only_sandbox_and_resource_scope(
         observed["kwargs"] = kwargs
         return FakeProcess()
 
+    isolated_tools = {
+        "bwrap": "/usr/bin/bwrap",
+        "prlimit": "/usr/bin/prlimit",
+        "systemd-run": "/usr/bin/systemd-run",
+    }
+    monkeypatch.setattr(verification.shutil, "which", isolated_tools.get)
     monkeypatch.setattr(verification.subprocess, "Popen", fake_popen)
     result = verification._run_model_smoke(tmp_path)
 
