@@ -170,6 +170,7 @@ flowchart LR
 - [v0.2.0rc1 Release](https://github.com/whyiug/pii-detect-model/releases/tag/v0.2.0rc1)
 - [级联部署](docs/cascade-deployment.md)
 - [服务 API](docs/community-model-service.md)
+- [模型数据集与训练技术报告](docs/model-training-technical-report.md)
 - [训练与评测技术指南](docs/aiguard24_full_model_and_cascade_technical_guide.md)
 - [安全问题报告](SECURITY.md)
 
