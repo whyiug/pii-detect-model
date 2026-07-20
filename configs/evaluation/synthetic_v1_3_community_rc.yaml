@@ -54,5 +54,5 @@ aggregate_criteria:
 
 notes:
   - These gates qualify a community research release candidate, not production deployment.
-  - The stricter production targets in pii-detect-plan.md remain unmet until separately proven.
+  - Stricter production targets are outside this community release and require separate evidence.
   - Frozen evaluation-only data may be opened once, only after every validation criterion passes.

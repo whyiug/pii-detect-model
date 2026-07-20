@@ -359,8 +359,18 @@ def test_release_api_has_no_regenerated_holdout_bypass_and_cli_is_frozen() -> No
     assert not hasattr(synthetic_package, "build_synthetic_corpus")
     with pytest.raises(SystemExit):
         parse_args([])
-    args = parse_args(["--holdout-source-dir", "frozen-v1.2"])
+    with pytest.raises(SystemExit):
+        parse_args(["--holdout-source-dir", "frozen-v1.2"])
+    args = parse_args(
+        [
+            "--holdout-source-dir",
+            "frozen-v1.2",
+            "--plan",
+            "local-plan.md",
+        ]
+    )
     assert args.output_dir.name == "synthetic_v1_3"
+    assert args.plan == Path("local-plan.md")
     for argv in (
         ["--count", "600"],
         ["--seed", "7"],

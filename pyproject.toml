@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pii-zh-qwen"
 version = "0.2.0rc1"
-description = "Reproducible Simplified Chinese PII taxonomy, data, training, evaluation, and Presidio integration"
+description = "Local-first Simplified Chinese PII detection with Chinese rules, a 24-class Qwen model cascade, and Presidio integration"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -13,7 +13,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "pii-zh-qwen contributors" }]
 keywords = ["pii", "privacy", "ner", "token-classification", "chinese"]
 classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3",
@@ -87,6 +87,8 @@ pii-zh-evaluate-ablation = "pii_zh.evaluation.cascade_ablation_cli:main"
 [project.urls]
 Documentation = "https://github.com/whyiug/pii-detect-model"
 Issues = "https://github.com/whyiug/pii-detect-model/issues"
+Model = "https://huggingface.co/Forrest20231206/pii-zh-qwen3-0.6b-24class"
+Release = "https://github.com/whyiug/pii-detect-model/releases/tag/v0.2.0rc1"
 Source = "https://github.com/whyiug/pii-detect-model"
 
 [tool.setuptools]

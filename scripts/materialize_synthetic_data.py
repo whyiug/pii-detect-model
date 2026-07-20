@@ -31,7 +31,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         required=True,
         help="Frozen synthetic v1.2 directory; validation/test are hash-verified and byte-copied.",
     )
-    parser.add_argument("--plan", type=Path, default=_REPOSITORY_ROOT / "pii-detect-plan.md")
+    parser.add_argument(
+        "--plan",
+        type=Path,
+        required=True,
+        help="Local planning/provenance document recorded by hash; it is not distributed.",
+    )
     return parser.parse_args(argv)
 
 

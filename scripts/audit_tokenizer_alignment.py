@@ -35,7 +35,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--base-model", type=Path, required=True)
     parser.add_argument("--input", type=Path, action="append", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--plan", type=Path, default=_REPOSITORY_ROOT / "pii-detect-plan.md")
+    parser.add_argument(
+        "--plan",
+        type=Path,
+        required=True,
+        help="Local planning/provenance document recorded by hash; it is not distributed.",
+    )
     return parser
 
 

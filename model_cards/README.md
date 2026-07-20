@@ -1,30 +1,21 @@
 # Model cards
 
-## Current community candidate
+## Current model
 
-- [`pii-zh-qwen3-0.6b-24class` 0.2.0rc1](PII_ZH_QWEN3_0_6B_24CLASS_RC1.md)
-- [Publication-successor card](PII_ZH_QWEN3_0_6B_24CLASS_PUBLICATION.md)
-- Structured model-only results: [`model-index.yml`](model-index.yml)
-- Publication-successor state: `staged_not_uploaded`
-- Production ready: `false`
+`pii-zh-qwen3-0.6b-24class` is the current 24-class Simplified Chinese PII model.
 
-The RC1 card is byte-identical to the README in the immutable local `model-package-v2r2`.
-It documents the 24-label model, local usage, synthetic Open-24 comparison, public-test-exposed
-PII Bench ZH post-hoc result, training provenance and limitations. The full cascade result remains
-a system-level claim and must not be attributed to the weights alone.
+- [Hugging Face model repository](https://huggingface.co/Forrest20231206/pii-zh-qwen3-0.6b-24class)
+- [Structured model-only results](model-index.yml)
 
-Actual Hugging Face publication uses the separate publication-successor card and requires a
-successor package because the immutable local package still contains preauthorization language
-and the historical security policy. See
-[`release/community-v2-rc1/PUBLISHING.md`](../release/community-v2-rc1/PUBLISHING.md).
+The current card documents installation and local inference, the ordered 24-class label set,
+training-data provenance, evaluation results, and known limitations. Metrics for the complete
+Presidio/rules/model cascade are system-level results and must not be attributed to the standalone
+model weights.
 
-## Historical archive
+## Frozen audit card
 
-The previous `zh-pii-qwen3-0.6b-bi-synthetic-v1.3-rc1` card is historical, synthetic-only and not
-the current flagship. Its exact tracked version remains available in Git history before the
-community-v2 release-preparation commit (for example, `git show 15986a8:model_cards/README.md`).
-Its package-relative links are intentionally not copied into this index because those archived
-package files are not part of the current GitHub source release.
+- [0.2.0rc1 frozen audit card](PII_ZH_QWEN3_0_6B_24CLASS_RC1.md)
 
-No model card in this directory authorizes a first/best/SOTA, real-world, production or compliance
-claim.
+The frozen RC1 card preserves the model description and evidence snapshot used during the RC1
+review. It is retained for reproducibility and historical comparison; new users should start with
+the current Hugging Face model card above.

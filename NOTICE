@@ -1,15 +1,12 @@
-pii-zh-qwen 0.2.0rc1 community candidate
+pii-zh-qwen 0.2.0rc1
 Copyright 2026 pii-zh-qwen contributors
 
-This local research release candidate contains a Simplified-Chinese PII token-classification
-model, its reproducibility tooling, and a Presidio/rules/model community cascade integration.
+This distribution provides a Simplified-Chinese PII token-classification model and a local
+Presidio/rules/model cascade toolkit.
 
-Model initialization is bound to `ZJUICSR/AIguard-pii-detection-fast` at revision
-`677a5ebc1600fef61e8973cafd3026be322b3a73`. The upstream model card declares Apache-2.0;
-upstream attribution and license terms apply independently to those materials.
+The model was initialized from ZJUICSR/AIguard-pii-detection-fast at revision
+677a5ebc1600fef61e8973cafd3026be322b3a73. Upstream attribution and license terms apply
+independently to those materials.
 
-Exact third-party revisions, roles, distribution boundaries, and dependency records for this
-candidate are documented in THIRD_PARTY_NOTICES.md, the typed SBOM/license artifacts, and
-`uv.lock`. Maintainer `whyiug` approved public GitHub and Hugging Face distribution on 2026-07-20
-with no exceptions. The binding human-approval receipt is kept with the release-run evidence and
-will be included in the publication-successor package.
+Exact third-party sources, revisions, roles, and redistribution boundaries are documented in
+THIRD_PARTY_NOTICES.md.

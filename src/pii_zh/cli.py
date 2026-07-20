@@ -153,8 +153,8 @@ def _shared_parser() -> argparse.ArgumentParser:
         choices=SERVICE_PROFILE_VERSIONS,
         default=DEFAULT_SERVICE_PROFILE_VERSION,
         help=(
-            "versioned service profile; successor profiles are opt-in until their "
-            "formal quality gate closes"
+            "versioned detection profile (default: c1-conservative-v1); "
+            "model modes require community-model-cascade-v1"
         ),
     )
     parser.add_argument(
@@ -234,7 +234,10 @@ def _parser() -> argparse.ArgumentParser:
         "--profile",
         choices=SERVICE_PROFILE_VERSIONS,
         default=DEFAULT_SERVICE_PROFILE_VERSION,
-        help="versioned service profile (model HTTP requires the community profile)",
+        help=(
+            "versioned detection profile (default: c1-conservative-v1); "
+            "model HTTP requires community-model-cascade-v1"
+        ),
     )
     serve.add_argument(
         "--model-path",
@@ -299,7 +302,8 @@ def _pipeline(args: argparse.Namespace) -> CascadePipeline:
         return build_rules_only_service_pipeline(profile)
     if profile != COMMUNITY_MODEL_SERVICE_PROFILE_VERSION:
         raise ValueError(
-            "legacy and successor service profiles only support rules-only mode"
+            "the selected profile can only support rules-only mode; "
+            f"{mode} mode requires --profile {COMMUNITY_MODEL_SERVICE_PROFILE_VERSION}"
         )
     if model_path is None:
         raise ValueError(f"--model-path is required in {mode} mode")

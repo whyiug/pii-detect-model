@@ -50,3 +50,9 @@ credentials.json
 
 # Local legacy evidence input; only redacted aggregate audit material may be published.
 /PII 能力第一个版本.docx
+
+# Maintainer-local plans and handoff notes
+/plan.md
+/*-plan.md
+/HANDOFF.md
+/.local/

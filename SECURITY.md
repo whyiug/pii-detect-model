@@ -1,52 +1,45 @@
 # Security Policy
 
-## Supported version
+## Supported versions
 
-`pii-zh-qwen 0.2.0rc1` is a community research release candidate. GitHub Private Vulnerability
-Reporting is enabled for this public source repository, but the independent synthetic end-to-end
-test remains outstanding. On 2026-07-20, maintainer `whyiug` explicitly waived only that
-independent-test release gate for `0.2.0rc1`; the waiver is recorded in
-[`release/community-v2-rc1/PRIVATE_SECURITY_CHANNEL_WAIVER.md`](release/community-v2-rc1/PRIVATE_SECURITY_CHANNEL_WAIVER.md).
-It retains no independent tested-channel evidence. Reports concerning software
-security, model behavior, data provenance, privacy, or supply-chain integrity are in scope for this
-version. This release candidate is not presented as a production security warranty or service-level
-commitment.
+Security fixes are provided for the latest public release of `pii-zh-qwen`.
 
-## Private reporting
+| Version | Supported |
+|---|---|
+| `0.2.0rc1` | Yes |
+| Earlier versions | No |
 
-Do not disclose a suspected vulnerability, leaked personal datum, model-memorization case,
-unsafe remote-code behavior, or supply-chain issue in a public issue, discussion, or post.
+## Report a security issue
 
-[GitHub Private Vulnerability Reporting](https://github.com/whyiug/pii-detect-model/security/advisories/new)
-remains enabled. Its independent synthetic end-to-end check remains outstanding. The scoped
-`0.2.0rc1` waiver permits release staging to continue without a tested-channel receipt, but does not
-disable Private Vulnerability Reporting, validate production readiness, attest that any report was
-independently received or triaged, or provide the separate final authorization required to make the
-Hugging Face repository and GitHub Release public. If the authenticated private-report form is
-unavailable, use an existing trusted channel only to request a secure reporting route; do not include
-vulnerability details in that initial request.
+Please report suspected vulnerabilities through
+[GitHub Private Vulnerability Reporting](https://github.com/whyiug/pii-detect-model/security/advisories/new).
+Do not disclose the issue in a public issue, discussion, pull request, or post before coordinated
+disclosure is complete.
 
-Identify `pii-zh-qwen 0.2.0rc1` and give only a short impact category. Do not attach sensitive data,
-real PII, secrets, frozen evaluation rows, exploit details, or reproduction archives to the first
-message.
+A useful report includes:
 
-After a private route is agreed, include only the material needed to assess the report:
-
-- the affected revision, package, model, or dataset-manifest hash;
-- the impact and the security or privacy boundary crossed;
+- the affected version, commit, package, or model revision;
+- a concise description of the impact and affected security boundary;
 - a minimal local reproduction using synthetic data;
-- relevant logs with credentials, tokens, and PII removed;
-- a suggested remediation or regression assertion, if available.
+- redacted logs and relevant code locations; and
+- a suggested fix or regression test, when available.
 
-Do not test against public or third-party deployments. Do not include real secrets, customer data,
-or weaponized payloads. Coordinated reports will be assessed privately, with remediation and
-disclosure timing discussed with the reporter.
+Do not upload real personal information, customer data, passwords, API tokens, cookies, private
+keys, credentials, or other secrets. Do not test against public or third-party deployments. Use a
+local environment and synthetic inputs, and remove sensitive values from logs and attachments.
 
-## Model and data safety reports
+## Scope
 
-False negatives, false positives, domain regressions, memorization, provenance errors, and
-evaluation leakage are treated as safety-quality reports even when they are not software
-vulnerabilities. Use the private-report route whenever evidence could contain PII or disclose a
-frozen evaluation set. Because the independent test remains outstanding, an existing trusted
-channel may be used only to report that the form is unavailable; that initial message must contain
-no report details. The release-gate waiver does not alter this reporting guidance.
+Reports may cover the source code, Python package, CLI, HTTP service, Presidio integration, model
+loading and remote-code boundary, dependency or build integrity, unintended data disclosure, model
+memorization, and provenance issues with a security or privacy impact.
+
+Accuracy or documentation issues that can be demonstrated entirely with synthetic, non-sensitive
+examples may be filed as regular GitHub issues. Use the private reporting channel whenever the
+evidence itself could expose sensitive information or enable abuse.
+
+## What to expect
+
+We aim to acknowledge complete reports promptly. Confirmed issues are handled through coordinated
+remediation and disclosure, and reporters are kept informed when scope, severity, remediation, or
+the disclosure timeline changes.
