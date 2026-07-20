@@ -723,7 +723,8 @@ PYTHONPATH=src python scripts/validate_community_cascade_release_v2.py \
 
 - 项目代码、curated synthetic templates、synthetic outputs 和固定 AIguard source revision 均按
   Apache-2.0 路径使用。模型包已经包含 LICENSE、NOTICE 和 third-party notices，外部 SBOM 与
-  license report 也已生成；当前真实状态仍是 human/legal approval pending，不是自动许可放行。
+  license report 也已生成。冻结机械报告保留 human/legal approval pending 状态；维护者 `whyiug`
+  已于 2026-07-20 通过独立自哈希回执批准公开分发、无例外。这是外部人工决定，不是自动扫描放行。
 - ERNIE/CLUENER/PII Engineer/OpenMed 等 comparator 权重不进入本模型包；缺失或冲突的上游许可不因
   本项目只做推理比较而自动解决。
 - 检测结果不回显命中值；redacted 文本仍可能含漏检内容。部署必须自行处理认证、TLS、访问控制、

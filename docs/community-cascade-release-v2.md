@@ -117,9 +117,10 @@ v2 不再把任意文件的 SHA-256 当作发布制品或 `PASS` 证明。以下
 
 模型卡固定说明候选仍为 `unpublished_local_candidate`，Python 发布候选版本固定为
 `pii-zh-qwen==0.2.0rc1`。许可证报告只能登记事实清单和
-`COMPLETE_HUMAN_APPROVAL_PENDING`，不能伪造法律批准；依赖扫描必须运行固定的 OSV Scanner v2
-命令并得到零 finding。该网络查询只发生在 dependency artifact producer；最终 gate 验证冻结结果、
-scanner 身份和 SBOM 关系，不重新运行会随时间变化的 OSV 查询。container 必须同时绑定 wheel、
+`COMPLETE_HUMAN_APPROVAL_PENDING`，不能自行伪造法律批准；2026-07-20 的维护者批准由独立外部回执
+提供并绑定最终文件。依赖扫描必须运行固定的 OSV Scanner v2 命令并得到零 finding。该网络查询只
+发生在 dependency artifact producer；最终 gate 验证冻结结果、scanner 身份和 SBOM 关系，不重新
+运行会随时间变化的 OSV 查询。container 必须同时绑定 wheel、
 wheelhouse 与模型包，container smoke 还会用 `importlib.metadata` 核对镜像内分发版本。public scan
 深扫项目模型包、项目 wheel、文档和类型化 JSON；第三方 dependency wheel 只做文件哈希/包版本闭包，
 其许可证和漏洞风险分别由 license/SBOM/OSV 管理。

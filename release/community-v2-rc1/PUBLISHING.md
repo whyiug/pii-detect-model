@@ -22,8 +22,13 @@
 - [ ] GitHub hosted CI 仍是最终门禁：private 仓库首次推送时，source-prep commit `aabb84ac...`
   的动态 CI 已通过；workflow 现支持对 release-prep 分支手动 dispatch，后续每个拟发布 commit 都须
   记录与其完整 SHA 精确匹配的成功运行。本地验证不能替代该检查。
-- [ ] human/legal 许可证审批未完成；license inventory 状态仍为
-  `COMPLETE_HUMAN_APPROVAL_PENDING`。
+- [x] 维护者 `whyiug` 已于 2026-07-20 审批 GitHub/Hugging Face 公开分发、无例外；冻结的机械
+  license inventory 仍保留 `COMPLETE_HUMAN_APPROVAL_PENDING` 历史状态，外部自哈希回执绑定最终
+  `LICENSE`、`NOTICE` 和 `THIRD_PARTY_NOTICES.md`。回执时间为 `2026-07-20T02:19:17Z`，语义
+  `receipt_sha256` 为 `0d1862151175c36e0ec262f381ce2e1af0c002e7131ed80f035881397b4cc738`，
+  回执文件 SHA-256 为 `501fd5080a9748030d9875d331b24d479eca90fff483e911ec2410b35489619c`。
+- [ ] GitHub Private Vulnerability Reporting 只对 public repository 可用；当前 private 仓库的只读 API
+  检查返回 404。必须另行授权公开 GitHub 源码仓库、保持 HF 模型 private，再启用并实测该渠道。
 - [ ] `$RELEASE_RUN/model-package-v2r2` 不是可上传包：其中 `SECURITY.md` 是旧版且明确说没有
   已测试私密报告渠道，模型卡仍为 `unpublished_local_candidate`，并含
   `community_v2_preauthorization.json`。其中 false-only config/remote-code 字段是冻结候选 lineage，
@@ -76,7 +81,7 @@ export SECURITY_CHANNEL_RECEIPT="$RELEASE_RUN/tested-private-security-channel-re
 
 ### 3.2 安全与许可证
 
-- [ ] human/legal 已逐项审核许可证清单，审批人、时间、结论和例外均有留痕；不能只依赖自动
+- [x] human/legal 已逐项审核许可证清单，审批人、时间、结论和例外均有留痕；不能只依赖自动
   license scanner 或上游模型卡中的许可证字段。
 - [ ] GitHub 私密漏洞报告已启用，并由维护者使用不含真实 PII/secret 的最小测试报告验证。
 - [ ] 根 `SECURITY.md` 与 publication-successor 内 `SECURITY.md` 都指向已实测的私密渠道，
@@ -151,7 +156,7 @@ export HF_REPO_ID="$HF_NAMESPACE/pii-zh-qwen3-0.6b-24class"
 printf '%s\n' "$HF_REPO_ID"
 ```
 
-### 4.2 已建立 private GitHub 暂存仓库；安全渠道待办
+### 4.2 已建立 private GitHub 暂存仓库；源码公开与安全渠道待办
 
 private 仓库创建、`origin` 添加和 release-prep 分支首推已经完成，不要重复执行创建命令。先用
 以下只读命令复核：
@@ -162,14 +167,19 @@ git remote -v
 git ls-remote --heads origin "$RELEASE_BRANCH"
 ```
 
-私密安全渠道的启用和合成报告实测暂缓，后续执行者必须单独完成：
+GitHub 官方只允许 public repository 启用 Private Vulnerability Reporting。当前 private 状态下不能
+诚实完成安全渠道回执。许可证审批已完成后，仍须获得一次单独的源码公开授权；先公开 GitHub、保持
+HF private，再启用并由无管理权限的独立账号提交纯合成测试报告：
 
 ```bash
+gh api --method PATCH "repos/${GH_REPO}" -f visibility=public
+gh repo view "$GH_REPO" --json nameWithOwner,isPrivate,url
 gh api --method PUT "repos/${GH_REPO}/private-vulnerability-reporting"
 gh api "repos/${GH_REPO}/private-vulnerability-reporting"
 ```
 
-随后由维护者用合成内容实测私密报告入口，更新并复核两个 `SECURITY.md`。仅检查 API 返回
+上述 visibility 写入和后续安全测试本轮均未执行。随后由维护者用合成内容实测私密报告入口，更新并
+复核两个 `SECURITY.md`。仅检查 API 返回
 “enabled”还不算完成实测。
 
 ### 4.3 冻结 source commit 与签名 tag
@@ -328,13 +338,15 @@ gh release create "$RELEASE_TAG" \
 
 将 SBOM/checksums 加入上面的资产列表前，先把各自经过验收的精确路径赋给变量；不要使用
 `$RELEASE_RUN/**` 或 shell 宽泛通配。人工检查 GitHub draft、HF private repo、私密报告入口、
-双向链接和 immutable revision 后，才可按平台界面/受审 API 将两个仓库切换为 public 并发布
-GitHub prerelease。可见性切换是最后一道单独授权的远端写操作，不应夹在上传脚本中自动执行。
+双向链接和 immutable revision 后，确认 GitHub 源码仍为 public，再按平台界面/受审 API 只切换
+HF repo 为 public 并发布 GitHub prerelease。HF 可见性切换是最后一道单独授权的远端写操作，不应
+夹在上传脚本中自动执行。
 
-确认获得这道单独授权后，下面是精确的最后切换模板；本轮不执行：
+确认获得这道单独授权后，GitHub 源码应已因安全渠道实测而公开；最后切换只公开 HF 模型并发布
+GitHub prerelease。下面是精确模板；本轮不执行：
 
 ```bash
-gh api --method PATCH "repos/${GH_REPO}" -f visibility=public
+test "$(gh repo view "$GH_REPO" --json isPrivate --jq .isPrivate)" = false
 
 python - <<'PY'
 import os
@@ -378,8 +390,8 @@ gh api --method PATCH \
 - 已创建 private HF model repo `Forrest20231206/pii-zh-qwen3-0.6b-24class`；仅有平台初始化文件，
   未上传模型或 publication-successor；
 - 未建立 `main`/PR 流程；private 首推 CI 已成功，workflow 支持后续 release-prep commit 手动复验；
-- 未启用并实测私密漏洞报告渠道，未完成人工许可证审批；
-- 未上传 wheel、wheelhouse、SBOM 或任何发布回执；
+- 未启用并实测私密漏洞报告渠道；人工许可证审批已完成并生成本地自哈希回执；
+- 未上传 wheel、wheelhouse、SBOM、许可证回执或 publication receipt；
 - 未修改冻结的 `model-package-v2r2`，也未把它包装成已发布工件。
 
 下一次真正执行远端写入前，应先把本清单的未完成项、目标 namespace、repo 可见性、最终 source

@@ -1,8 +1,10 @@
 # Third-Party Notices — pii-zh-qwen 0.2.0rc1 community candidate
 
 This notice records the sources admitted to, evaluated with, or otherwise relevant to the current
-community candidate and its repository history. It is an attribution inventory, not a substitute
-for the pending human/legal release review.
+community candidate and its repository history. Maintainer `whyiug` reviewed this inventory and
+approved public GitHub and Hugging Face distribution on 2026-07-20 with no exceptions. A
+self-hashed external receipt binds that decision to the exact `LICENSE`, `NOTICE`, and
+`THIRD_PARTY_NOTICES.md` files used by the publication builder.
 
 ## AIguard PII detection model
 
@@ -78,6 +80,7 @@ repository or the model checkpoint.
 ## Excluded inputs and review boundary
 
 No external API output and no customer or internal production data were used to train, calibrate,
-or evaluate this release candidate. The current typed license report remains
-`COMPLETE_HUMAN_APPROVAL_PENDING`; publication must not infer automated or legal clearance from
-this mechanical notice.
+or evaluate this release candidate. The immutable typed license report retains its pre-approval
+status `COMPLETE_HUMAN_APPROVAL_PENDING` as historical mechanical evidence. Human clearance comes
+from the separately validated approval receipt, not from that automated status or this notice
+alone.

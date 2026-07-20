@@ -9,7 +9,7 @@
 
 > 当前版本：`0.2.0rc1` community research preview candidate。模型和本地服务候选已经完成
 > machine-verifiable RC 验收，但尚未发布、不是生产版本。训练与主 Open-24 评测均为合成数据；
-> 许可证人审和私密安全报告渠道仍未完成。本项目不声称“首个”“全局最强”“真实世界 SOTA”
+> 许可证人审已完成，私密安全报告渠道仍未完成。本项目不声称“首个”“全局最强”“真实世界 SOTA”
 > 或合规保证。
 
 English summary: a local-first Simplified Chinese PII token classifier and Presidio/rules/model
@@ -236,8 +236,9 @@ docker/            本地训练/推理镜像模板
 - 模型可能漏检或误检；脱敏前应结合场景阈值、人工抽检和回滚策略。
 - 当前 [SECURITY.md](SECURITY.md) 仍明确记录：私密漏洞报告渠道尚未创建并实测，因此公开上传被阻塞。
 - 代码仓库使用 Apache-2.0；模型与依赖的机械归属见
-  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。最终 license report 仍为
-  `COMPLETE_HUMAN_APPROVAL_PENDING`，不能解读为法律批准。
+  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。冻结的机械 license report 保留
+  `COMPLETE_HUMAN_APPROVAL_PENDING` 状态；维护者 `whyiug` 已于 2026-07-20 完成人工审批、无例外，
+  最终发布由独立自哈希回执绑定，不能把机械报告本身解读为法律批准。
 - 首次公开发布不应附带第三方 wheelhouse；只发布经人审批准且有明确再分发权的内容。
 
 ## 发布状态
