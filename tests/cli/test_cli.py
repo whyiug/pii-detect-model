@@ -14,6 +14,7 @@ from pii_zh.cascade import (
     SUCCESSOR_SERVICE_PROFILE_VERSION,
     CascadeConfig,
 )
+from pii_zh.full_bie73 import COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION
 
 
 def _stdout_json(capsys: pytest.CaptureFixture[str]) -> dict[str, Any]:
@@ -40,6 +41,20 @@ def test_detect_text_emits_raw_text_free_json(
     assert "text" not in payload
     assert "value" not in payload["detections"][0]
     assert synthetic_value not in json.dumps(payload, ensure_ascii=False)
+
+
+def test_rules_only_cli_does_not_construct_the_full_bie73_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def forbidden(*args: object, **kwargs: object) -> object:
+        del args, kwargs
+        raise AssertionError("rules-only must remain independent of BIE73 construction")
+
+    monkeypatch.setattr(cli, "build_full_bie73_service_pipeline", forbidden)
+
+    assert cli.main(["detect", "--text", "demo@example.com"]) == 0
+    assert _stdout_json(capsys)["mode"] == "rules-only"
 
 
 def test_successor_profile_detects_strict_plates_and_rejects_legacy_fallbacks(
@@ -415,6 +430,124 @@ def test_missing_model_path_fails_without_echoing_input(
     assert "--model-path is required" in captured.err
     assert synthetic_input not in captured.err
     assert captured.out == ""
+
+
+def test_full_bie73_cli_uses_selected_defaults_and_explicit_service_ablation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    model_dir = tmp_path / "full-bie73"
+    model_dir.mkdir()
+    calls: list[dict[str, object]] = []
+
+    class EmptyPipeline:
+        def __init__(self, *, mode: str, scope: str) -> None:
+            self.model_identity = {
+                "public_profile_version": COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+                "service_mode": mode,
+                "model_scope": scope,
+            }
+
+        def detect(self, text: str, *, entities: object = None) -> list[object]:
+            del text, entities
+            return []
+
+    def fake_factory(model_path: Path, **kwargs: object) -> EmptyPipeline:
+        calls.append({"model_path": model_path, **kwargs})
+        return EmptyPipeline(mode=str(kwargs["mode"]), scope=str(kwargs["scope"]))
+
+    monkeypatch.setattr(cli, "build_full_bie73_service_pipeline", fake_factory)
+
+    assert (
+        cli.main(
+            [
+                "detect",
+                "--profile",
+                COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+                "--model-path",
+                str(model_dir),
+                "--text",
+                "合成文本",
+            ]
+        )
+        == 0
+    )
+    selected = _stdout_json(capsys)
+    assert selected["mode"] == "cascade"
+    assert selected["profile_version"] == COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION
+    assert selected["model_identity"]["service_mode"] == "cascade"
+    assert calls[-1] == {
+        "model_path": model_dir.resolve(),
+        "scope": "open24",
+        "mode": "cascade",
+        "device": "cpu",
+        "micro_batch_size": 16,
+    }
+
+    assert (
+        cli.main(
+            [
+                "detect",
+                "--profile",
+                COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+                "--mode",
+                "model-only",
+                "--scope",
+                "closed8",
+                "--model-path",
+                str(model_dir),
+                "--text",
+                "合成文本",
+            ]
+        )
+        == 0
+    )
+    ablation = _stdout_json(capsys)
+    assert ablation["mode"] == "model-only"
+    assert ablation["model_identity"] == {
+        "public_profile_version": COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+        "service_mode": "model-only",
+        "model_scope": "closed8",
+    }
+    assert calls[-1]["scope"] == "closed8"
+    assert calls[-1]["mode"] == "model-only"
+
+
+def test_full_bie73_cli_rejects_internal_threshold_override(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    model_dir = tmp_path / "full-bie73"
+    model_dir.mkdir()
+    calls: list[object] = []
+    monkeypatch.setattr(
+        cli,
+        "build_full_bie73_service_pipeline",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+
+    assert (
+        cli.main(
+            [
+                "detect",
+                "--profile",
+                COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+                "--model-path",
+                str(model_dir),
+                "--threshold",
+                "PERSON_NAME=0.5",
+                "--text",
+                "合成文本",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert "does not accept calibration or threshold overrides" in captured.err
+    assert captured.out == ""
+    assert calls == []
 
 
 def test_community_profile_uses_explicit_local_model_factory(

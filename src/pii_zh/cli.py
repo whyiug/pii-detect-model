@@ -21,12 +21,22 @@ from pii_zh.cascade import (
     build_community_model_service_pipeline,
     build_rules_only_service_pipeline,
 )
+from pii_zh.full_bie73 import (
+    COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+    FULL_BIE73_DEFAULT_SCOPE,
+    FullBie73Scope,
+    build_full_bie73_service_pipeline,
+)
 
 CLI_OUTPUT_SCHEMA_VERSION = "pii-zh.cli.output.v1"
 MAX_JSONL_RECORDS = 10_000
 MAX_JSONL_TEXT_CHARS = 100_000
 DEFAULT_CPU_MAX_CONCURRENCY = 4
 DEFAULT_CUDA_MAX_CONCURRENCY = 1
+CLI_SERVICE_PROFILE_VERSIONS = (
+    *SERVICE_PROFILE_VERSIONS,
+    COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+)
 _ENTITY_LABEL_RE = re.compile(r"[A-Z][A-Z0-9_]*\Z")
 
 
@@ -36,9 +46,7 @@ def _local_directory(value: str) -> Path:
     try:
         path = Path(value).expanduser().resolve(strict=True)
     except (OSError, RuntimeError) as exc:
-        raise argparse.ArgumentTypeError(
-            "model path must be an existing local directory"
-        ) from exc
+        raise argparse.ArgumentTypeError("model path must be an existing local directory") from exc
     if not path.is_dir():
         raise argparse.ArgumentTypeError("model path must be an existing local directory")
     return path
@@ -63,9 +71,7 @@ def _loopback_host(value: str) -> str:
     """Keep the packaged service command local by construction."""
 
     if value not in {"127.0.0.1", "::1", "localhost"}:
-        raise argparse.ArgumentTypeError(
-            "the packaged serve command only binds to a loopback host"
-        )
+        raise argparse.ArgumentTypeError("the packaged serve command only binds to a loopback host")
     return value
 
 
@@ -145,16 +151,19 @@ def _shared_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--mode",
         choices=("rules-only", "model-only", "cascade"),
-        default="rules-only",
-        help="recognizer mode (default: rules-only)",
+        default=None,
+        help=(
+            "recognizer mode (default: cascade for community-full-bie73-cascade-v1; "
+            "rules-only otherwise); BIE73 model-only is a validated service ablation"
+        ),
     )
     parser.add_argument(
         "--profile",
-        choices=SERVICE_PROFILE_VERSIONS,
+        choices=CLI_SERVICE_PROFILE_VERSIONS,
         default=DEFAULT_SERVICE_PROFILE_VERSION,
         help=(
             "versioned detection profile (default: c1-conservative-v1); "
-            "model modes require community-model-cascade-v1"
+            "the selected BIE73 service profile has its own frozen model defaults"
         ),
     )
     parser.add_argument(
@@ -168,9 +177,17 @@ def _shared_parser() -> argparse.ArgumentParser:
         help="local inference device passed to the model loader (default: cpu)",
     )
     parser.add_argument(
+        "--scope",
+        choices=("open24", "closed8"),
+        help=(
+            "BIE73 pre-decode label scope "
+            f"(default for its service profile: {FULL_BIE73_DEFAULT_SCOPE})"
+        ),
+    )
+    parser.add_argument(
         "--calibration",
         type=_local_file,
-        help="optional local validation-fitted calibration JSON for model modes",
+        help="optional calibration JSON for the legacy community model profile",
     )
     parser.add_argument(
         "--threshold",
@@ -178,7 +195,7 @@ def _shared_parser() -> argparse.ArgumentParser:
         type=_threshold_override,
         dest="thresholds",
         metavar="LABEL=VALUE",
-        help="explicit core-24 model threshold; may be repeated",
+        help="legacy community model threshold; may be repeated",
     )
     parser.add_argument(
         "--entity",
@@ -199,8 +216,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pii-zh",
         description=(
-            "Detect or redact Simplified Chinese PII locally. "
-            "No command downloads a model."
+            "Detect or redact Simplified Chinese PII locally. No command downloads a model."
         ),
     )
     commands = parser.add_subparsers(dest="command", required=True)
@@ -227,16 +243,19 @@ def _parser() -> argparse.ArgumentParser:
     serve.add_argument(
         "--mode",
         choices=("rules-only", "model-only", "cascade"),
-        default="rules-only",
-        help="recognizer mode (default: rules-only)",
+        default=None,
+        help=(
+            "recognizer mode (default: cascade for community-full-bie73-cascade-v1; "
+            "rules-only otherwise); BIE73 model-only is a validated service ablation"
+        ),
     )
     serve.add_argument(
         "--profile",
-        choices=SERVICE_PROFILE_VERSIONS,
+        choices=CLI_SERVICE_PROFILE_VERSIONS,
         default=DEFAULT_SERVICE_PROFILE_VERSION,
         help=(
             "versioned detection profile (default: c1-conservative-v1); "
-            "model HTTP requires community-model-cascade-v1"
+            "the selected BIE73 service profile has its own frozen model defaults"
         ),
     )
     serve.add_argument(
@@ -250,6 +269,14 @@ def _parser() -> argparse.ArgumentParser:
         help="local inference device passed to the model loader (default: cpu)",
     )
     serve.add_argument(
+        "--scope",
+        choices=("open24", "closed8"),
+        help=(
+            "BIE73 pre-decode label scope "
+            f"(default for its service profile: {FULL_BIE73_DEFAULT_SCOPE})"
+        ),
+    )
+    serve.add_argument(
         "--micro-batch-size",
         type=_positive_integer,
         default=16,
@@ -258,7 +285,7 @@ def _parser() -> argparse.ArgumentParser:
     serve.add_argument(
         "--calibration",
         type=_local_file,
-        help="optional local validation-fitted calibration JSON",
+        help="optional calibration JSON for the legacy community model profile",
     )
     serve.add_argument(
         "--threshold",
@@ -266,7 +293,7 @@ def _parser() -> argparse.ArgumentParser:
         type=_threshold_override,
         dest="thresholds",
         metavar="LABEL=VALUE",
-        help="explicit core-24 model threshold; may be repeated",
+        help="legacy community model threshold; may be repeated",
     )
     serve.add_argument(
         "--max-concurrency",
@@ -289,11 +316,44 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _pipeline(args: argparse.Namespace) -> CascadePipeline:
-    mode = cast(CascadeMode, args.mode)
+    requested_mode = cast(CascadeMode | None, args.mode)
     model_path = cast(Path | None, args.model_path)
     profile = cast(str, args.profile)
+    mode = (
+        "cascade"
+        if requested_mode is None and profile == COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION
+        else "rules-only"
+        if requested_mode is None
+        else requested_mode
+    )
+    args.mode = mode
+    scope = cast(FullBie73Scope | None, getattr(args, "scope", None))
     calibration = cast(Path | None, getattr(args, "calibration", None))
     thresholds = _thresholds(args)
+    if profile == COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION:
+        if mode == "rules-only":
+            raise ValueError(
+                f"{COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION} supports only "
+                "model-only or cascade mode"
+            )
+        if model_path is None:
+            raise ValueError(f"--model-path is required in {mode} mode")
+        if calibration is not None or thresholds is not None:
+            raise ValueError(
+                "the stable BIE73 CLI uses its frozen thresholds and does not accept "
+                "calibration or threshold overrides"
+            )
+        return build_full_bie73_service_pipeline(
+            model_path,
+            scope=FULL_BIE73_DEFAULT_SCOPE if scope is None else scope,
+            mode=mode,
+            device=cast(str, args.device),
+            micro_batch_size=cast(int, getattr(args, "micro_batch_size", 16)),
+        )
+    if scope is not None:
+        raise ValueError(
+            f"--scope requires --profile {COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION}"
+        )
     if mode == "rules-only":
         if model_path is not None:
             raise ValueError("--model-path is only valid in model-only or cascade mode")
@@ -357,16 +417,12 @@ def _jsonl_texts(args: argparse.Namespace, stdin: TextIO) -> list[str]:
         except json.JSONDecodeError:
             raise ValueError(f"JSONL record {record_index} is invalid JSON") from None
         if not isinstance(value, dict) or set(value) != {"text"}:
-            raise ValueError(
-                f"JSONL record {record_index} must be an object containing only text"
-            )
+            raise ValueError(f"JSONL record {record_index} must be an object containing only text")
         text = value["text"]
         if not isinstance(text, str):
             raise ValueError(f"JSONL record {record_index} text must be a string")
         if len(text) > MAX_JSONL_TEXT_CHARS:
-            raise ValueError(
-                f"JSONL record {record_index} exceeds the text-length limit"
-            )
+            raise ValueError(f"JSONL record {record_index} exceeds the text-length limit")
         texts.append(text)
     return texts
 
@@ -534,6 +590,7 @@ if __name__ == "__main__":  # pragma: no cover - console script is the normal en
 
 
 __all__ = [
+    "CLI_SERVICE_PROFILE_VERSIONS",
     "CLI_OUTPUT_SCHEMA_VERSION",
     "MAX_JSONL_RECORDS",
     "MAX_JSONL_TEXT_CHARS",

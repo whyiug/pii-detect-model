@@ -21,11 +21,26 @@ FullBie73Scope = Literal["open24", "closed8"]
 FullBie73ServiceMode = Literal["model-only", "cascade"]
 FullBie73AdaptiveRulePolicy = Literal["fpr_guarded_weak5", "fpr_guarded_all6"]
 
+COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION = "community-full-bie73-cascade-v1"
 FULL_BIE73_DECODER_ID = "constrained_viterbi"
 FULL_BIE73_PUBLIC_PROFILE_SCHEMA_VERSION = "pii-zh.full-bie73-public-profile.v1"
-FULL_BIE73_PUBLIC_PROFILE_VERSION = "full-bie73-service-v1"
+FULL_BIE73_PUBLIC_PROFILE_VERSION = COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION
 FULL_BIE73_THRESHOLD_POLICY = "core24-fixed-0.5-v1"
+FULL_BIE73_FIXED_THRESHOLD = 0.5
 FULL_BIE73_MODEL_ONLY_RULE_POLICY = "model_only_rules_disabled"
+FULL_BIE73_DEFAULT_RULE_POLICY: FullBie73AdaptiveRulePolicy = "fpr_guarded_all6"
+FULL_BIE73_DEFAULT_SCOPE: FullBie73Scope = "open24"
+FULL_BIE73_DEFAULT_MODE: FullBie73ServiceMode = "cascade"
+FULL_BIE73_SELECTED_CANDIDATE_ID = "b3-v2-t050-fpr-guarded-all6"
+FULL_BIE73_SELECTION_STATUS = "SELECTED_DEVELOPMENT_CASCADE_POLICY_NOT_BENCHMARK_EVALUATED"
+FULL_BIE73_SELECTION_RECEIPT_FILE_SHA256 = (
+    "28b37a0bfb2b6e902a76297300b2bd47fbe3be7569c0dedc7b43e4210a5802e2"
+)
+FULL_BIE73_SELECTION_RECEIPT_SHA256 = (
+    "eeaa0f80593f5a661ed72ecc3e21292cedf19819c52cce645fbd0db9855cfd37"
+)
+FULL_BIE73_SELECTION_RECEIPT_PHYSICAL_SHA256 = FULL_BIE73_SELECTION_RECEIPT_FILE_SHA256
+FULL_BIE73_SELECTION_RECEIPT_LOGICAL_SHA256 = FULL_BIE73_SELECTION_RECEIPT_SHA256
 FULL_BIE73_ADAPTIVE_RULE_POLICIES: tuple[FullBie73AdaptiveRulePolicy, ...] = (
     "fpr_guarded_weak5",
     "fpr_guarded_all6",
@@ -136,9 +151,9 @@ def _threshold_mapping(
         if isinstance(item, bool) or not isinstance(item, (int, float)):
             raise TypeError("threshold values must be numeric")
         number = float(item)
-        if not math.isfinite(number) or number != 0.5:
+        if not math.isfinite(number) or number != FULL_BIE73_FIXED_THRESHOLD:
             raise FullBie73ProfileError("all Open-24 thresholds must equal 0.5")
-    return {label: 0.5 for label in labels}
+    return {label: FULL_BIE73_FIXED_THRESHOLD for label in labels}
 
 
 def _load_predictor_runtime() -> dict[str, Any]:
@@ -299,6 +314,19 @@ def _install_public_profile_identity(
             "validators_enabled": True,
             "raw_model_benchmark_equivalent": False,
             "threshold_policy": FULL_BIE73_THRESHOLD_POLICY,
+            "selected_rule_policy": FULL_BIE73_DEFAULT_RULE_POLICY,
+            "selected_scope": FULL_BIE73_DEFAULT_SCOPE,
+            "selected_candidate_id": FULL_BIE73_SELECTED_CANDIDATE_ID,
+            "selection_status": FULL_BIE73_SELECTION_STATUS,
+            "selection_receipt_file_sha256": FULL_BIE73_SELECTION_RECEIPT_FILE_SHA256,
+            "selection_receipt_sha256": FULL_BIE73_SELECTION_RECEIPT_SHA256,
+            "selection_receipt_physical_sha256": (FULL_BIE73_SELECTION_RECEIPT_PHYSICAL_SHA256),
+            "selection_receipt_logical_sha256": (FULL_BIE73_SELECTION_RECEIPT_LOGICAL_SHA256),
+            "matches_selected_cascade": (
+                mode == FULL_BIE73_DEFAULT_MODE
+                and scope == FULL_BIE73_DEFAULT_SCOPE
+                and rule_policy == FULL_BIE73_DEFAULT_RULE_POLICY
+            ),
         }
     )
     identity["public_profile_identity_sha256"] = _canonical_json_hash(identity)
@@ -362,9 +390,9 @@ def _adapt_public_service_pipeline(
 def build_full_bie73_service_pipeline(
     model_path: str | Path,
     *,
-    thresholds: Mapping[str, float] | str | Path,
-    scope: FullBie73Scope,
-    mode: FullBie73ServiceMode,
+    thresholds: Mapping[str, float] | str | Path | None = None,
+    scope: FullBie73Scope = FULL_BIE73_DEFAULT_SCOPE,
+    mode: FullBie73ServiceMode = FULL_BIE73_DEFAULT_MODE,
     rule_policy: FullBie73AdaptiveRulePolicy | None = None,
     device: str = "cpu",
     dtype: Any | None = None,
@@ -372,20 +400,22 @@ def build_full_bie73_service_pipeline(
 ) -> Any:
     """Build an evaluated full-BIE73 service view without fallback.
 
-    Cascade mode requires one explicit evaluated adaptive rule policy; this
-    scaffold deliberately has no provisional default winner.  Model-only mode
-    selects the evaluated ``model_only_rules_disabled`` research policy
-    internally, skips the rule branch, and still applies service validators,
-    thresholds and fusion.  It is therefore a service ablation, not the final
-    raw-model benchmark protocol.
+    The stable no-override path is the formally selected Open-24 cascade:
+    ``fpr_guarded_all6`` with all 24 thresholds fixed to ``0.5``.  Advanced
+    Python callers may explicitly select another evaluated adaptive policy,
+    closed-8 pre-decode scope, or provide the exact fixed threshold mapping;
+    every override is validated without fallback.  Model-only mode selects the
+    evaluated ``model_only_rules_disabled`` research policy internally, skips
+    the rule branch, and still applies service validators, thresholds and
+    fusion.  It is a service ablation, not the raw-model benchmark protocol.
     """
 
     selected_scope = _normalize_scope(scope)
     selected_mode = _normalize_service_mode(mode)
     if selected_mode == "cascade":
-        if rule_policy is None:
-            raise FullBie73ProfileError("cascade mode requires an explicit adaptive rule_policy")
-        selected_policy: str = _normalize_rule_policy(rule_policy)
+        selected_policy: str = _normalize_rule_policy(
+            FULL_BIE73_DEFAULT_RULE_POLICY if rule_policy is None else rule_policy
+        )
     else:
         if rule_policy is not None:
             raise FullBie73ProfileError(
@@ -402,9 +432,15 @@ def build_full_bie73_service_pipeline(
     ):
         raise RuntimeError("the installed research runtime changed the adaptive BIE73 contract")
     labels = _runtime_labels(runtime, selected_scope)
+    open24_labels = tuple(runtime.get("open24_labels", ()))
+    threshold_input = (
+        {label: FULL_BIE73_FIXED_THRESHOLD for label in open24_labels}
+        if thresholds is None
+        else thresholds
+    )
     validated_thresholds = _threshold_mapping(
-        thresholds,
-        open24_labels=tuple(runtime.get("open24_labels", ())),
+        threshold_input,
+        open24_labels=open24_labels,
     )
     threshold_normalizer = runtime.get("threshold_normalizer")
     if not callable(threshold_normalizer):
@@ -413,7 +449,7 @@ def build_full_bie73_service_pipeline(
     if (
         not isinstance(normalized_thresholds, Mapping)
         or len(normalized_thresholds) != 24
-        or any(value != 0.5 for value in normalized_thresholds.values())
+        or any(value != FULL_BIE73_FIXED_THRESHOLD for value in normalized_thresholds.values())
     ):
         raise RuntimeError("the installed runtime changed Open-24 threshold normalization")
     normalized_thresholds = dict(normalized_thresholds)
@@ -447,11 +483,22 @@ def build_full_bie73_service_pipeline(
 
 
 __all__ = [
+    "COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION",
     "FULL_BIE73_ADAPTIVE_RULE_POLICIES",
     "FULL_BIE73_DECODER_ID",
+    "FULL_BIE73_DEFAULT_MODE",
+    "FULL_BIE73_DEFAULT_RULE_POLICY",
+    "FULL_BIE73_DEFAULT_SCOPE",
+    "FULL_BIE73_FIXED_THRESHOLD",
     "FULL_BIE73_MODEL_ONLY_RULE_POLICY",
     "FULL_BIE73_PUBLIC_PROFILE_SCHEMA_VERSION",
     "FULL_BIE73_PUBLIC_PROFILE_VERSION",
+    "FULL_BIE73_SELECTED_CANDIDATE_ID",
+    "FULL_BIE73_SELECTION_RECEIPT_FILE_SHA256",
+    "FULL_BIE73_SELECTION_RECEIPT_LOGICAL_SHA256",
+    "FULL_BIE73_SELECTION_RECEIPT_PHYSICAL_SHA256",
+    "FULL_BIE73_SELECTION_RECEIPT_SHA256",
+    "FULL_BIE73_SELECTION_STATUS",
     "FULL_BIE73_THRESHOLD_POLICY",
     "FullBie73AdaptiveRulePolicy",
     "FullBie73ProfileError",

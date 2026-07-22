@@ -1,4 +1,9 @@
-"""Run the evaluated full-BIE73 rule/model cascade with explicit policy inputs."""
+"""Run the formally selected full-BIE73 rule/model cascade.
+
+The public defaults are Open-24, ``fpr_guarded_all6`` and fixed 0.5
+thresholds.  Advanced Python integrations can override evaluated options
+through :func:`build_full_bie73_service_pipeline` with strict validation.
+"""
 
 from __future__ import annotations
 
@@ -6,28 +11,17 @@ import argparse
 import json
 from pathlib import Path
 
-from pii_zh.full_bie73 import (
-    FULL_BIE73_ADAPTIVE_RULE_POLICIES,
-    build_full_bie73_service_pipeline,
-)
+from pii_zh.full_bie73 import build_full_bie73_service_pipeline
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=Path, required=True)
-    parser.add_argument("--thresholds", type=Path, required=True)
-    parser.add_argument("--scope", choices=("open24", "closed8"), required=True)
-    parser.add_argument(
-        "--rule-policy",
-        choices=FULL_BIE73_ADAPTIVE_RULE_POLICIES,
-        required=True,
-    )
+    parser.add_argument("--scope", choices=("open24", "closed8"), default="open24")
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args()
     pipeline = build_full_bie73_service_pipeline(
         args.model_path.expanduser(),
-        rule_policy=args.rule_policy,
-        thresholds=args.thresholds.expanduser(),
         scope=args.scope,
         mode="cascade",
         device=args.device,

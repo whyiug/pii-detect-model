@@ -16,13 +16,11 @@ from pii_zh.full_bie73 import build_full_bie73_service_pipeline
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=Path, required=True)
-    parser.add_argument("--thresholds", type=Path, required=True)
-    parser.add_argument("--scope", choices=("open24", "closed8"), required=True)
+    parser.add_argument("--scope", choices=("open24", "closed8"), default="open24")
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args()
     pipeline = build_full_bie73_service_pipeline(
         args.model_path.expanduser(),
-        thresholds=args.thresholds.expanduser(),
         scope=args.scope,
         mode="model-only",
         device=args.device,

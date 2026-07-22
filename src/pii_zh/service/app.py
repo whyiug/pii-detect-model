@@ -28,6 +28,12 @@ from pii_zh.cascade import (
     build_community_model_service_pipeline,
     build_rules_only_service_pipeline,
 )
+from pii_zh.full_bie73 import (
+    COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+    FULL_BIE73_DEFAULT_SCOPE,
+    FullBie73Scope,
+    build_full_bie73_service_pipeline,
+)
 
 SERVICE_OUTPUT_SCHEMA_VERSION: Final = "pii-zh.service.output.v1"
 DEFAULT_HOST: Final = "127.0.0.1"
@@ -266,8 +272,7 @@ def _model_identity(pipeline: Pipeline) -> dict[str, str | int | bool | None] | 
     if value is None:
         return None
     if not isinstance(value, Mapping) or any(
-        not isinstance(key, str)
-        or not isinstance(item, (str, int, bool, type(None)))
+        not isinstance(key, str) or not isinstance(item, (str, int, bool, type(None)))
         for key, item in value.items()
     ):
         raise TypeError("pipeline model identity is not privacy-safe")
@@ -278,8 +283,9 @@ def create_app(
     pipeline: Pipeline | None = None,
     *,
     profile_version: str = DEFAULT_SERVICE_PROFILE_VERSION,
-    mode: CascadeMode = "rules-only",
+    mode: CascadeMode | None = None,
     model_path: str | Path | None = None,
+    scope: FullBie73Scope | None = None,
     device: str = "cpu",
     micro_batch_size: int = 16,
     calibration: Mapping[str, object] | str | Path | None = None,
@@ -291,11 +297,12 @@ def create_app(
 ) -> FastAPI:
     """Create an offline service with an optional explicit local model.
 
-    The zero-argument behavior remains the historical rules-only profile.  A
-    model-enabled HTTP application must select the community profile, choose a
-    model mode and provide a local checkpoint path.  Construction fails if the
-    checkpoint cannot pass the shared safetensors/manifest checks; there is no
-    rules-only fallback.
+    The zero-argument behavior remains the historical rules-only profile.  The
+    stable full-BIE73 profile defaults to its formally selected Open-24 cascade
+    and requires only a local checkpoint path; callers may explicitly request
+    its model-only service ablation or closed-8 pre-decode scope.  Historical
+    profiles preserve their existing construction paths.  Model verification
+    failures never fall back to rules-only behavior.
     """
 
     resolved_max_concurrency = (
@@ -307,11 +314,19 @@ def create_app(
         request_timeout_seconds=request_timeout_seconds,
         max_concurrency=resolved_max_concurrency,
     )
+    resolved_mode: CascadeMode = (
+        "cascade"
+        if mode is None and profile_version == COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION
+        else "rules-only"
+        if mode is None
+        else mode
+    )
     if pipeline is not None:
         if (
             profile_version != DEFAULT_SERVICE_PROFILE_VERSION
-            or mode != "rules-only"
+            or resolved_mode != "rules-only"
             or model_path is not None
+            or scope is not None
             or device != "cpu"
             or micro_batch_size != 16
             or calibration is not None
@@ -321,23 +336,49 @@ def create_app(
                 "pipeline cannot be combined with profile or model construction options"
             )
         active_pipeline: Pipeline = pipeline
-    elif mode == "rules-only":
+    elif profile_version == COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION:
+        if resolved_mode not in {"model-only", "cascade"}:
+            raise ValueError(
+                f"{COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION} supports only "
+                "model-only or cascade mode"
+            )
+        if model_path is None:
+            raise ValueError(f"model_path is required in {resolved_mode} mode")
+        if calibration is not None or thresholds is not None:
+            raise ValueError(
+                "the stable BIE73 HTTP profile uses its frozen thresholds and does not "
+                "accept calibration or threshold overrides"
+            )
+        active_pipeline = build_full_bie73_service_pipeline(
+            model_path,
+            scope=FULL_BIE73_DEFAULT_SCOPE if scope is None else scope,
+            mode=resolved_mode,
+            device=device,
+            micro_batch_size=micro_batch_size,
+        )
+    elif resolved_mode == "rules-only":
+        if scope is not None:
+            raise ValueError(
+                f"scope requires profile_version={COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION}"
+            )
         if model_path is not None:
             raise ValueError("model_path is only valid in model-only or cascade mode")
         if calibration is not None or thresholds is not None:
             raise ValueError("calibration and thresholds require a model-enabled mode")
         active_pipeline = build_rules_only_service_pipeline(profile_version)
     else:
-        if mode not in {"model-only", "cascade"}:
+        if resolved_mode not in {"model-only", "cascade"}:
             raise ValueError("mode must be rules-only, model-only, or cascade")
-        if profile_version != COMMUNITY_MODEL_SERVICE_PROFILE_VERSION:
+        if scope is not None:
             raise ValueError(
-                "model-enabled HTTP service requires the community model profile"
+                f"scope requires profile_version={COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION}"
             )
+        if profile_version != COMMUNITY_MODEL_SERVICE_PROFILE_VERSION:
+            raise ValueError("model-enabled HTTP service requires the community model profile")
         if model_path is None:
-            raise ValueError(f"model_path is required in {mode} mode")
+            raise ValueError(f"model_path is required in {resolved_mode} mode")
         model_options: dict[str, object] = {
-            "mode": mode,
+            "mode": resolved_mode,
             "device": device,
             "micro_batch_size": micro_batch_size,
         }
@@ -346,7 +387,8 @@ def create_app(
         if thresholds is not None:
             model_options["thresholds"] = thresholds
         active_pipeline = build_community_model_service_pipeline(
-            model_path, **model_options  # type: ignore[arg-type]
+            model_path,
+            **model_options,  # type: ignore[arg-type]
         )
     model_identity = _model_identity(active_pipeline)
     executor = _BoundedExecutor(
@@ -452,8 +494,9 @@ def run(
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
     profile_version: str = DEFAULT_SERVICE_PROFILE_VERSION,
-    mode: CascadeMode = "rules-only",
+    mode: CascadeMode | None = None,
     model_path: str | Path | None = None,
+    scope: FullBie73Scope | None = None,
     device: str = "cpu",
     micro_batch_size: int = 16,
     calibration: Mapping[str, object] | str | Path | None = None,
@@ -473,6 +516,7 @@ def run(
             profile_version=profile_version,
             mode=mode,
             model_path=model_path,
+            scope=scope,
             device=device,
             micro_batch_size=micro_batch_size,
             calibration=calibration,
