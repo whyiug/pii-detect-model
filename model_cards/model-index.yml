@@ -1,107 +1,81 @@
-# Model-only results only. Full-system/cascade scores belong to their named system receipts and
-# must not be attributed to downloadable weights. Every listed suite is synthetic or public-test
-# exposed; none is human-hidden or production evidence.
+# Standalone-model results only. The community-presidio-bie73-cascade-v1 primary/service metrics
+# must not be attributed to these weights.
 model-index:
-- name: pii-zh-qwen3-0.6b-24class-0.2.0rc1
+- name: pii-zh-qwen3-0.6b-24class-bie73-v0.3.0rc1
   results:
   - task:
       name: Token Classification
       type: token-classification
     dataset:
-      name: Synthetic Open-24 frozen release evaluation
-      type: synthetic_open24
-      split: test
+      name: Domain-randomized v7.2 independent synthetic test
+      type: pii_zh_domain_randomized_v7_2
+      split: independent_test
     metrics:
-    - name: Strict Span Micro F1
-      type: strict_span_f1
-      value: 0.9866543562
-    - name: Strict Span Precision
-      type: strict_span_precision
-      value: 0.9826130569
-    - name: Strict Span Recall
-      type: strict_span_recall
-      value: 0.9907290350
+    - name: Exact-span Micro F1
+      type: exact_span_micro_f1
+      value: 0.952047
+    - name: Exact-span Macro F1
+      type: exact_span_macro_f1
+      value: 0.956372
     - name: PII-free Document FPR
       type: pii_free_document_fpr
-      value: 0.0
-  - task:
-      name: Token Classification
-      type: token-classification
-    dataset:
-      name: PII Bench ZH formal (public-test-exposed posthoc)
-      type: pii_bench_formal
-      split: test
-    metrics:
-    - name: Strict Span Micro F1
-      type: strict_span_f1
-      value: 0.59921050
-    - name: Strict Span Macro F1
-      type: strict_span_macro_f1
-      value: 0.57994984
-  - task:
-      name: Token Classification
-      type: token-classification
-    dataset:
-      name: PII Bench ZH chat (public-test-exposed posthoc)
-      type: pii_bench_chat
-      split: test
-    metrics:
-    - name: Strict Span Micro F1
-      type: strict_span_f1
-      value: 0.47628738
-    - name: Strict Span Macro F1
-      type: strict_span_macro_f1
-      value: 0.41874684
-- name: zh-pii-qwen3-0.6b-bi-synthetic-v1.3-rc1
-  results:
+      value: 0.031250
   - task:
       name: Token Classification
       type: token-classification
     dataset:
       name: Synthetic v1.3 frozen test
-      type: synthetic_test
+      type: pii_zh_synthetic_v1_3
       split: test
     metrics:
-    - name: Model Raw Strict Span Micro F1
-      type: strict_span_f1
-      value: 0.57396812
-    - name: Model Raw Strict Span Precision
-      type: strict_span_precision
-      value: 0.43076215
-    - name: Model Raw Strict Span Recall
-      type: strict_span_recall
-      value: 0.85981022
+    - name: Exact-span Micro F1
+      type: exact_span_micro_f1
+      value: 0.739176
+    - name: Exact-span Macro F1
+      type: exact_span_macro_f1
+      value: 0.795211
+    - name: PII-free Document FPR
+      type: pii_free_document_fpr
+      value: 0.253333
   - task:
       name: Token Classification
       type: token-classification
     dataset:
-      name: PII Bench zh formal (frozen)
-      type: pii_bench_formal
-      split: test
+      name: PII Bench ZH formal
+      type: wan9yu/pii-bench-zh
+      split: formal
     metrics:
-    - name: Model Raw Strict Span Micro F1
-      type: strict_span_f1
-      value: 0.45720158
-    - name: Model Raw Strict Span Precision
-      type: strict_span_precision
-      value: 0.36044927
-    - name: Model Raw Strict Span Recall
-      type: strict_span_recall
-      value: 0.62495211
+    - name: Exact-span Micro F1
+      type: exact_span_micro_f1
+      value: 0.5465838509
+    - name: Exact-span Macro F1
+      type: exact_span_macro_f1
+      value: 0.5930315483
   - task:
       name: Token Classification
       type: token-classification
     dataset:
-      name: PII Bench zh chat (frozen)
-      type: pii_bench_chat
-      split: test
+      name: PII Bench ZH chat
+      type: wan9yu/pii-bench-zh
+      split: chat
     metrics:
-    - name: Model Raw Strict Span Micro F1
-      type: strict_span_f1
-      value: 0.28733323
-    - name: Model Raw Strict Span Precision
-      type: strict_span_precision
-      value: 0.20617070
-    - name: Model Raw Strict Span Recall
-      type: strict_span_recall
-      value: 0.47388653
+    - name: Exact-span Micro F1
+      type: exact_span_micro_f1
+      value: 0.4749034749
+    - name: Exact-span Macro F1
+      type: exact_span_macro_f1
+      value: 0.4826017924
+  - task:
+      name: Token Classification
+      type: token-classification
+    dataset:
+      name: PII Bench ZH pooled
+      type: wan9yu/pii-bench-zh
+      split: pooled
+    metrics:
+    - name: Exact-span Micro F1
+      type: exact_span_micro_f1
+      value: 0.5234460196
+    - name: Exact-span Macro F1
+      type: exact_span_macro_f1
+      value: 0.5660017265

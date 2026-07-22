@@ -1,192 +1,201 @@
 # pii-zh-qwen
 
-面向简体中文的本地 PII 检测模型与级联服务：用 24 类中文 token-classification
-模型理解上下文，用中文规则补充结构化标识，统一输出可用于检测与脱敏的字符级 span，
-并提供 Presidio 兼容层。
+面向简体中文的本地 PII 检测模型与集成服务。服务以 Presidio 中文识别链为主检测器，保留其在
+常见身份、联系方式和证件类型上的稳定输出；约 0.6B 参数的 full-attention BIE73 模型只补充
+主检测器尚未覆盖的类型。CLI、Python API 与 FastAPI 使用统一的字符级 span 输出。
 
-[![Release](https://img.shields.io/github/v/release/whyiug/pii-detect-model?include_prereleases)](https://github.com/whyiug/pii-detect-model/releases/tag/v0.2.0rc1)
+[![Release](https://img.shields.io/github/v/release/whyiug/pii-detect-model?include_prereleases)](https://github.com/whyiug/pii-detect-model/releases/tag/v0.3.0rc1)
 [![Model](https://img.shields.io/badge/Hugging%20Face-model-FFD21E)](https://huggingface.co/Forrest20231206/pii-zh-qwen3-0.6b-24class)
 [![License](https://img.shields.io/github/license/whyiug/pii-detect-model)](LICENSE)
 
-当前公开版本为 <code>v0.2.0rc1</code>。它提供可直接安装的 CLI、FastAPI 服务和公开模型权重，
-适合本地评估、应用集成与二次开发。
-
 ## 主要能力
 
-- 24 类简体中文 PII 模型，覆盖身份、联系方式、账号、设备与位置等常见信息；
-- rules-only、model-only、cascade 三种运行模式；
-- Presidio 兼容层、中文规则、格式校验、阈值与冲突合并；
-- CLI 检测/脱敏、批量 JSONL、FastAPI 和本地 Docker；
-- 默认本地运行；CLI 不会静默上传文本，也不会自动下载模型。
+- 24 类中文 PII：姓名、联系方式、证件、金融账号、组织编号、网络与设备标识等；
+- full attention + `O + 24 × B/I/E = 73` 标签，使用 constrained-Viterbi 输出合法字符跨度；
+- Presidio-primary + BIE73 augmentation：模型不覆盖或改写 Presidio 已负责的类型；
+- 开箱即用的 `community-presidio-bie73-cascade-v1` 集成 profile；
+- 检测、脱敏、批量 JSONL、Python API、Presidio 接入和本地 HTTP 服务；
+- 模型只从显式指定的本地目录加载，CLI 与服务不会自动上传文本或下载权重。
 
 ## 快速开始
 
-需要 Python 3.10 或更高版本。当前包从 GitHub Release 安装：
+需要 Python 3.10 或更高版本。
 
-~~~bash
+```bash
 python -m pip install \
-  "pii-zh-qwen[cascade,service] @ https://github.com/whyiug/pii-detect-model/releases/download/v0.2.0rc1/pii_zh_qwen-0.2.0rc1-py3-none-any.whl"
-~~~
-
-### 1. 无模型快速检测
-
-规则模式不下载权重，安装后即可运行：
-
-~~~bash
-pii-zh detect \
-  --profile c1-conservative-v2 \
-  --text '测试邮箱 demo@example.com，联系电话 13800138000。' \
-  --pretty
-~~~
-
-脱敏：
-
-~~~bash
-pii-zh redact \
-  --profile c1-conservative-v2 \
-  --text '测试邮箱 demo@example.com，联系电话 13800138000。' \
-  --replacement '<PII>'
-~~~
-
-检测结果包含实体类型、字符起止位置、置信分数和来源，不回显命中的原始片段。
-
-### 2. 下载模型并启用级联
-
-~~~bash
+  "pii-zh-qwen[cascade,service] @ https://github.com/whyiug/pii-detect-model/releases/download/v0.3.0rc1/pii_zh_qwen-0.3.0rc1-py3-none-any.whl"
 python -m pip install "huggingface_hub>=0.27"
+
+export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
+BIE73_MODEL="$PWD/models/pii-zh-qwen3-0.6b-24class"
+PRIMARY_SOURCE="$PWD/models/uer/cluener2020-upstream"
+PRIMARY_MODEL="$PWD/models/uer/cluener2020-primary"
+
 hf download Forrest20231206/pii-zh-qwen3-0.6b-24class \
-  --revision v0.2.0rc1 \
-  --local-dir ./models/pii-zh-qwen3-0.6b-24class
-~~~
+  --revision v0.3.0rc1 \
+  --local-dir "$BIE73_MODEL"
+hf download uer/roberta-base-finetuned-cluener2020-chinese \
+  README.md config.json pytorch_model.bin special_tokens_map.json \
+  tokenizer_config.json vocab.txt \
+  --revision cddd8fc233e373855a8c0a7f4b7eb83acb686a2b \
+  --local-dir "$PRIMARY_SOURCE"
+pii-zh prepare-cluener-primary \
+  --source-dir "$PRIMARY_SOURCE" \
+  --output-dir "$PRIMARY_MODEL"
+```
 
-~~~bash
+准备命令会校验固定 revision，把 CLUENER 的 legacy 权重转换为服务使用的 safetensors-only 目录；
+原始下载目录保持不变。
+
+### Python
+
+默认构建 Presidio-primary 服务。BIE73 使用 constrained-Viterbi，只在主检测器未覆盖的实体类型上
+提供 augmentation；同类冲突不由模型推翻 Presidio 结果。
+
+```python
+from pii_zh.full_bie73 import build_full_bie73_service_pipeline
+
+pipeline = build_full_bie73_service_pipeline(
+    model_path="models/pii-zh-qwen3-0.6b-24class",
+    primary_model_path="models/uer/cluener2020-primary",
+    device="cpu",
+)
+text = "联系人张三，手机号 13800138000，邮箱 demo@example.com。"
+print([span.to_dict() for span in pipeline.detect(text)])
+print(pipeline.redact(text, "<PII>"))
+```
+
+### CLI
+
+`--mode`、`--scope` 和阈值均可省略；该 profile 默认启用 Presidio 主检测与 BIE73 补充路径。
+
+```bash
 pii-zh detect \
-  --profile community-model-cascade-v1 \
-  --mode cascade \
-  --model-path ./models/pii-zh-qwen3-0.6b-24class \
-  --device cpu \
-  --text '联系人张三，手机号 13800138000，邮箱 demo@example.com。' \
+  --profile community-presidio-bie73-cascade-v1 \
+  --model-path "$BIE73_MODEL" \
+  --primary-model-path "$PRIMARY_MODEL" \
+  --text '联系人张三，手机号 13800138000。' \
   --pretty
-~~~
 
-如有 CUDA，可将 <code>--device cpu</code> 改为 <code>--device cuda</code>。服务不会替你选择、
-占用或清理 GPU。
+pii-zh redact \
+  --profile community-presidio-bie73-cascade-v1 \
+  --model-path "$BIE73_MODEL" \
+  --primary-model-path "$PRIMARY_MODEL" \
+  --text '联系人张三，手机号 13800138000。' \
+  --replacement '<PII>'
+```
 
-### 3. 启动本地 API
+有 CUDA 时可显式传入 `--device cuda`。项目不会替用户选择、抢占或清理 GPU。
 
-~~~bash
+### HTTP
+
+```bash
 pii-zh serve \
-  --profile community-model-cascade-v1 \
-  --mode cascade \
-  --model-path ./models/pii-zh-qwen3-0.6b-24class \
-  --device cpu \
+  --profile community-presidio-bie73-cascade-v1 \
+  --model-path "$BIE73_MODEL" \
+  --primary-model-path "$PRIMARY_MODEL" \
   --host 127.0.0.1 \
   --port 8000
-~~~
+```
 
-~~~bash
+```bash
 curl --fail --silent --show-error \
   -H 'content-type: application/json' \
   --data '{"text":"测试邮箱 demo@example.com"}' \
   http://127.0.0.1:8000/v1/analyze
-~~~
+```
 
-默认仅绑定 loopback，并限制请求体、文本长度、并发和超时。完整参数见
-[部署指南](docs/cascade-deployment.md)和 [API 文档](docs/community-model-service.md)。
+另有 `/healthz` 与 `/v1/redact`。服务默认仅监听 loopback，限制文本长度、请求体、并发和超时，
+并关闭 access log。
 
-## 工作方式
+## 为什么不能直接使用通用 token-classification pipeline
 
-~~~mermaid
-flowchart LR
-    A[输入文本] --> B[中文规则与格式校验]
-    A --> C[24 类中文 PII 模型]
-    B --> D[span 合并与冲突处理]
-    C --> D
-    D --> E[检测结果或脱敏文本]
-~~~
-
-规则擅长身份证号、银行卡号、邮箱等结构化标识；模型负责姓名、地址和上下文相关实体；
-级联层对来源、阈值、格式和重叠 span 做统一处理。架构细节见
-[级联设计](docs/cascade-architecture.md)。
+BIE73 的最终 span 依赖合法状态转移和解码前标签 scope。请使用项目提供的
+`load_full_bie73_predictor` 或级联 builder；不要把
+`transformers.pipeline(..., aggregation_strategy="simple")` 的通用聚合结果作为本模型输出。
+通用聚合不执行项目的 constrained-Viterbi 约束，可能改变边界并产生非法 B/I/E 路径。
 
 ## 支持的实体类型
 
-- 身份：<code>PERSON_NAME</code>、<code>DATE_OF_BIRTH</code>、<code>CN_RESIDENT_ID</code>、
-  <code>PASSPORT_NUMBER</code>、<code>DRIVER_LICENSE_NUMBER</code>、
-  <code>SOCIAL_SECURITY_NUMBER</code>
-- 联系与位置：<code>PHONE_NUMBER</code>、<code>EMAIL_ADDRESS</code>、<code>ADDRESS</code>、
-  <code>GEO_COORDINATE</code>
-- 金融与组织账号：<code>BANK_CARD_NUMBER</code>、<code>BANK_ACCOUNT_NUMBER</code>、
-  <code>EMPLOYEE_ID</code>、<code>STUDENT_ID</code>、<code>MEDICAL_RECORD_NUMBER</code>
-- 网络与设备：<code>WECHAT_ID</code>、<code>QQ_NUMBER</code>、<code>ALIPAY_ACCOUNT</code>、
-  <code>USERNAME</code>、<code>IP_ADDRESS</code>、<code>MAC_ADDRESS</code>、
-  <code>DEVICE_ID</code>
-- 其他：<code>VEHICLE_LICENSE_PLATE</code>、<code>SECRET</code>
+| 类别 | 实体类型 |
+|---|---|
+| 基本信息与联系方式 | `PERSON_NAME`, `PHONE_NUMBER`, `EMAIL_ADDRESS`, `ADDRESS`, `DATE_OF_BIRTH` |
+| 身份证件 | `CN_RESIDENT_ID`, `PASSPORT_NUMBER`, `DRIVER_LICENSE_NUMBER`, `SOCIAL_SECURITY_NUMBER` |
+| 金融账户 | `BANK_CARD_NUMBER`, `BANK_ACCOUNT_NUMBER`, `ALIPAY_ACCOUNT` |
+| 车辆、组织与医疗 | `VEHICLE_LICENSE_PLATE`, `EMPLOYEE_ID`, `STUDENT_ID`, `MEDICAL_RECORD_NUMBER` |
+| 社交账号、网络与设备 | `WECHAT_ID`, `QQ_NUMBER`, `USERNAME`, `IP_ADDRESS`, `MAC_ADDRESS`, `DEVICE_ID` |
+| 位置与安全信息 | `GEO_COORDINATE`, `SECRET` |
 
-<code>SECRET</code> 用于发现安全敏感字符串，不一定属于法律意义上的个人信息。
+`SECRET` 用于识别密码、token、密钥等敏感字符串，不一定属于法律定义中的个人信息。
 
 ## 效果概览
 
-以下结果来自同一个冻结的 Open-24 协议；该协议为 100% 合成数据。模型轨与完整服务轨的输入、
-后处理和比较器不同，不能交叉解读。
+所有分数均使用字符级 exact-span 匹配。单模型与 Presidio 服务是两个独立轨道，不能把服务分数
+归因于模型权重，也不能把某一轨道的结果外推到另一轨道。
 
-| 轨道 | 系统 | strict micro F1 | strict recall | PII-free 文档 FPR |
+| 评测 | 轨道 | strict micro F1 | strict macro F1 | PII-free 文档 FPR |
 |---|---|---:|---:|---:|
-| 单模型 | pii-zh-qwen3-0.6b-24class | **0.9867** | **0.9907** | **0.0000** |
-| 单模型对照 | AIguard fast Open-24 | 0.2512 | 0.1862 | 0.1160 |
-| 完整服务 | model + cn_common_v6 rules cascade | **0.9888** | **0.9781** | **0.0000** |
-| 服务对照 | Presidio + CLUENER + cn_common_v6 | 0.6237 | 0.5185 | 0.1622 |
+| v7.2 independent synthetic | 单模型 Open-24 | 0.952047 | 0.956372 | 0.031250 |
 
-在公开 PII Bench ZH 的 pooled closed-8 测试上，本模型单独运行的 strict micro F1 为
-0.5575，不是该榜单最佳结果；本项目的重点是可控、可集成的中文级联服务。历史 CLUENER
-兼容回归中，非默认、post-hoc 兼容配置的 F1 为 0.7946，超过第一版服务的 0.7870；该结果
-不是当前 Open-24 完整级联的直接评测。
-评测协议、比较器和限制见 [benchmark landscape](docs/benchmark_landscape.md) 与
-[技术指南](docs/aiguard24_full_model_and_cascade_technical_guide.md)。
+跨数据集服务回归结果：
 
-## 模型与数据
+| 数据集 | 结果 | 说明 |
+|---|---:|---|
+| CLUENER | strict micro F1 `0.794555` | 历史兼容分支；B3 模型不参与该分支 |
+| CrossWOZ | `2` emitting docs / `2` spans | 对照服务为 `8 / 8`；该集合无 span-level gold，不报告 F1 |
 
-- 基座/初始化：<code>ZJUICSR/AIguard-pii-detection-fast</code>，固定 revision
-  <code>677a5ebc1600fef61e8973cafd3026be322b3a73</code>；
-- 架构：Qwen3 token classification，596,100,145 个 FP32 参数；
-- 输出：<code>O + 24×BIO = 49</code> 个 token 标签；
-- 训练集 87,995 条，开发集 2,005 条；
-- 两个 split 均为确定性合成/开源派生数据，未使用客户或生产 PII。
+PII Bench ZH closed-8 结果如下。该公开 benchmark 不含 PII-free 文档，不能代表完整 Open-24、
+真实业务误报率或全局排名。
 
-训练集与开发集共享 17 个模板家族，因此合成评测不能替代真实业务域验证。公开
-<code>v0.2.0rc1</code> 模型可直接推理，但该版本没有分发冻结评测所用的 calibration bundle；
-上面的级联指标是项目冻结回放结果，不应被描述为默认命令的逐字节复现结果。
+| 轨道 | Formal micro / macro | Chat micro / macro | Pooled micro / macro |
+|---|---|---|---|
+| BIE73 单模型 | `0.5465838509 / 0.5930315483` | `0.4749034749 / 0.4826017924` | `0.5234460196 / 0.5660017265` |
+| 冻结 native Presidio 主检测基线 | `0.9527327902 / 0.8732108951` | `0.9361379310 / 0.8399701577` | `0.9473637236 / 0.8667338443` |
 
-## 使用边界
+公开服务以第二行的 native Presidio 方案为主路由，BIE73 只补充其未覆盖的 16 类。实现合同在
+解码前屏蔽模型的 closed-8 标签，原样保留 primary 输出且跨分支重叠由 primary 获胜，因此组合
+服务的 closed-8 投影与冻结 primary 分支相同。这里的数字仍是 primary 分支的冻结证据，不是整套
+Open-24 增强服务的新评测；Open-24 尚无新的严格整体 F1。项目不作严格超越或 SOTA 声明。
 
-- 模型会漏检和误检；正式脱敏前应使用目标域数据重评阈值，并保留人工抽检与回滚能力。
-- 不要把真实 PII、访问令牌或私钥提交到 issue、日志或公开测试样例。
-- 本项目不是法律或合规意见，也不替代访问控制、数据最小化和人工审查。
-- 若处理高风险数据，建议固定 Git/HF revision、离线保存依赖并记录部署配置。
+同协议的 model-only 对照中，AIguard fast 的 pooled micro F1 为 `0.7364`，OpenMed QwenMed
+XLarge 600M 为 `0.6239`，OpenMed Privacy Filter Multilingual 为 `0.6775`；均高于本模型的
+`0.5234`。这也是默认产品采用“强 Presidio primary + BIE73 扩类”而不是替换主检测器的原因。
+完整的开源模型、规则框架和 hybrid 分轨比较见
+[公开比较说明](docs/benchmark_landscape.md)。
+
+## 模型与训练数据
+
+- 初始化自 `ZJUICSR/AIguard-pii-detection-fast` 的固定 revision，并继承其上游权重知识；
+- 约 616M 参数，full-attention Qwen3 token classifier，73 个 BIE 标签；
+- 本轮数据共 88,000 条，全部由项目生成：72,000 train、8,000 dev、8,000 independent test；
+- 只有 72,000 条 train 进入梯度训练；未加入真实 PII、客户数据或公开 NER 训练行；
+- 三个 split 在语法组、模板族、语义骨架、实体值组、来源组、文本哈希和文档 ID 上隔离。
+
+Presidio primary 使用固定 revision 的
+`uer/roberta-base-finetuned-cluener2020-chinese`。该权重不随 Python 包或 BIE73 模型包分发，
+必须由使用者下载到本地；其上游模型卡未声明模型许可证，使用和再分发前请自行审阅上游材料与
+适用条款。
+
+全合成数据具有可审计和无真实 PII 的优点，但不能替代真实业务域、人工复核 hidden test 或分布
+漂移评估。完整训练方式见[模型数据与训练技术报告](docs/model-training-technical-report.md)。
+
+## 使用建议
+
+- 一般应用优先使用 Presidio-primary 默认服务；BIE73 augmentation 应限制在主检测器未覆盖类型。
+- `mode="model-only"` 是仍保留阈值、validator 和 fusion 的服务消融，不是 raw-model benchmark
+  路径，也不是产品默认配置。
+- 上线前用目标域数据验证标签定义、误报、漏报、延迟和资源占用，并保留人工抽检。
+- `start`/`end` 是左闭右开的字符偏移；输出不回显命中的原文。
+- 模型会误检和漏检，检测结果不等同于法律或合规结论。
 
 ## 文档
 
 - [Hugging Face Model Card](https://huggingface.co/Forrest20231206/pii-zh-qwen3-0.6b-24class)
-- [v0.2.0rc1 Release](https://github.com/whyiug/pii-detect-model/releases/tag/v0.2.0rc1)
-- [级联部署](docs/cascade-deployment.md)
-- [服务 API](docs/community-model-service.md)
-- [模型数据集与训练技术报告](docs/model-training-technical-report.md)
-- [训练与评测技术指南](docs/aiguard24_full_model_and_cascade_technical_guide.md)
-- [安全问题报告](SECURITY.md)
-
-## 从源码开发
-
-~~~bash
-git clone https://github.com/whyiug/pii-detect-model.git
-cd pii-detect-model
-uv sync --frozen --extra cascade --extra service --extra training --extra dev
-uv run ruff check src tests scripts
-uv run python -m scripts.run_current_community_rc_tests
-~~~
-
-模型权重、真实凭据、原始数据和本地运行目录不进入 Git。
+- [Presidio-primary 集成服务](docs/community-model-service.md)
+- [模型数据与训练技术报告](docs/model-training-technical-report.md)
+- [License](LICENSE) 与 [第三方许可](THIRD_PARTY_NOTICES.md)
 
 ## License
 
-仓库代码采用 [Apache License 2.0](LICENSE)。模型、数据集和依赖的第三方条款独立适用，
-再分发或生产使用前请阅读 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+仓库代码采用 [Apache License 2.0](LICENSE)。模型初始化权重、数据与依赖的第三方条款独立适用，
+再分发或生产使用前请阅读 [NOTICE](NOTICE) 与 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。

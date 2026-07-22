@@ -212,63 +212,67 @@ def test_predictor_rejects_parameters_before_runtime_import(
         module.load_full_bie73_predictor("/model", scope="open24", micro_batch_size=0)
 
 
-def test_service_defaults_to_formally_selected_open24_cascade(
+def test_service_defaults_to_presidio_primary_open24_cascade(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = _module()
     calls: list[dict[str, Any]] = []
-    monkeypatch.setattr(module, "_load_service_runtime", lambda: _service_runtime(module, calls))
 
-    pipeline = module.build_full_bie73_service_pipeline("/model")
+    pipeline = SimpleNamespace(config=_FakeConfig(), model_identity={"profile": "unit"})
 
-    assert len(calls) == 1
-    call = calls[0]
-    assert call["scope"] == "open24"
-    assert call["mode"] == "cascade"
-    assert call["rule_policy"] == "fpr_guarded_all6"
-    assert call["thresholds"] == {label: 0.5 for label in OPEN24}
-    assert pipeline.config.mode == "cascade"
-    assert pipeline.config.profile_version == "community-full-bie73-cascade-v1"
-    identity = dict(pipeline.model_identity)
-    assert identity["public_profile_version"] == "community-full-bie73-cascade-v1"
-    assert identity["matches_selected_cascade"] is True
-    assert identity["selected_rule_policy"] == "fpr_guarded_all6"
-    assert identity["selected_scope"] == "open24"
-    assert identity["selected_candidate_id"] == "b3-v2-t050-fpr-guarded-all6"
-    assert identity["selection_status"] == (
-        "SELECTED_DEVELOPMENT_CASCADE_POLICY_NOT_BENCHMARK_EVALUATED"
-    )
-    assert identity["selection_receipt_file_sha256"] == (
-        "28b37a0bfb2b6e902a76297300b2bd47fbe3be7569c0dedc7b43e4210a5802e2"
-    )
-    assert identity["selection_receipt_sha256"] == (
-        "eeaa0f80593f5a661ed72ecc3e21292cedf19819c52cce645fbd0db9855cfd37"
-    )
-    assert identity["selection_receipt_physical_sha256"] == (
-        "28b37a0bfb2b6e902a76297300b2bd47fbe3be7569c0dedc7b43e4210a5802e2"
-    )
-    assert identity["selection_receipt_logical_sha256"] == (
-        "eeaa0f80593f5a661ed72ecc3e21292cedf19819c52cce645fbd0db9855cfd37"
+    def build(path: object, **kwargs: Any) -> object:
+        calls.append({"path": path, **kwargs})
+        return pipeline
+
+    monkeypatch.setattr(module, "_build_presidio_primary_service", build)
+
+    result = module.build_full_bie73_service_pipeline(
+        "/model",
+        primary_model_path="/primary",
     )
 
+    assert result is pipeline
+    assert calls == [
+        {
+            "path": "/model",
+            "primary_model_path": "/primary",
+            "device": "cpu",
+            "dtype": None,
+            "micro_batch_size": 16,
+        }
+    ]
 
-def test_service_strictly_validates_advanced_policy_and_threshold_overrides(
+
+def test_presidio_primary_service_rejects_missing_or_research_overrides(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = _module()
 
-    def forbidden() -> object:
-        raise AssertionError("runtime must not load for an unsupported policy")
+    def forbidden(*args: object, **kwargs: object) -> object:
+        del args, kwargs
+        raise AssertionError("runtime must not load for an invalid public contract")
 
-    monkeypatch.setattr(module, "_load_service_runtime", forbidden)
+    monkeypatch.setattr(module, "_build_presidio_primary_service", forbidden)
     thresholds = {label: 0.5 for label in OPEN24}
-    with pytest.raises(ValueError, match="adaptive"):
+    with pytest.raises(ValueError, match="primary_model_path"):
+        module.build_full_bie73_service_pipeline("/model")
+    with pytest.raises(ValueError, match="fixed open24"):
         module.build_full_bie73_service_pipeline(
             "/model",
+            primary_model_path="/primary",
+            scope="closed8",
+        )
+    with pytest.raises(ValueError, match="research rule_policy"):
+        module.build_full_bie73_service_pipeline(
+            "/model",
+            primary_model_path="/primary",
             rule_policy="preserve_all_validated_rules",
+        )
+    with pytest.raises(ValueError, match="frozen thresholds"):
+        module.build_full_bie73_service_pipeline(
+            "/model",
+            primary_model_path="/primary",
             thresholds=thresholds,
-            scope="open24",
-            mode="cascade",
         )
     with pytest.raises(ValueError, match="internal evaluated"):
         module.build_full_bie73_service_pipeline(
@@ -276,6 +280,12 @@ def test_service_strictly_validates_advanced_policy_and_threshold_overrides(
             rule_policy="fpr_guarded_weak5",
             thresholds=thresholds,
             scope="open24",
+            mode="model-only",
+        )
+    with pytest.raises(ValueError, match="only valid"):
+        module.build_full_bie73_service_pipeline(
+            "/model",
+            primary_model_path="/primary",
             mode="model-only",
         )
     with pytest.raises(ValueError, match="mode"):
@@ -286,89 +296,6 @@ def test_service_strictly_validates_advanced_policy_and_threshold_overrides(
             mode="rules-only",
         )
 
-    calls: list[dict[str, Any]] = []
-    monkeypatch.setattr(module, "_load_service_runtime", lambda: _service_runtime(module, calls))
-    missing = dict(thresholds)
-    missing.pop(OPEN24[-1])
-    with pytest.raises(ValueError, match="exact canonical Open-24"):
-        module.build_full_bie73_service_pipeline(
-            "/model",
-            rule_policy="fpr_guarded_weak5",
-            thresholds=missing,
-            scope="open24",
-            mode="cascade",
-        )
-    wrong = dict(thresholds)
-    wrong[OPEN24[-1]] = 0.49
-    with pytest.raises(ValueError, match="equal 0.5"):
-        module.build_full_bie73_service_pipeline(
-            "/model",
-            rule_policy="fpr_guarded_weak5",
-            thresholds=wrong,
-            scope="open24",
-            mode="cascade",
-        )
-    assert calls == []
-
-
-@pytest.mark.parametrize(
-    ("scope", "policy"),
-    (("open24", "fpr_guarded_weak5"), ("closed8", "fpr_guarded_all6")),
-)
-def test_service_delegates_to_research_builder_and_preserves_pipeline_parity(
-    scope: str,
-    policy: str,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    module = _module()
-    calls: list[dict[str, Any]] = []
-    monkeypatch.setattr(module, "_load_service_runtime", lambda: _service_runtime(module, calls))
-    thresholds = {label: 0.5 for label in OPEN24}
-    dtype = object()
-
-    pipeline = module.build_full_bie73_service_pipeline(
-        "/model",
-        rule_policy=policy,
-        thresholds=thresholds,
-        scope=scope,
-        mode="cascade",
-        device="cuda:2",
-        dtype=dtype,
-        micro_batch_size=7,
-    )
-
-    assert len(calls) == 1
-    call = calls[0]
-    assert pipeline is call["pipeline"]
-    assert call["scope"] == scope
-    assert call["mode"] == "cascade"
-    assert call["device"] == "cuda:2"
-    assert call["micro_batch_size"] == 7
-    assert call["thresholds"] == thresholds
-    assert call["rule_policy"] == policy
-    assert call["decoder_id"] == "constrained_viterbi"
-    assert call["dtype"] is dtype
-    # The wrapper changes only public config metadata; evaluated runtime
-    # components stay on the exact object returned by the research builder.
-    assert pipeline.config is call["pipeline"].config
-    assert pipeline.config.mode == "cascade"
-    assert pipeline.config.profile_version == "community-full-bie73-cascade-v1"
-    assert pipeline.rule_recognizer is call["rule_recognizer"]
-    assert pipeline.model_recognizer is call["model_recognizer"]
-    assert pipeline.validators is call["validators"]
-    assert pipeline.stage_policy is call["stage_policy"]
-    assert pipeline._fusion is call["fusion"]
-    identity = dict(pipeline.model_identity)
-    assert identity["public_profile_schema_version"] == ("pii-zh.full-bie73-public-profile.v1")
-    assert identity["public_profile_version"] == "community-full-bie73-cascade-v1"
-    assert identity["service_mode"] == "cascade"
-    assert identity["profile_purpose"] == "adaptive_rule_model_cascade"
-    assert identity["validators_enabled"] is True
-    assert identity["raw_model_benchmark_equivalent"] is False
-    assert identity["threshold_policy"] == "core24-fixed-0.5-v1"
-    assert identity["matches_selected_cascade"] is False
-    digest = identity.pop("public_profile_identity_sha256")
-    assert digest == module._canonical_json_hash(identity)
 
 
 def test_service_accepts_an_exact_threshold_file(
@@ -386,10 +313,9 @@ def test_service_accepts_an_exact_threshold_file(
 
     module.build_full_bie73_service_pipeline(
         "/model",
-        rule_policy="fpr_guarded_weak5",
         thresholds=threshold_file,
         scope="open24",
-        mode="cascade",
+        mode="model-only",
     )
 
     assert calls[0]["thresholds"] == {label: 0.5 for label in OPEN24}
@@ -410,10 +336,9 @@ def test_service_rejects_duplicate_threshold_file_keys(
     with pytest.raises(ValueError, match="duplicate"):
         module.build_full_bie73_service_pipeline(
             "/model",
-            rule_policy="fpr_guarded_weak5",
             thresholds=threshold_file,
             scope="open24",
-            mode="cascade",
+            mode="model-only",
         )
     assert calls == []
 
@@ -438,7 +363,7 @@ def test_model_only_selects_internal_policy_and_marks_public_identity(
     assert call["mode"] == "cascade"
     assert call["rule_policy"] == "model_only_rules_disabled"
     assert pipeline.config.mode == "model-only"
-    assert pipeline.config.profile_version == "community-full-bie73-cascade-v1"
+    assert pipeline.config.profile_version == "community-presidio-bie73-cascade-v1"
     assert pipeline.rule_recognizer is None
     identity = dict(pipeline.model_identity)
     assert identity["service_mode"] == "model-only"

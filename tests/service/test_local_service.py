@@ -210,7 +210,14 @@ def test_full_bie73_http_factory_uses_selected_defaults_and_explicit_scope(
 ) -> None:
     model_dir = tmp_path / "full-bie73"
     model_dir.mkdir()
+    primary_model_dir = tmp_path / "cluener-primary"
+    primary_model_dir.mkdir()
     calls: list[dict[str, object]] = []
+
+    assert (
+        COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION
+        == "community-presidio-bie73-cascade-v1"
+    )
 
     class EmptyModelRecognizer:
         def analyze(self, text: str, entities: object) -> list[object]:
@@ -241,6 +248,7 @@ def test_full_bie73_http_factory_uses_selected_defaults_and_explicit_scope(
     selected_app = create_app(
         profile_version=COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
         model_path=model_dir,
+        primary_model_path=primary_model_dir,
     )
     with TestClient(selected_app) as client:
         selected_health = client.get("/healthz")
@@ -255,6 +263,7 @@ def test_full_bie73_http_factory_uses_selected_defaults_and_explicit_scope(
     assert selected_analyze.json()["model_identity"] == selected_health.json()["model_identity"]
     assert calls[-1] == {
         "model_path": model_dir,
+        "primary_model_path": primary_model_dir,
         "scope": "open24",
         "mode": "cascade",
         "device": "cpu",
@@ -273,11 +282,27 @@ def test_full_bie73_http_factory_uses_selected_defaults_and_explicit_scope(
     assert ablation_health.json()["model_identity"]["model_scope"] == "closed8"
     assert calls[-1]["mode"] == "model-only"
     assert calls[-1]["scope"] == "closed8"
+    assert calls[-1]["primary_model_path"] is None
+
+    with pytest.raises(ValueError, match="primary_model_path is required in cascade mode"):
+        create_app(
+            profile_version=COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+            model_path=model_dir,
+        )
+
+    with pytest.raises(ValueError, match="primary_model_path is only valid in cascade mode"):
+        create_app(
+            profile_version=COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+            mode="model-only",
+            model_path=model_dir,
+            primary_model_path=primary_model_dir,
+        )
 
     with pytest.raises(ValueError, match="does not accept calibration or threshold overrides"):
         create_app(
             profile_version=COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
             model_path=model_dir,
+            primary_model_path=primary_model_dir,
             thresholds={"PERSON_NAME": 0.5},
         )
 
@@ -291,6 +316,8 @@ def test_full_bie73_cli_and_http_emit_the_same_detection_identity(
 
     model_dir = tmp_path / "full-bie73"
     model_dir.mkdir()
+    primary_model_dir = tmp_path / "cluener-primary"
+    primary_model_dir.mkdir()
     identity = {
         "public_profile_version": COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
         "service_mode": "cascade",
@@ -346,6 +373,8 @@ def test_full_bie73_cli_and_http_emit_the_same_detection_identity(
                 COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
                 "--model-path",
                 str(model_dir),
+                "--primary-model-path",
+                str(primary_model_dir),
                 "--text",
                 "测试文本",
             ]
@@ -357,6 +386,7 @@ def test_full_bie73_cli_and_http_emit_the_same_detection_identity(
     app = create_app(
         profile_version=COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
         model_path=model_dir,
+        primary_model_path=primary_model_dir,
     )
     with TestClient(app) as client:
         api_payload = client.post("/v1/analyze", json={"text": "测试文本"}).json()

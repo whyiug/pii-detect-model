@@ -239,6 +239,24 @@ def test_jsonl_alignment_discards_raw_text_and_dynamic_padding(tmp_path) -> None
     assert summary.sources[0].source_id == "unit-test"
 
 
+@pytest.mark.parametrize("split", ("train", "dev", "validation"))
+def test_jsonl_alignment_accepts_only_declared_training_split_names(tmp_path, split: str) -> None:
+    path = _write_training_record(tmp_path, split=split)
+    kwargs = {
+        "tokenizer": _CharacterTokenizer(),
+        "label2id": {"O": 0, "B-PERSON_NAME": 1, "I-PERSON_NAME": 2},
+        "max_length": 16,
+    }
+
+    dataset, summary = load_aligned_jsonl(path, expected_split=split, **kwargs)
+
+    assert len(dataset) == 1
+    assert summary.split_counts == {split: 1}
+    assert summary.sources[0].split == split
+    with pytest.raises(TrainingDataError, match="train, dev, or validation"):
+        load_aligned_jsonl(path, expected_split="test", **kwargs)
+
+
 @pytest.mark.parametrize(
     ("kind", "train_updates", "validation_updates"),
     [

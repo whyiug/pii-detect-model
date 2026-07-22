@@ -190,8 +190,8 @@ def load_aligned_jsonl(
 
     if not getattr(tokenizer, "is_fast", False):
         raise TrainingDataError("training requires a fast tokenizer with offset mappings")
-    if expected_split not in {"train", "validation"}:
-        raise TrainingDataError("expected_split must be train or validation")
+    if expected_split not in {"train", "dev", "validation"}:
+        raise TrainingDataError("expected_split must be train, dev, or validation")
     documents: list[EncodedDocument] = []
     seen_doc_ids: set[str] = set()
     entity_count = 0

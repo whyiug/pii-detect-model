@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, cast
 from pii_zh.cascade import CascadeConfig, CascadePipeline
 
 from ._compat import PRESIDIO_AVAILABLE, LocalRecognizer
-from .cascade_recognizer import CascadeRecognizer
+from .cascade_recognizer import CascadeRecognizer, DetectionPipeline
 from .cn_common_recognizer import CnCommonRecognizer
 from .context_enhancer import ChinesePhraseContextEnhancer
 
@@ -120,7 +120,7 @@ def create_analyzer_engine(
     *,
     model_recognizer: LocalRecognizer | None = None,
     rule_recognizer: CnCommonRecognizer | None = None,
-    cascade_pipeline: CascadePipeline | None = None,
+    cascade_pipeline: DetectionPipeline | None = None,
     context_enhancer: ChinesePhraseContextEnhancer | None = None,
     default_score_threshold: float = 0.0,
 ) -> AnalyzerEngine:
@@ -158,7 +158,12 @@ def create_analyzer_engine(
     elif context_enhancer is not None:
         # Preserve the historical factory argument while moving its semantics
         # into the shared runtime instead of applying it after fusion.
-        cascade_pipeline = cascade_pipeline.with_context_enhancer(context_enhancer)
+        replace_context = getattr(cascade_pipeline, "with_context_enhancer", None)
+        if not callable(replace_context):
+            raise ValueError(
+                "context_enhancer is unsupported by the injected composite pipeline"
+            )
+        cascade_pipeline = cast(DetectionPipeline, replace_context(context_enhancer))
 
     recognizers: list[LocalRecognizer] = [CascadeRecognizer(cascade_pipeline)]
 

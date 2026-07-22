@@ -99,8 +99,8 @@ class CascadePipeline:
                 )
             ):
                 raise TypeError("model_identity must be a non-empty flat JSON-safe mapping")
-            self.model_identity: Mapping[str, str | int | bool | None] | None = (
-                MappingProxyType(dict(model_identity))
+            self.model_identity: Mapping[str, str | int | bool | None] | None = MappingProxyType(
+                dict(model_identity)
             )
         else:
             self.model_identity = None
@@ -189,6 +189,7 @@ class CascadePipeline:
         allow_evaluation_profile: bool = False,
         context_enhancer: ContextEnhancer | None = None,
         recognizer_deduplication_policy: str = "high_overlap_v1",
+        allowed_model_labels: Sequence[str] | None = None,
         model_identity: Mapping[str, str | int | bool | None] | None = None,
     ) -> CascadePipeline:
         """Build a cascade from one manifest-bound local safetensors model.
@@ -208,12 +209,17 @@ class CascadePipeline:
         from pii_zh.inference.transformers_predictor import load_local_predictor
         from pii_zh.presidio import QwenPiiRecognizer
 
-        predictor = load_local_predictor(
-            model_path,
-            device=device,
-            dtype=dtype,
-            micro_batch_size=micro_batch_size,
-        )
+        predictor_options: dict[str, Any] = {
+            "device": device,
+            "dtype": dtype,
+            "micro_batch_size": micro_batch_size,
+        }
+        if allowed_model_labels is not None:
+            # This must reach TransformersSpanPredictor before argmax/BIO
+            # decoding. Filtering recognizer output later is not equivalent:
+            # a disallowed logit can otherwise suppress an allowed label.
+            predictor_options["allowed_labels"] = allowed_model_labels
+        predictor = load_local_predictor(model_path, **predictor_options)
         recognizer = QwenPiiRecognizer(
             predictor=predictor,
             tokenizer=predictor.tokenizer,

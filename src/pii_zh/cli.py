@@ -9,7 +9,7 @@ import re
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import TextIO, cast
+from typing import Any, TextIO, cast
 
 from pii_zh.cascade import (
     COMMUNITY_MODEL_SERVICE_PROFILE_VERSION,
@@ -153,7 +153,8 @@ def _shared_parser() -> argparse.ArgumentParser:
         choices=("rules-only", "model-only", "cascade"),
         default=None,
         help=(
-            "recognizer mode (default: cascade for community-full-bie73-cascade-v1; "
+            f"recognizer mode (default: cascade for "
+            f"{COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION}; "
             "rules-only otherwise); BIE73 model-only is a validated service ablation"
         ),
     )
@@ -170,6 +171,14 @@ def _shared_parser() -> argparse.ArgumentParser:
         "--model-path",
         type=_local_directory,
         help="existing local model directory; required by model-only and cascade",
+    )
+    parser.add_argument(
+        "--primary-model-path",
+        type=_local_directory,
+        help=(
+            "local pinned CLUENER model directory; required by the "
+            "Presidio-primary BIE73 cascade"
+        ),
     )
     parser.add_argument(
         "--device",
@@ -220,6 +229,27 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     commands = parser.add_subparsers(dest="command", required=True)
+    prepare_cluener = commands.add_parser(
+        "prepare-cluener-primary",
+        help="convert the pinned CLUENER Hub download into the local service artifact",
+    )
+    prepare_cluener.add_argument(
+        "--source-dir",
+        required=True,
+        type=_local_directory,
+        help="local directory containing the exact pinned Hub revision and pytorch_model.bin",
+    )
+    prepare_cluener.add_argument(
+        "--output-dir",
+        required=True,
+        type=Path,
+        help="new directory for the verified safetensors-only primary artifact",
+    )
+    prepare_cluener.add_argument(
+        "--pretty",
+        action="store_true",
+        help="indent the preparation receipt printed to stdout",
+    )
     shared = _shared_parser()
     commands.add_parser(
         "detect",
@@ -245,7 +275,8 @@ def _parser() -> argparse.ArgumentParser:
         choices=("rules-only", "model-only", "cascade"),
         default=None,
         help=(
-            "recognizer mode (default: cascade for community-full-bie73-cascade-v1; "
+            f"recognizer mode (default: cascade for "
+            f"{COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION}; "
             "rules-only otherwise); BIE73 model-only is a validated service ablation"
         ),
     )
@@ -262,6 +293,14 @@ def _parser() -> argparse.ArgumentParser:
         "--model-path",
         type=_local_directory,
         help="existing local model directory; required by model-only and cascade",
+    )
+    serve.add_argument(
+        "--primary-model-path",
+        type=_local_directory,
+        help=(
+            "local pinned CLUENER model directory; required by the "
+            "Presidio-primary BIE73 cascade"
+        ),
     )
     serve.add_argument(
         "--device",
@@ -315,9 +354,10 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _pipeline(args: argparse.Namespace) -> CascadePipeline:
+def _pipeline(args: argparse.Namespace) -> Any:
     requested_mode = cast(CascadeMode | None, args.mode)
     model_path = cast(Path | None, args.model_path)
+    primary_model_path = cast(Path | None, getattr(args, "primary_model_path", None))
     profile = cast(str, args.profile)
     mode = (
         "cascade"
@@ -338,6 +378,10 @@ def _pipeline(args: argparse.Namespace) -> CascadePipeline:
             )
         if model_path is None:
             raise ValueError(f"--model-path is required in {mode} mode")
+        if mode == "cascade" and primary_model_path is None:
+            raise ValueError("--primary-model-path is required in cascade mode")
+        if mode == "model-only" and primary_model_path is not None:
+            raise ValueError("--primary-model-path is only valid in cascade mode")
         if calibration is not None or thresholds is not None:
             raise ValueError(
                 "the stable BIE73 CLI uses its frozen thresholds and does not accept "
@@ -345,6 +389,7 @@ def _pipeline(args: argparse.Namespace) -> CascadePipeline:
             )
         return build_full_bie73_service_pipeline(
             model_path,
+            primary_model_path=primary_model_path,
             scope=FULL_BIE73_DEFAULT_SCOPE if scope is None else scope,
             mode=mode,
             device=cast(str, args.device),
@@ -353,6 +398,11 @@ def _pipeline(args: argparse.Namespace) -> CascadePipeline:
     if scope is not None:
         raise ValueError(
             f"--scope requires --profile {COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION}"
+        )
+    if primary_model_path is not None:
+        raise ValueError(
+            f"--primary-model-path requires --profile "
+            f"{COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION}"
         )
     if mode == "rules-only":
         if model_path is not None:
@@ -495,8 +545,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
     try:
-        pipeline = _pipeline(args)
         command = cast(str, args.command)
+        if command == "prepare-cluener-primary":
+            from pii_zh.presidio.cluener_prepare import (
+                CLUENER_PRIMARY_PREPARATION_SCHEMA_VERSION,
+                prepare_cluener_primary_artifact,
+            )
+
+            artifact = prepare_cluener_primary_artifact(
+                cast(Path, args.source_dir),
+                cast(Path, args.output_dir),
+            )
+            _write_json(
+                {
+                    "schema_version": CLUENER_PRIMARY_PREPARATION_SCHEMA_VERSION,
+                    "status": "ready",
+                    "output_dir": str(artifact.root),
+                    "model_identity": dict(artifact.model_identity),
+                },
+                pretty=cast(bool, args.pretty),
+                stdout=sys.stdout,
+            )
+            return 0
+
+        pipeline = _pipeline(args)
         profile_version = cast(str, args.profile)
         raw_model_identity = getattr(pipeline, "model_identity", None)
         model_identity = (

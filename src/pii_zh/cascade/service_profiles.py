@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
 from types import MappingProxyType
@@ -186,6 +186,25 @@ def _normalize_thresholds(
     return normalized
 
 
+def _normalize_allowed_model_labels(
+    labels: Sequence[str] | None,
+) -> tuple[str, ...] | None:
+    if labels is None:
+        return None
+    if isinstance(labels, (str, bytes)):
+        raise TypeError("allowed_model_labels must be a sequence of model labels")
+    values = tuple(labels)
+    if not values or any(not isinstance(label, str) or not label for label in values):
+        raise ValueError("allowed_model_labels must contain model labels")
+    if len(set(values)) != len(values):
+        raise ValueError("allowed_model_labels must not contain duplicates")
+    core_labels = tuple(entity.name for entity in load_taxonomy().label_sets["core"])
+    requested = set(values)
+    if not requested <= set(core_labels):
+        raise ValueError("allowed_model_labels must be a subset of the core-24 model labels")
+    return tuple(label for label in core_labels if label in requested)
+
+
 def build_community_model_service_pipeline(
     model_path: str | Path,
     *,
@@ -195,6 +214,7 @@ def build_community_model_service_pipeline(
     micro_batch_size: int = 16,
     calibration: CalibrationBundle | Mapping[str, Any] | str | Path | None = None,
     thresholds: Mapping[str, float] | None = None,
+    allowed_model_labels: Sequence[str] | None = None,
 ) -> CascadePipeline:
     """Build the opt-in v6-rules + local 24-class model community profile.
 
@@ -209,6 +229,7 @@ def build_community_model_service_pipeline(
     verified = verify_community_model_artifact(model_path)
     normalized_calibration = _normalize_calibration(calibration)
     normalized_thresholds = _normalize_thresholds(thresholds)
+    normalized_allowed_labels = _normalize_allowed_model_labels(allowed_model_labels)
     explicit_policy = calibration is not None or thresholds is not None
     config = load_service_config(COMMUNITY_MODEL_SERVICE_PROFILE_VERSION, mode=mode)
     if explicit_policy:
@@ -229,6 +250,10 @@ def build_community_model_service_pipeline(
             else None
         ),
     }
+    if normalized_allowed_labels is not None:
+        model_identity["allowed_model_labels_sha256"] = canonical_json_hash(
+            normalized_allowed_labels
+        )
     loader_options: dict[str, Any] = {
         "config": config,
         "rule_recognizer": CnCommonRulePackV6() if config.uses_rules else None,
@@ -244,6 +269,8 @@ def build_community_model_service_pipeline(
         loader_options["calibration"] = normalized_calibration
     if normalized_thresholds is not None:
         loader_options["thresholds"] = normalized_thresholds
+    if normalized_allowed_labels is not None:
+        loader_options["allowed_model_labels"] = normalized_allowed_labels
     return CascadePipeline.from_pretrained(
         verified.root,
         **loader_options,

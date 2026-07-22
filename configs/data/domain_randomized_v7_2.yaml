@@ -1,0 +1,110 @@
+schema_version: 1
+
+dataset:
+  id: pii_zh_domain_randomized_v7
+  version: "7.2.0"
+  license: Apache-2.0
+  language: zh-Hans-CN
+  publication_pool: public_release_pool
+
+generation:
+  seed: 20260722
+  splits:
+    train: 72000
+    dev: 8000
+    independent_test: 8000
+  generation_order:
+    - independent_test
+    - train
+    - dev
+  pii_free_hard_negative_ratio: 0.40
+  natural_positive_ratio: 0.75
+  counterfactual_share_of_hard_negative: 0.625
+  positive_composition:
+    natural_dialogue: 0.25
+    natural_narrative: 0.25
+    natural_workflow: 0.125
+    natural_multi_entity: 0.125
+    structured_label_first: 0.125
+    structured_value_first: 0.125
+  cue_placements:
+    - left_only
+    - right_only
+    - bilateral
+  domains:
+    - customer_service
+    - ecommerce
+    - finance
+    - healthcare
+    - education
+    - human_resources
+    - government
+    - transport
+    - messaging
+    - email_contract
+    - developer_operations
+    - semi_structured_forms
+
+diversity_gates:
+  aliases_per_label: 3
+  surface_variants_per_cue_placement: 4
+  minimum_natural_semantic_skeletons_per_label:
+    train: 36
+    dev: 24
+    independent_test: 24
+  maximum_cue_placement_count_gap_per_label: 1
+  minimum_right_visible_cue_ratio: 0.666666
+  maximum_shortcut_cue_ratio_of_hard_negative: 0.05
+
+usage_policy:
+  train:
+    evaluation_only: false
+    public_weight_training_allowed: true
+    gradient_training_allowed: true
+    checkpoint_or_model_selection_allowed: false
+    threshold_or_fusion_selection_allowed: false
+    final_metric_claim_allowed: false
+    candidate_must_be_frozen_before_content_access: false
+    one_shot_only: false
+  dev:
+    evaluation_only: true
+    public_weight_training_allowed: false
+    gradient_training_allowed: false
+    checkpoint_or_model_selection_allowed: true
+    threshold_or_fusion_selection_allowed: true
+    final_metric_claim_allowed: false
+    candidate_must_be_frozen_before_content_access: false
+    one_shot_only: false
+  independent_test:
+    evaluation_only: true
+    public_weight_training_allowed: false
+    gradient_training_allowed: false
+    checkpoint_or_model_selection_allowed: false
+    threshold_or_fusion_selection_allowed: false
+    final_metric_claim_allowed: true
+    candidate_must_be_frozen_before_content_access: true
+    one_shot_only: true
+
+clean_room:
+  benchmark_rows_read: false
+  benchmark_predictions_read: false
+  benchmark_templates_read: false
+  prior_dataset_rows_read: false
+  prior_training_rows_read: false
+  external_dataset_inputs: []
+  repository_authored_grammars_only: true
+
+isolation:
+  split_specific_grammar_namespaces: true
+  split_specific_template_family_namespaces: true
+  split_specific_source_namespaces: true
+  global_nonrepeating_value_stream: true
+  pairwise_all_splits: true
+  required_zero_collision_groups:
+    - grammar_groups
+    - template_families
+    - semantic_skeletons
+    - value_groups
+    - source_groups
+    - text_hashes
+    - doc_ids

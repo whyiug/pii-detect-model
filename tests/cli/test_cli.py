@@ -15,6 +15,7 @@ from pii_zh.cascade import (
     CascadeConfig,
 )
 from pii_zh.full_bie73 import COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION
+from pii_zh.presidio.cluener_primary import VerifiedCluenerPrimaryArtifact
 
 
 def _stdout_json(capsys: pytest.CaptureFixture[str]) -> dict[str, Any]:
@@ -55,6 +56,54 @@ def test_rules_only_cli_does_not_construct_the_full_bie73_runtime(
 
     assert cli.main(["detect", "--text", "demo@example.com"]) == 0
     assert _stdout_json(capsys)["mode"] == "rules-only"
+
+
+def test_prepare_cluener_primary_runs_before_pipeline_construction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    import pii_zh.presidio.cluener_prepare as prepare_module
+
+    source = tmp_path / "source"
+    source.mkdir()
+    output = tmp_path / "prepared"
+
+    def forbidden_pipeline(args: object) -> object:
+        del args
+        raise AssertionError("preparation must not construct an inference pipeline")
+
+    def fake_prepare(source_dir: Path, output_dir: Path) -> VerifiedCluenerPrimaryArtifact:
+        assert source_dir == source.resolve()
+        assert output_dir == output
+        output_dir.mkdir()
+        return VerifiedCluenerPrimaryArtifact(
+            root=output_dir.resolve(),
+            model_identity={"source_model_id": "fixture/cluener"},
+            _snapshot=(),
+        )
+
+    monkeypatch.setattr(cli, "_pipeline", forbidden_pipeline)
+    monkeypatch.setattr(prepare_module, "prepare_cluener_primary_artifact", fake_prepare)
+
+    assert (
+        cli.main(
+            [
+                "prepare-cluener-primary",
+                "--source-dir",
+                str(source),
+                "--output-dir",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    payload = _stdout_json(capsys)
+    assert payload["schema_version"] == "pii-zh.cluener-primary.prepare.v1"
+    assert payload["status"] == "ready"
+    assert payload["output_dir"] == str(output.resolve())
+    assert payload["model_identity"] == {"source_model_id": "fixture/cluener"}
 
 
 def test_successor_profile_detects_strict_plates_and_rejects_legacy_fallbacks(
@@ -439,7 +488,14 @@ def test_full_bie73_cli_uses_selected_defaults_and_explicit_service_ablation(
 ) -> None:
     model_dir = tmp_path / "full-bie73"
     model_dir.mkdir()
+    primary_model_dir = tmp_path / "cluener-primary"
+    primary_model_dir.mkdir()
     calls: list[dict[str, object]] = []
+
+    assert (
+        COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION
+        == "community-presidio-bie73-cascade-v1"
+    )
 
     class EmptyPipeline:
         def __init__(self, *, mode: str, scope: str) -> None:
@@ -467,6 +523,8 @@ def test_full_bie73_cli_uses_selected_defaults_and_explicit_service_ablation(
                 COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
                 "--model-path",
                 str(model_dir),
+                "--primary-model-path",
+                str(primary_model_dir),
                 "--text",
                 "合成文本",
             ]
@@ -479,6 +537,7 @@ def test_full_bie73_cli_uses_selected_defaults_and_explicit_service_ablation(
     assert selected["model_identity"]["service_mode"] == "cascade"
     assert calls[-1] == {
         "model_path": model_dir.resolve(),
+        "primary_model_path": primary_model_dir.resolve(),
         "scope": "open24",
         "mode": "cascade",
         "device": "cpu",
@@ -512,9 +571,34 @@ def test_full_bie73_cli_uses_selected_defaults_and_explicit_service_ablation(
     }
     assert calls[-1]["scope"] == "closed8"
     assert calls[-1]["mode"] == "model-only"
+    assert calls[-1]["primary_model_path"] is None
+
+    call_count = len(calls)
+    assert (
+        cli.main(
+            [
+                "detect",
+                "--profile",
+                COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+                "--mode",
+                "model-only",
+                "--model-path",
+                str(model_dir),
+                "--primary-model-path",
+                str(primary_model_dir),
+                "--text",
+                "合成文本",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "--primary-model-path is only valid in cascade mode" in captured.err
+    assert len(calls) == call_count
 
 
-def test_full_bie73_cli_rejects_internal_threshold_override(
+def test_full_bie73_cli_cascade_requires_both_local_model_paths(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -536,6 +620,44 @@ def test_full_bie73_cli_rejects_internal_threshold_override(
                 COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
                 "--model-path",
                 str(model_dir),
+                "--text",
+                "合成文本",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "--primary-model-path is required in cascade mode" in captured.err
+    assert calls == []
+
+
+def test_full_bie73_cli_rejects_internal_threshold_override(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    model_dir = tmp_path / "full-bie73"
+    model_dir.mkdir()
+    primary_model_dir = tmp_path / "cluener-primary"
+    primary_model_dir.mkdir()
+    calls: list[object] = []
+    monkeypatch.setattr(
+        cli,
+        "build_full_bie73_service_pipeline",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+
+    assert (
+        cli.main(
+            [
+                "detect",
+                "--profile",
+                COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
+                "--model-path",
+                str(model_dir),
+                "--primary-model-path",
+                str(primary_model_dir),
                 "--threshold",
                 "PERSON_NAME=0.5",
                 "--text",

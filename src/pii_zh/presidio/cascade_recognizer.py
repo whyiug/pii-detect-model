@@ -3,11 +3,24 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Protocol
 
-from pii_zh.cascade import CascadePipeline
+from pii_zh.cascade import CascadeConfig, CascadeDetection
 
 from ._compat import LocalRecognizer, RecognizerResult, make_recognizer_result
+
+
+class DetectionPipeline(Protocol):
+    """Structural contract shared by cascade and primary/augmentation services."""
+
+    config: CascadeConfig
+
+    def detect(
+        self,
+        text: str,
+        *,
+        entities: Sequence[str] | None = None,
+    ) -> list[CascadeDetection]: ...
 
 
 class CascadeRecognizer(LocalRecognizer):
@@ -15,14 +28,16 @@ class CascadeRecognizer(LocalRecognizer):
 
     def __init__(
         self,
-        pipeline: CascadePipeline,
+        pipeline: DetectionPipeline,
         *,
         name: str = "PiiZhCascadeRecognizer",
         supported_language: str = "zh",
         version: str = "1.0.0",
     ) -> None:
-        if not isinstance(pipeline, CascadePipeline):
-            raise TypeError("pipeline must be a CascadePipeline")
+        if not isinstance(getattr(pipeline, "config", None), CascadeConfig) or not callable(
+            getattr(pipeline, "detect", None)
+        ):
+            raise TypeError("pipeline must expose CascadeConfig and detect")
         self.pipeline = pipeline
         super().__init__(
             supported_entities=sorted(pipeline.config.route_map),
@@ -60,4 +75,4 @@ class CascadeRecognizer(LocalRecognizer):
         ]
 
 
-__all__ = ["CascadeRecognizer"]
+__all__ = ["CascadeRecognizer", "DetectionPipeline"]

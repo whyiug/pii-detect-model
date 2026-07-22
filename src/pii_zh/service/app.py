@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Final, Protocol, TypeVar
+from typing import Final, Protocol, TypeVar, cast
 
 from fastapi import FastAPI, Response
 from fastapi.exceptions import RequestValidationError
@@ -32,6 +32,7 @@ from pii_zh.full_bie73 import (
     COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION,
     FULL_BIE73_DEFAULT_SCOPE,
     FullBie73Scope,
+    FullBie73ServiceMode,
     build_full_bie73_service_pipeline,
 )
 
@@ -285,6 +286,7 @@ def create_app(
     profile_version: str = DEFAULT_SERVICE_PROFILE_VERSION,
     mode: CascadeMode | None = None,
     model_path: str | Path | None = None,
+    primary_model_path: str | Path | None = None,
     scope: FullBie73Scope | None = None,
     device: str = "cpu",
     micro_batch_size: int = 16,
@@ -298,9 +300,9 @@ def create_app(
     """Create an offline service with an optional explicit local model.
 
     The zero-argument behavior remains the historical rules-only profile.  The
-    stable full-BIE73 profile defaults to its formally selected Open-24 cascade
-    and requires only a local checkpoint path; callers may explicitly request
-    its model-only service ablation or closed-8 pre-decode scope.  Historical
+    stable full-BIE73 profile defaults to a Presidio-primary Open-24 cascade
+    and requires local BIE73 and pinned CLUENER checkpoint paths; callers may
+    explicitly request the BIE73 model-only service ablation.  Historical
     profiles preserve their existing construction paths.  Model verification
     failures never fall back to rules-only behavior.
     """
@@ -326,6 +328,7 @@ def create_app(
             profile_version != DEFAULT_SERVICE_PROFILE_VERSION
             or resolved_mode != "rules-only"
             or model_path is not None
+            or primary_model_path is not None
             or scope is not None
             or device != "cpu"
             or micro_batch_size != 16
@@ -344,6 +347,10 @@ def create_app(
             )
         if model_path is None:
             raise ValueError(f"model_path is required in {resolved_mode} mode")
+        if resolved_mode == "cascade" and primary_model_path is None:
+            raise ValueError("primary_model_path is required in cascade mode")
+        if resolved_mode == "model-only" and primary_model_path is not None:
+            raise ValueError("primary_model_path is only valid in cascade mode")
         if calibration is not None or thresholds is not None:
             raise ValueError(
                 "the stable BIE73 HTTP profile uses its frozen thresholds and does not "
@@ -351,8 +358,9 @@ def create_app(
             )
         active_pipeline = build_full_bie73_service_pipeline(
             model_path,
+            primary_model_path=primary_model_path,
             scope=FULL_BIE73_DEFAULT_SCOPE if scope is None else scope,
-            mode=resolved_mode,
+            mode=cast(FullBie73ServiceMode, resolved_mode),
             device=device,
             micro_batch_size=micro_batch_size,
         )
@@ -363,6 +371,10 @@ def create_app(
             )
         if model_path is not None:
             raise ValueError("model_path is only valid in model-only or cascade mode")
+        if primary_model_path is not None:
+            raise ValueError(
+                "primary_model_path is only valid for the Presidio-primary BIE73 profile"
+            )
         if calibration is not None or thresholds is not None:
             raise ValueError("calibration and thresholds require a model-enabled mode")
         active_pipeline = build_rules_only_service_pipeline(profile_version)
@@ -372,6 +384,10 @@ def create_app(
         if scope is not None:
             raise ValueError(
                 f"scope requires profile_version={COMMUNITY_FULL_BIE73_CASCADE_PROFILE_VERSION}"
+            )
+        if primary_model_path is not None:
+            raise ValueError(
+                "primary_model_path is only valid for the Presidio-primary BIE73 profile"
             )
         if profile_version != COMMUNITY_MODEL_SERVICE_PROFILE_VERSION:
             raise ValueError("model-enabled HTTP service requires the community model profile")
@@ -496,6 +512,7 @@ def run(
     profile_version: str = DEFAULT_SERVICE_PROFILE_VERSION,
     mode: CascadeMode | None = None,
     model_path: str | Path | None = None,
+    primary_model_path: str | Path | None = None,
     scope: FullBie73Scope | None = None,
     device: str = "cpu",
     micro_batch_size: int = 16,
@@ -516,6 +533,7 @@ def run(
             profile_version=profile_version,
             mode=mode,
             model_path=model_path,
+            primary_model_path=primary_model_path,
             scope=scope,
             device=device,
             micro_batch_size=micro_batch_size,

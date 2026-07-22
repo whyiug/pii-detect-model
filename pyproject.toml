@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pii-zh-qwen"
-version = "0.2.0rc1"
-description = "Local-first Simplified Chinese PII detection with Chinese rules, a 24-class Qwen model cascade, and Presidio integration"
+version = "0.3.0rc1"
+description = "Local-first Simplified Chinese PII detection with a Presidio-primary cascade and BIE73 Qwen model augmentation"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -40,7 +40,7 @@ inference = [
 ]
 cascade = [
   "PyYAML>=6.0.1,<7",
-  "presidio-analyzer>=2.2.362,<2.3",
+  "presidio-analyzer==2.2.363",
   "safetensors>=0.4.5,<1",
   "torch>=2.4,<3",
   "transformers>=5.13,<6",
@@ -66,7 +66,7 @@ training = [
 ]
 presidio = [
   "PyYAML>=6.0.1,<7",
-  "presidio-analyzer>=2.2.362,<2.3",
+  "presidio-analyzer==2.2.363",
 ]
 dev = [
   "fastapi>=0.115,<1",
@@ -88,7 +88,7 @@ pii-zh-evaluate-ablation = "pii_zh.evaluation.cascade_ablation_cli:main"
 Documentation = "https://github.com/whyiug/pii-detect-model"
 Issues = "https://github.com/whyiug/pii-detect-model/issues"
 Model = "https://huggingface.co/Forrest20231206/pii-zh-qwen3-0.6b-24class"
-Release = "https://github.com/whyiug/pii-detect-model/releases/tag/v0.2.0rc1"
+Release = "https://github.com/whyiug/pii-detect-model/releases/tag/v0.3.0rc1"
 Source = "https://github.com/whyiug/pii-detect-model"
 
 [tool.setuptools]

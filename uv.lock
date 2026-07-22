@@ -2113,7 +2113,7 @@ wheels = [
 
 [[package]]
 name = "pii-zh-qwen"
-version = "0.2.0rc1"
+version = "0.3.0rc1"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },
@@ -2190,8 +2190,8 @@ requires-dist = [
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13,<2" },
     { name = "numpy", marker = "extra == 'training'", specifier = ">=1.26,<3" },
     { name = "peft", marker = "extra == 'training'", specifier = ">=0.14,<1" },
-    { name = "presidio-analyzer", marker = "extra == 'cascade'", specifier = ">=2.2.362,<2.3" },
-    { name = "presidio-analyzer", marker = "extra == 'presidio'", specifier = ">=2.2.362,<2.3" },
+    { name = "presidio-analyzer", marker = "extra == 'cascade'", specifier = "==2.2.363" },
+    { name = "presidio-analyzer", marker = "extra == 'presidio'", specifier = "==2.2.363" },
     { name = "pydantic", marker = "extra == 'service'", specifier = ">=2.10,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.3,<10" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6,<7" },
